@@ -597,6 +597,117 @@ canvas.game-canvas {
   padding: 20px;
 }
 
+/* Menu kampung (2026-11-04, permintaan user): topbar dihapus, navigasi
+   jadi 1 tombol kanan-atas + kartu modal. Kartu memakai overlay-full
+   (z 50, di atas FAB 35, di bawah modal 60). */
+.menu-fab {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 35;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 24, 46, 0.92);
+  border: 1.5px solid rgba(250, 204, 21, 0.55);
+  color: #facc15;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+}
+.menu-fab:active {
+  transform: scale(0.95);
+}
+.menu-card {
+  background: rgba(11, 24, 46, 0.98);
+  border: 1.5px solid rgba(250, 204, 21, 0.4);
+  border-radius: 16px;
+  color: #e2f5ff;
+}
+.menu-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.menu-card-title {
+  font-size: 16px;
+  font-weight: 800;
+}
+.menu-card-sub {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+  line-height: 1.5;
+}
+.menu-close {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2f5ff;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.menu-res-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+}
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(250, 204, 21, 0.5);
+}
+.menu-item:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.menu-item-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.menu-item-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+}
+.menu-item-desc {
+  display: block;
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+  line-height: 1.45;
+}
+
 .kasta-super_kaya { color: var(--gold); }
 .kasta-kaya { color: #f0abfc; }
 .kasta-menengah { color: #86efac; }

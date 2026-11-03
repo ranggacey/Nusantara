@@ -180,10 +180,10 @@ export default function Page() {
       [resource]: (prev[resource] ?? 0) + amount,
     }));
   }, []);
-  // Navigasi RONDE 4: topbar SEMBUNYI default (peta fullscreen penuh),
-  // muncul saat mau dipencet (handle atas / tombol gear kanan-atas).
+  // Menu kampung (2026-11-04, permintaan user): topbar DIHAPUS, diganti
+  // 1 tombol kanan-atas (menu-fab) yang membuka kartu modal menu.
   // TIDAK ADA tombol gacha (keputusan user masih menunggu — ronde 2).
-  const [navTampil, setNavTampil] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [roadLevel, setRoadLevel] = useState<number>(1);
   // Setting label karakter (2026-11-04): default tampil; "0" di
@@ -484,188 +484,132 @@ export default function Page() {
 
   return (
     <div className={`game-root${orientasi === "landscape" ? " landscape-mode" : ""}`}>
-      <header className={`game-topbar${navTampil ? "" : " nav-tersembunyi"}`}>
-        <div className="topbar-scroll">
-        <div className="hud-left-group">
-          <div className="hud-title-wrap">
-            <span className="hud-game-title">Negara Emas</span>
-            <span className="hud-era-pill">Zaman Batu</span>
-          </div>
-          <div className="hud-info-chips">
-            <span className="hud-info-chip" title="Nama Kampung & Populasi">
-              🏰 {world?.kampung ?? "Suka Maju"} (👥 {world ? world.populasi : "…"})
-            </span>
-            <span className="hud-info-chip" title="Waktu & Cuaca">
-              ⏰ {jamTampil?.includes("•") ? jamTampil.split("•")[1]?.trim() : (jamTampil || "12.00")} ({world?.label_fase ?? "Siang"}) • {labelCuaca(cuaca)} • H-{world?.hari_total ?? 1}
-            </span>
-          </div>
-        </div>
-
-        <div className="hud-resource-dock">
-          {RES.map((r) => {
-            const current = world ? (stok[r.id] ?? 0) : null;
-            const max = kapasitas[r.id] ?? 100;
-            const isFull = typeof current === "number" && current >= max;
-            const curFmt = current !== null ? formatK(current) : "…";
-            const maxFmt = formatK(max);
-            return (
-              <div
-                key={r.id}
-                className={`hud-res-chip${isFull ? " res-full" : ""}`}
-                title={`${r.label}: ${current ?? "…"} / ${max} ${isFull ? "(Kapasitas Penuh!)" : ""}`}
-              >
-                <img src={r.icon} alt={r.label} width={16} height={16} className="hud-res-icon" />
-                <span className="hud-res-num">{curFmt}/{maxFmt}</span>
-                {isFull && <span className="hud-full-dot" title="Kapasitas lumbung penuh" />}
+      {/* Menu kampung (2026-11-04, permintaan user): topbar DIHAPUS,
+          diganti 1 tombol kanan-atas yang membuka kartu modal menu.
+          Semua tombol lama pindah ke sini, masing-masing dengan ikon,
+          nama, dan penjelasan fungsinya. Info kampung + resource ikut
+          di atas kartu supaya tidak ada info yang hilang. */}
+      <button className="menu-fab" title="Menu Kampung" onClick={() => setMenuOpen(true)} aria-label="Buka menu kampung">
+        <span>☰</span>
+      </button>
+      {menuOpen && (
+        <div className="overlay-full" onClick={() => setMenuOpen(false)}>
+          <div className="modal-box menu-card" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-card-head">
+              <div>
+                <div className="menu-card-title">☰ Menu Kampung</div>
+                <div className="menu-card-sub">
+                  🏰 {world?.kampung ?? "Suka Maju"} (👥 {world ? world.populasi : "…"}) • ⏰ {jamTampil?.includes("•") ? jamTampil.split("•")[1]?.trim() : (jamTampil || "12.00")} ({world?.label_fase ?? "Siang"}) • {labelCuaca(cuaca)} • H-{world?.hari_total ?? 1}
+                </div>
               </div>
-            );
-          })}
-        </div>
-
-        <div className="hud-right-group">
-          <button
-            className="hud-btn hud-btn-resto"
-            title="Masuk ke Interior Restoran Nirwana 3D"
-            onClick={() => router.push("/restoransichuan")}
-          >
-            <span>🏮</span>
-            <span>Resto</span>
-          </button>
-          <button
-            className="hud-btn hud-btn-musyawarah"
-            title="Musyawarah Bulanan Pemimpin Kampung"
-            onClick={() => setShowMusyawarah(true)}
-          >
-            <span>📜</span>
-            <span>Musyawarah</span>
-          </button>
-          <button
-            className="hud-btn hud-btn-tatakota"
-            title="Tata Kota Kampung"
-            onClick={handleTataKotaGemini}
-            disabled={loadingTataKota}
-          >
-            <span>🏡</span>
-            <span>{loadingTataKota ? "Menata..." : "Tata Kota"}</span>
-          </button>
-          <button
-            className="hud-btn hud-btn-tatakota"
-            title="Saran Jalan Gemini"
-            onClick={handleJalanGemini}
-            disabled={loadingJalanGemini}
-          >
-            <span>🛤️</span>
-            <span>{loadingJalanGemini ? "Memikir..." : "Jalan Gemini"}</span>
-          </button>
-          <button
-            className="hud-btn hud-btn-tatakota"
-            title="Rapikan Gemini: geser bangunan yang menabrak bangunan lain"
-            onClick={handleRapikanGemini}
-            disabled={loadingRapikanGemini}
-          >
-            <span>🔧</span>
-            <span>{loadingRapikanGemini ? "Merapi..." : "Rapikan Gemini"}</span>
-          </button>
-          <button
-            className="hud-btn hud-btn-road"
-            title={`Gaya Jalan: Level ${roadLevel} (${roadLevel === 3 ? "Kerajaan Megah" : roadLevel === 2 ? "Batu Koral" : "Tanah Liar"}). Ketuk untuk ganti.`}
-            onClick={() => {
-              const next = roadLevel >= 3 ? 1 : roadLevel + 1;
-              setRoadLevel(next);
-              try {
-                localStorage.setItem("ne_road_level", String(next));
-              } catch {}
-            }}
-          >
-            <span>{roadLevel === 3 ? "👑" : roadLevel === 2 ? "🪨" : "🪵"}</span>
-            <span>Lv{roadLevel}</span>
-          </button>
-
-          <div className="hud-icon-cluster">
-            <button className="hud-icon-btn" title={suara ? "Matikan suara (mute)" : "Nyalakan suara"} onClick={toggleSuara}>
-              <NeoIcon name={suara ? "suara" : "suaraMati"} size={16} />
-            </button>
-            <button className="hud-icon-btn" title="Pengaturan" onClick={() => togglePanel("pengaturan")}>
-              <NeoIcon name="gear" size={16} />
-            </button>
-            <button className="hud-icon-btn" title="Inventori" onClick={() => togglePanel("inventori")}>
-              <NeoIcon name="inventory" size={16} />
-            </button>
-            <button className="hud-icon-btn btn-orient" title="Ganti orientasi (mobile)" onClick={() => void toggleOrientasi()}>
-              <NeoIcon name="rotate" size={16} />
-            </button>
+              <button className="menu-close" title="Tutup menu" onClick={() => setMenuOpen(false)} aria-label="Tutup menu">
+                ✕
+              </button>
+            </div>
+            <div className="menu-res-row">
+              {RES.map((r) => {
+                const current = world ? (stok[r.id] ?? 0) : null;
+                const max = kapasitas[r.id] ?? 100;
+                const isFull = typeof current === "number" && current >= max;
+                const curFmt = current !== null ? formatK(current) : "…";
+                const maxFmt = formatK(max);
+                return (
+                  <div
+                    key={r.id}
+                    className={`hud-res-chip${isFull ? " res-full" : ""}`}
+                    title={`${r.label}: ${current ?? "…"} / ${max} ${isFull ? "(Kapasitas Penuh!)" : ""}`}
+                  >
+                    <img src={r.icon} alt={r.label} width={16} height={16} className="hud-res-icon" />
+                    <span className="hud-res-num">{curFmt}/{maxFmt}</span>
+                    {isFull && <span className="hud-full-dot" title="Kapasitas lumbung penuh" />}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="menu-list">
+              <button className="menu-item" title="Masuk ke Interior Restoran Nirwana 3D" onClick={() => { setMenuOpen(false); router.push("/restoransichuan"); }}>
+                <span className="menu-item-icon">🏮</span>
+                <span>
+                  <span className="menu-item-title">Resto</span>
+                  <span className="menu-item-desc">Masuk ke interior Restoran Nirwana 3D: meja, lentera, dan suasana makan bersama.</span>
+                </span>
+              </button>
+              <button className="menu-item" title="Musyawarah Bulanan Pemimpin Kampung" onClick={() => { setMenuOpen(false); setShowMusyawarah(true); }}>
+                <span className="menu-item-icon">📜</span>
+                <span>
+                  <span className="menu-item-title">Musyawarah</span>
+                  <span className="menu-item-desc">Rapat bulanan pemimpin kampung: kabar, keputusan, dan arah kampung.</span>
+                </span>
+              </button>
+              <button className="menu-item" title="Tata Kota Kampung" onClick={() => { setMenuOpen(false); void handleTataKotaGemini(); }} disabled={loadingTataKota}>
+                <span className="menu-item-icon">🏡</span>
+                <span>
+                  <span className="menu-item-title">{loadingTataKota ? "Menata..." : "Tata Kota"}</span>
+                  <span className="menu-item-desc">Gemini memindahkan satu rumah ke tepi jalan supaya kampung lebih rapi.</span>
+                </span>
+              </button>
+              <button className="menu-item" title="Saran Jalan Gemini" onClick={() => { setMenuOpen(false); void handleJalanGemini(); }} disabled={loadingJalanGemini}>
+                <span className="menu-item-icon">🛤️</span>
+                <span>
+                  <span className="menu-item-title">{loadingJalanGemini ? "Memikir..." : "Jalan Gemini"}</span>
+                  <span className="menu-item-desc">Gemini menyarankan segmen jalan berikutnya yang paling berguna untuk kampung.</span>
+                </span>
+              </button>
+              <button className="menu-item" title="Rapikan Gemini: geser bangunan yang menabrak bangunan lain" onClick={() => { setMenuOpen(false); void handleRapikanGemini(); }} disabled={loadingRapikanGemini}>
+                <span className="menu-item-icon">🔧</span>
+                <span>
+                  <span className="menu-item-title">{loadingRapikanGemini ? "Merapi..." : "Rapikan Gemini"}</span>
+                  <span className="menu-item-desc">Gemini menggeser bangunan yang menumpuk dengan bangunan lain ke petak kosong.</span>
+                </span>
+              </button>
+              <button
+                className="menu-item"
+                title={`Gaya Jalan: Level ${roadLevel} (${roadLevel === 3 ? "Kerajaan Megah" : roadLevel === 2 ? "Batu Koral" : "Tanah Liar"}). Ketuk untuk ganti.`}
+                onClick={() => {
+                  const next = roadLevel >= 3 ? 1 : roadLevel + 1;
+                  setRoadLevel(next);
+                  try {
+                    localStorage.setItem("ne_road_level", String(next));
+                  } catch {}
+                }}
+              >
+                <span className="menu-item-icon">{roadLevel === 3 ? "👑" : roadLevel === 2 ? "🪨" : "🪵"}</span>
+                <span>
+                  <span className="menu-item-title">Gaya Jalan: Lv{roadLevel}</span>
+                  <span className="menu-item-desc">Ganti tampilan jalan kampung: Tanah, Batu Koral, atau Kerajaan. Ketuk untuk ganti level.</span>
+                </span>
+              </button>
+              <button className="menu-item" title={suara ? "Matikan suara (mute)" : "Nyalakan suara"} onClick={toggleSuara}>
+                <span className="menu-item-icon">{suara ? "🔊" : "🔇"}</span>
+                <span>
+                  <span className="menu-item-title">Suara: {suara ? "Nyala" : "Mati"}</span>
+                  <span className="menu-item-desc">Nyalakan atau matikan semua efek suara game.</span>
+                </span>
+              </button>
+              <button className="menu-item" title="Pengaturan" onClick={() => { setMenuOpen(false); togglePanel("pengaturan"); }}>
+                <span className="menu-item-icon">⚙️</span>
+                <span>
+                  <span className="menu-item-title">Pengaturan</span>
+                  <span className="menu-item-desc">Atur suara, label karakter (mode ringan), orientasi, dan gaya jalan.</span>
+                </span>
+              </button>
+              <button className="menu-item" title="Inventori" onClick={() => { setMenuOpen(false); togglePanel("inventori"); }}>
+                <span className="menu-item-icon">🎒</span>
+                <span>
+                  <span className="menu-item-title">Inventori</span>
+                  <span className="menu-item-desc">Lihat stok resource dan perkakas kampung.</span>
+                </span>
+              </button>
+              <button className="menu-item" title="Ganti orientasi (mobile)" onClick={() => { setMenuOpen(false); void toggleOrientasi(); }}>
+                <span className="menu-item-icon">🔄</span>
+                <span>
+                  <span className="menu-item-title">Orientasi: {orientasi}</span>
+                  <span className="menu-item-desc">Putar tampilan antara portrait dan landscape (mobile).</span>
+                </span>
+              </button>
+            </div>
           </div>
-
-          {/* Tombol Balik Atas Permanen di Ujung Kanan Nav */}
-          <button
-            className="hud-btn hud-btn-balik-atas"
-            title="Lipat Navigasi ke Atas (Balik Atas)"
-            onClick={() => setNavTampil(false)}
-          >
-            <span style={{ fontSize: 13, lineHeight: 1 }}>▲</span>
-            <span className="balik-atas-text">Balik Atas</span>
-          </button>
         </div>
-        </div>
-
-        {/* Tab Balik Atas Melayang di Tengah Bawah Topbar */}
-        <button
-          className="nav-topbar-fold-tab"
-          title="Lipat navigasi ke atas (Balik Atas)"
-          onClick={() => setNavTampil(false)}
-          aria-label="Lipat navigasi ke atas"
-        >
-          <span className="nav-fold-chevron">▲</span>
-          <span>Balik Atas</span>
-        </button>
-      </header>
-
-      {/* Navigasi sembunyi: handle atas (ketuk = tampilkan nav) +
-          gear kecil kanan-atas (ketuk = tampilkan nav + buka Pengaturan).
-          Saat nav tampil, tombol ▴ di ujung kanan nav menyembunyikannya.
-          Tombol kanan-bawah = tambah karakter (komponen TambahKarakter,
-          ronde 7) — tidak bentrok dengan nav/handle/gear di atas. */}
-      {!navTampil && (
-        <>
-          <button
-            title="Musyawarah Bulanan Pemimpin Kampung"
-            onClick={() => setShowMusyawarah(true)}
-            style={{
-              position: "fixed",
-              top: 14,
-              left: 14,
-              zIndex: 35,
-              background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
-              border: "1.5px solid #f59e0b",
-              borderRadius: 20,
-              padding: "6px 14px",
-              color: "#ffffff",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(0,0,0,0.6), 0 0 10px rgba(245, 158, 11, 0.4)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span>📜</span>
-            <span>Musyawarah Bulanan</span>
-          </button>
-          <button className="nav-handle" title="Tampilkan navigasi" onClick={() => setNavTampil(true)} aria-label="Tampilkan navigasi">
-            <span className="nav-handle-chevron">▾</span>
-          </button>
-          <button
-            className="nav-gear-float"
-            title="Pengaturan"
-            onClick={() => {
-              setNavTampil(true);
-              setPanel("pengaturan");
-            }}
-          >
-            <NeoIcon name="gear" size={26} />
-          </button>
-        </>
       )}
 
       {/* RONDE 8 — pil versi baru: muncul bila deployment live lebih baru

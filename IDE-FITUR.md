@@ -56,6 +56,30 @@ dipahami, bagus dilihat, dan enak dipakai user — bukan sekadar
 fitur jalan. Kalau satu perbaikan bikin tampilan lebih ribet,
 itu bukan perbaikan.
 
+## Ide 5 — Penanda warga tanpa pos + kabar ringkas (dari riset 2026-11-04 00:29 WIB, sudut sosial/QoL)
+
+Sumber: devlog Cradle of Mankind ("no post, no work" + gossip feed)
+dan ulasan Animal Valley (pemain minta sinyal "semua pekerja
+menganggur"). Masalah: warga diam terlihat sama saja, entah stok
+penuh, menunggu tick, atau tanpa pos kerja — pemain tidak tahu
+harus memperbaiki apa. Cara kerja: display-only, ikon kecil di
+atas warga yang status sim-nya menganggur tanpa pos + satu baris
+ringkas di kabar kampung ("3 warga belum punya pos kerja"). Tidak
+mengubah sim. Dampak tinggi, usaha kecil. Detail di
+research/2026-11-04-0029.md.
+
+## Ide 6 — Papan kebutuhan kampung (dari riset 2026-11-04 00:29 WIB)
+
+Sumber: Cradle of Mankind (kampung "meminta" hal baru di ambang
+populasi) + Hearthbound (daily goals pemandu). Masalah: setelah
+kampung stabil, pemain tidak tahu target berikutnya. Cara kerja:
+panel ringan "Kampung menginginkan" yang menampilkan 1-2 kebutuhan
+berikutnya dari tangga DESAIN-EKONOMI.md (mis. "populasi 12 +
+satu bengkel -> Balai"). Jembatan menuju kunci tingkat: panelnya
+dulu, kuncinya belakangan. Dampak sedang-tinggi, usaha sedang.
+Tidak direkomendasikan dari riset ini: voice chat/trading antar
+pemain dan combat gua real-time (terlalu berat / mengubah genre).
+
 ## Ide-ide berikutnya
 
 Diisi dari riset web tiap run cron (fitur baru yang fresh,

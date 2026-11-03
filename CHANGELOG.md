@@ -169,7 +169,74 @@ ubin tujuan yang rintangan (pengecualian final-step); (3) hewan kabur
 - Tes: penjaga statis untuk wrapper, display contents, strip geser
   HP, pil era, dan posisi fold tab.
 
-### Belum dikerjakan (antrean cron berikutnya)
+## 2026-11-04 (cron 00:29 WIB) — Display hewan memutar bangunan + brief riset sosial/QoL
+
+### Display hewan tidak lagi menembus rumah (tindak lanjut run sebelumnya)
+- `Map3D`: loop hewan kini memakai `jalurTampil` (BFS waypoint)
+  dengan pola yang sama seperti warga — kunci jalur = ubin tujuan
+  server, dihitung ulang bila tujuan berubah atau waypoint pertama
+  sudah tidak masuk akal, gagal BFS -> garis lurus seperti dulu.
+  Hewan juga menghadap waypoint, bukan arah lurus ke server.
+  Entri hewanMap mendapat field `jalur`/`jalurKey`.
+- Tes: 4 penjaga statis baru (field jalur, perhitungan jalurTampil
+  hewan, geser waypoint saat tiba, hadap waypoint). Total run ini:
+  7660 lolos / 657 gagal — 657 gagal SAMA PERSIS dengan baseline
+  (r11/r14/r15/r18), nol regresi baru. Build Next.js hijau pada
+  tree gabungan (lihat catatan tabrakan di bawah).
+
+### Observasi live (browser, hanya melihat, 00:29-00:34 WIB)
+- Muat pertama berat: desa penuh baru tampil setelah ~60-90 detik
+  ("Memuat Peta 3D..." lama); setelah itu normal, jam jalan
+  (H-213, 07:56 Pagi, Cerah), warga campur jalan/ngobrol/bertugas
+  ("Menghalau Hewan! 66%"), hewan terlihat jelas dan berlabel
+  (Babi Hutan, Rusa, Kelinci, Kucing, Ayam, Bebek, Kambing, Anjing).
+- Strip sumber atas tampak terpotong di tepi atas; ada tombol
+  Pengaturan dan Musyawarah ganda (responsivitas tidak dites karena
+  dilarang klik ubah state). Tidak ada area blank/error setelah muat.
+- Stok live masih meluber dari data lama (mis. Pangan 462,6k/850,
+  Kayu 9,7k/740, semua "Kapasitas Penuh!"): clamp kode hanya
+  mencegah penambah BARU meluber, bukan memperbaiki data lama —
+  dan cron dilarang menulis DB, jadi ini dicatat saja.
+
+### Riset + backlog (brief research/2026-11-04-0029.md)
+- Sudut: sosial/QoL. Sumber: devlog Cradle of Mankind ("no post,
+  no work" + gossip feed + papan pengumuman), Hearthbound (daily
+  goals pemandu, surat, hadiah), ulasan Animal Valley (minta sinyal
+  "semua pekerja menganggur"). Ide 5 (penanda warga tanpa pos +
+  kabar ringkas) dan Ide 6 (papan kebutuhan kampung) masuk
+  IDE-FITUR.md. Tidak direkomendasikan: voice chat/trading antar
+  pemain dan combat gua real-time.
+- Irisan desain-ekonomi yang lebih besar (kunci tingkat) TIDAK
+  diambil run ini: bukan irisan kecil satu run (butuh katalog +
+  gating API + UI + tes), jadi ditunda ke run yang memang
+  dialokasikan untuk itu.
+
+### CATATAN TABRAKAN — DEPLOY RUN INI DITUNDA (bukan gagal tes)
+- Saat run ini mulai, tree sudah berisi perubahan BELUM COMMIT dari
+  sesi lain (setting label karakter + navbar mobile geser di
+  page.tsx, globals.css, Map3D.tsx, tests, CHANGELOG) — perubahan
+  itu koheren dan tesnya hijau, tapi belum di-commit/di-deploy
+  oleh pemiliknya. Karena file Map3D.tsx/tests/CHANGELOG.md kini
+  memuat DUA pekerjaan sekaligus, push run ini akan ikut
+  men-deploy pekerjaan sesi lain yang belum tentu selesai.
+  Sesuai aturan cron (ragu -> tunda deploy), run ini TIDAK push
+  dan TIDAK deploy manual. Perubahan run ini (jalur hewan + tes +
+  riset + backlog + entri ini) tetap di working tree, siap
+  di-commit begitu sesi lain selesai. Main agent perlu
+  mengoordinasikan urutan commit/deploy kedua pekerjaan ini.
+
+### Belum dikerjakan
+
+## 2026-11-04 (permintaan user) — Navbar dihapus, ganti menu modal
+
+### Topbar dihapus, navigasi jadi kartu modal
+- `page.tsx`: header topbar, tab Balik Atas, tombol Musyawarah melayang kiri, handle ▾, dan gear melayang kanan-atas DIHAPUS semua. Penggantinya: 1 tombol ☰ kanan-atas (menu-fab, z 35) yang membuka kartu modal (overlay-full + menu-card, z 50).
+- Kartu modal berisi: info kampung (nama, populasi, jam, fase, cuaca, hari) + strip resource (angka + penanda Kapasitas Penuh, sama seperti dock lama) + 10 tombol menu, masing-masing dengan ikon, nama, dan penjelasan fungsinya: Resto, Musyawarah, Tata Kota, Jalan Gemini, Rapikan Gemini, Gaya Jalan (menu tetap terbuka supaya bisa ketuk berulang ganti level), Suara (menu tetap terbuka), Pengaturan, Inventori, Orientasi.
+- Tombol aksi (Resto, Musyawarah, Gemini, Pengaturan, Inventori, Orientasi) menutup menu dulu baru menjalankan aksinya; toggle (Suara, Gaya Jalan) membiarkan menu tetap terbuka supaya state baru langsung kelihatan.
+- Efek samping yang ikut beres: tombol Pengaturan/Musyawarah yang tampak ganda (observasi cron 00:29) hilang karena tombol-tombol itu kini hanya ada di satu tempat.
+- CSS topbar lama (.game-topbar, .hud-*, .nav-*, .topbar-scroll) masih ada di globals.css tapi sudah tidak dipakai siapa pun — dibiarkan dulu, dibersihkan di run berikutnya supaya diff tetap fokus.
+- Tes: blok RONDE 4 diperbarui (asersi topbar/handle/gear lama diganti asersi menu); 15 penjaga statis baru + 2 asersi RONDE 4 baru. Total: 7668 lolos / 656 gagal — 656 = baseline 657 minus 1 asersi usang ("tombol sembunyikan" yang sudah merah sejak sebelum perubahan ini karena string-nya tidak ada di page). Nol regresi baru. Build Next.js hijau.
+- Koreksi atas entri cron 00:29 di bawah: kode display hewan memutar bangunan ternyata SUDAH ikut ter-deploy lewat commit 4752abd (Map3D.tsx masuk manifest push itu karena saat push, file tersebut sudah berisi edit cron) — yang baru ikut push kali ini adalah 4 tes penjaganya + entri CHANGELOG + IDE/research run tersebut. Jadi perbaikan hewannya sudah live sejak 4752abd, bukan menunggu deploy ini. (antrean cron berikutnya)
 - UI pemilih bangunan untuk /api/gemini/penempatan (route
   sudah siap, tombol belum).
 - Audit 657 tes lama yang merah di baseline.

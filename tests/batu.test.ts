@@ -642,13 +642,12 @@ ok(POHON_TINGGI / ORANG_TINGGI > 3, "pohon > 3x orang");
 }
 
 // RONDE 4 — navigasi: topbar sembunyi default + handle + gear (tanpa gacha).
+// 2026-11-04: DIHAPUS atas permintaan user — topbar diganti 1 tombol
+// kanan-atas + kartu modal menu (penjaga baru ada di blok MENU KAMPUNG).
 {
   const pageSrc = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
-  ok(pageSrc.includes("navTampil"), "page: state navTampil ada");
-  ok(pageSrc.includes("nav-tersembunyi"), "page: topbar tersembunyi saat default");
-  ok(pageSrc.includes("nav-handle"), "page: handle atas ada");
-  ok(pageSrc.includes("nav-gear-float"), "page: gear kanan-atas ada");
-  ok(pageSrc.includes("Sembunyikan navigasi"), "page: tombol sembunyikan ada");
+  ok(pageSrc.includes("menuOpen") && pageSrc.includes('className="menu-fab"'), "page: 1 tombol menu kanan-atas ada (pengganti topbar/handle/gear)");
+  ok(!pageSrc.includes("navTampil") && !pageSrc.includes("game-topbar"), "page: topbar lama + state navTampil sudah dihapus");
   const mapSrc = readFileSync(new URL("../src/components/Map3D.tsx", import.meta.url), "utf8");
   ok(mapSrc.includes("langkahAyunan") && mapSrc.includes("sudutAyunan"), "map3d: ayunan kaki warga pakai helper");
   ok(mapSrc.includes("sudutKakiHewan") && mapSrc.includes("headBaseY"), "map3d: animasi hewan (kaki diagonal + kepala)");
@@ -2074,12 +2073,29 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrc2.includes("labelTampil?: boolean") && mapSrc2.includes("labelTampilRef"), "label: Map3D punya prop + ref labelTampil");
   ok(mapSrc2.includes('el.style.display = labelTampil ? "" : "none"'), "label: container label disembunyikan saat setting mati");
   ok(mapSrc2.includes("if (!labelTampilRef.current)"), "label: loop frame melewatkan update label saat disembunyikan");
-  ok(pageSrc2.includes('<div className="topbar-scroll">'), "navbar: ada pembungkus strip topbar-scroll");
-  ok(cssSrc.includes(".topbar-scroll") && cssSrc.includes("display: contents"), "navbar: desktop topbar-scroll display contents (nol perubahan layout)");
-  ok(cssSrc.includes("@media (max-width: 760px)") && cssSrc.includes(".topbar-scroll {") && cssSrc.includes("overflow-x: auto"), "navbar: HP topbar-scroll jadi strip geser horizontal");
-  ok(cssSrc.includes(".hud-era-pill") && cssSrc.includes("display: none"), "navbar: pil era disembunyikan di HP");
-  // Fold tab tetap di luar strip (tidak ikut kegeser saat strip digeser).
-  ok(pageSrc2.indexOf("topbar-scroll") < pageSrc2.indexOf("nav-topbar-fold-tab"), "navbar: fold tab tetap di luar strip geser");
+}
+
+// MENU KAMPUNG (2026-11-04, permintaan user: navbar dihapus, ganti 1
+// tombol kanan-atas + kartu modal menu dengan penjelasan tiap tombol).
+{
+  const pageSrc3 = readFileSync("src/app/page.tsx", "utf8");
+  const cssSrc3 = readFileSync("src/app/globals.css", "utf8");
+  ok(!pageSrc3.includes("game-topbar") && !pageSrc3.includes("navTampil") && !pageSrc3.includes("nav-handle") && !pageSrc3.includes("nav-gear-float") && !pageSrc3.includes("nav-topbar-fold-tab"), "menu: topbar + handle + gear + fold tab sudah dihapus dari page");
+  ok(pageSrc3.includes('className="menu-fab"') && pageSrc3.includes("menuOpen") && pageSrc3.includes("setMenuOpen(true)"), "menu: ada 1 tombol kanan-atas yang membuka modal menu");
+  ok(pageSrc3.includes("overlay-full") && pageSrc3.includes("menu-card"), "menu: modal kartu memakai overlay + menu-card");
+  ok(pageSrc3.includes("Menu Kampung") && pageSrc3.includes("menu-item"), "menu: ada daftar item menu");
+  // Tiap tombol lama ada + punya penjelasan (bukan cuma ikon).
+  ok(pageSrc3.includes("Masuk ke interior Restoran Nirwana 3D"), "menu: Resto ada + ada penjelasannya");
+  ok(pageSrc3.includes("Rapat bulanan pemimpin kampung"), "menu: Musyawarah ada + ada penjelasannya");
+  ok(pageSrc3.includes("Gemini memindahkan satu rumah ke tepi jalan"), "menu: Tata Kota ada + ada penjelasannya");
+  ok(pageSrc3.includes("Gemini menyarankan segmen jalan berikutnya"), "menu: Jalan Gemini ada + ada penjelasannya");
+  ok(pageSrc3.includes("Gemini menggeser bangunan yang menumpuk"), "menu: Rapikan Gemini ada + ada penjelasannya");
+  ok(pageSrc3.includes("Ganti tampilan jalan kampung"), "menu: Gaya Jalan ada + ada penjelasannya");
+  ok(pageSrc3.includes("Nyalakan atau matikan semua efek suara"), "menu: Suara ada + ada penjelasannya");
+  ok(pageSrc3.includes("Atur suara, label karakter (mode ringan), orientasi, dan gaya jalan"), "menu: Pengaturan ada + ada penjelasannya");
+  ok(pageSrc3.includes("Lihat stok resource dan perkakas kampung"), "menu: Inventori ada + ada penjelasannya");
+  ok(pageSrc3.includes("Putar tampilan antara portrait dan landscape"), "menu: Orientasi ada + ada penjelasannya");
+  ok(cssSrc3.includes(".menu-fab") && cssSrc3.includes(".menu-card") && cssSrc3.includes(".menu-item"), "menu: CSS tombol + kartu + item ada");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
