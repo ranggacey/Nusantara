@@ -47,6 +47,9 @@ interface Props {
   jamTotal: number;
   onResourceHarvested?: (resource: string, amount: number) => void;
   roadLevel?: number;
+  // Setting label karakter (2026-11-04): false = sembunyikan semua label
+  // DOM karakter (nama, dialog, aksi, HP) supaya HP lebih ringan.
+  labelTampil?: boolean;
 }
 
 // Deterministik dari index (stabil antar render).
@@ -1059,11 +1062,13 @@ function buildAnimal(jenis: string): THREE.Group {
   return g;
 }
 
-export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWarga, onLepasKunci, onTapBangunan, gameFase, jamTotal, onResourceHarvested, roadLevel = 1 }: Props) {
+export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWarga, onLepasKunci, onTapBangunan, gameFase, jamTotal, onResourceHarvested, roadLevel = 1, labelTampil = true }: Props) {
   const onResourceHarvestedRef = useRef(onResourceHarvested);
   onResourceHarvestedRef.current = onResourceHarvested;
   const roadLevelRef = useRef(roadLevel);
   roadLevelRef.current = roadLevel;
+  const labelTampilRef = useRef(labelTampil);
+  labelTampilRef.current = labelTampil;
   const wrapRef = useRef<HTMLDivElement>(null);
   const labelsRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<J | null>(map);
@@ -1084,6 +1089,15 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
   faseRef.current = gameFase;
   const jamRef = useRef(jamTotal);
   jamRef.current = jamTotal;
+
+  // Setting label karakter (2026-11-04): container display none membuat
+  // browser melewatkan layout/paint seluruh label (nama, dialog, aksi,
+  // HP) — ini penghematan utamanya di HP. Loop frame juga melewatkan
+  // update posisi label bila disembunyikan (lihat labelTampilRef).
+  useEffect(() => {
+    const el = labelsRef.current;
+    if (el) el.style.display = labelTampil ? "" : "none";
+  }, [labelTampil]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -1243,7 +1257,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     }
     const hewanMap = new Map<
       string,
-      { group: THREE.Group; label: HTMLDivElement; hpBar: HTMLDivElement; hpFill: HTMLDivElement; dx: number; dz: number; tx: number; tz: number; speedPerSec: number; pace: number; id: string; jenis: string; cycle: number; hp: number; hpMax: number }
+      { group: THREE.Group; label: HTMLDivElement; hpBar: HTMLDivElement; hpFill: HTMLDivElement; dx: number; dz: number; tx: number; tz: number; speedPerSec: number; pace: number; id: string; jenis: string; cycle: number; hp: number; hpMax: number; jalur?: { x: number; z: number }[]; jalurKey?: string }
     >();
     const konstruksiLabels = new Map<string, HTMLDivElement>();
     let terrainSig = "";
@@ -1700,7 +1714,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           labelsEl.appendChild(label);
           const hpMax0 = typeof (h as any).hpMax === "number" ? (h as any).hpMax : 1;
           const hp0 = typeof (h as any).hp === "number" ? (h as any).hp : hpMax0;
-          hewanMap.set(String(h.id), { group, label, hpBar, hpFill, dx: tw.x, dz: tw.z, tx: tw.x, tz: tw.z, speedPerSec: 0.45, pace: 0.45, id: String(h.id), jenis: String(h.jenis ?? "-"), cycle: Math.random() * Math.PI * 2, hp: hp0, hpMax: hpMax0 });
+          hewanMap.set(String(h.id), { group, label, hpBar, hpFill, dx: tw.x, dz: tw.z, tx: tw.x, tz: tw.z, speedPerSec: 0.45, pace: 0.45, id: String(h.id), jenis: String(h.jenis ?? "-"), cycle: Math.random() * Math.PI * 2, hp: hp0, hpMax: hpMax0, jalur: [], jalurKey: "" });
         }
       }
       for (const [id, cur] of [...hewanMap]) {
@@ -2508,7 +2522,10 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         vec.set(px + wigX, 2.1, pz + wigZ).project(camera);
         const camDistWarga = camera.position.distanceTo(cur.group.position);
         const offscreen = vec.z > 1 || vec.z < -1 || camDistWarga > 140;
-        if (offscreen) {
+        if (!labelTampilRef.current) {
+          cur.label.style.display = "none";
+          cur.bubble.style.display = "none";
+        } else if (offscreen) {
           cur.label.style.display = "none";
           cur.bubble.style.display = "none";
         } else {
@@ -2555,13 +2572,40 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           cur.dx = cur.tx;
           cur.dz = cur.tz;
         }
-        const stepHewan = langkahDisplay(cur.dx, cur.dz, cur.tx, cur.tz, cur.speedPerSec, dt);
+        // Jalur memutar bangunan untuk HEWAN (2026-11-04, tindak lanjut
+        // run sebelumnya): pola yang sama seperti warga — BFS waypoint
+        // via jalurTampil, bukan garis lurus menembus rumah. Kunci jalur
+        // = ubin tujuan server; dihitung ulang bila tujuan berubah
+        // atau waypoint pertama sudah tidak masuk akal. Gagal BFS ->
+        // jalur kosong = garis lurus seperti dulu (fallback aman).
+        let wx = cur.tx;
+        let wz = cur.tz;
+        {
+          const { gw, gh, gmin } = gridTampil;
+          const cxT = gmin + gw / 2;
+          const cyT = gmin + gh / 2;
+          const tileDariH = { gx: Math.round(cur.dx + cxT - 0.5), gy: Math.round(cur.dz + cyT - 0.5) };
+          const tileKeH = { gx: Math.round(cur.tx + cxT - 0.5), gy: Math.round(cur.tz + cyT - 0.5) };
+          const keyH = `${tileKeH.gx},${tileKeH.gy}`;
+          const jalurBasiH = !cur.jalur || cur.jalurKey !== keyH || (cur.jalur.length > 0 && Math.hypot(cur.jalur[0].x - cur.dx, cur.jalur[0].z - cur.dz) > Math.hypot(cur.tx - cur.dx, cur.tz - cur.dz) + 2);
+          if (jalurBasiH) {
+            const tilesH = jalurTampil(tileDariH, tileKeH, rintanganTampil, (gx, gy) => gunungTampil.some((g) => (gx - g.cx) ** 2 + (gy - g.cy) ** 2 <= g.r * g.r));
+            cur.jalurKey = keyH;
+            cur.jalur = tilesH ? tilesH.map((t) => toWorld(t.gx, t.gy, gw, gh, gmin)) : [];
+          }
+          if (cur.jalur && cur.jalur.length > 0) {
+            wx = cur.jalur[0].x;
+            wz = cur.jalur[0].z;
+          }
+        }
+        const stepHewan = langkahDisplay(cur.dx, cur.dz, wx, wz, cur.speedPerSec, dt);
+        if (stepHewan.tiba && cur.jalur && cur.jalur.length > 0) cur.jalur.shift();
         const px = stepHewan.x;
         const pz = stepHewan.z;
         const stepH = stepHewan.moved;
         const bergerak = stepH > 0;
         if (bergerak) {
-          cur.group.rotation.y = Math.atan2(cur.tx - cur.dx, cur.tz - cur.dz);
+          cur.group.rotation.y = Math.atan2(wx - cur.dx, wz - cur.dz);
         }
         const hu = cur.group.userData as any;
         if (bergerak && stepH > 0) {
@@ -2613,7 +2657,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         cur.dx = px;
         cur.dz = pz;
         vec.set(px, 1.4, pz).project(camera);
-        if (vec.z > 1 || vec.z < -1 || camDist > 130) {
+        if (!labelTampilRef.current || vec.z > 1 || vec.z < -1 || camDist > 130) {
           cur.label.style.display = "none";
         } else {
           cur.label.style.display = "block";

@@ -2044,6 +2044,15 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const ring = new Set(["51,49", "52,49", "53,49", "51,50", "53,50", "51,51", "52,51", "53,51"]);
   ok(jalurTampil({ gx: 50, gy: 50 }, { gx: 52, gy: 50 }, ring) === null, "jalurTampil: tujuan terkepung -> null");
   ok(JSON.stringify(jalurTampil({ gx: 50, gy: 50 }, { gx: 50, gy: 50 }, blok)) === "[]", "jalurTampil: sudah di tujuan -> []");
+  // Jalur hewan (2026-11-04): Map3D harus memakai jalurTampil juga
+  // untuk hewan, bukan garis lurus — penjaga statis atas sumber Map3D.
+  {
+    const mapSrcH = readFileSync("src/components/Map3D.tsx", "utf8");
+    ok(mapSrcH.includes("jalurKey?: string") && mapSrcH.includes("jalur?: { x: number; z: number }[]"), "hewan: entri hewanMap punya jalur + jalurKey");
+    ok(mapSrcH.includes("jalurBasiH") && mapSrcH.includes("tileKeH") && mapSrcH.includes("jalurTampil(tileDariH, tileKeH"), "hewan: loop hewan menghitung jalurTampil memutar rintangan");
+    ok(mapSrcH.includes("cur.jalur.shift()") || mapSrcH.includes("cur.jalur.shift"), "hewan: waypoint hewan digeser saat tiba");
+    ok(mapSrcH.includes("Math.atan2(wx - cur.dx, wz - cur.dz)"), "hewan: hewan menghadap waypoint, bukan garis lurus ke server");
+  }
   // pasanganTumpuk: tumpang 1 ubin ketahuan, bersebelahan saja tidak.
   const p1 = { kind: "gubuk", gx: 50, gy: 50, w: 2, h: 2 };
   const p2 = { kind: "lumbung", gx: 51, gy: 51, w: 2, h: 2 };
@@ -2051,6 +2060,26 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(t !== null && t.tetap === p1 && t.geser === p2, "tumpuk: pasangan tumpang ketahuan, pertama dipertahankan");
   ok(pasanganTumpuk([p1, { kind: "lumbung", gx: 52, gy: 50, w: 2, h: 2 }]) === null, "tumpuk: bersebelahan tanpa ubin sama -> null");
   ok(pasanganTumpuk([p1, { kind: "lumbung", gx: 50, gy: 50, w: 1, h: 1 }]) !== null, "tumpuk: posisi asal sama beda kind -> ketahuan");
+}
+
+// SETTING LABEL KARAKTER + NAVBAR MOBILE (2026-11-04, permintaan user:
+// sembunyikan nama/dialog biar ringan; navbar HP kepotong).
+{
+  const pageSrc2 = readFileSync("src/app/page.tsx", "utf8");
+  const mapSrc2 = readFileSync("src/components/Map3D.tsx", "utf8");
+  const cssSrc = readFileSync("src/app/globals.css", "utf8");
+  ok(pageSrc2.includes("ne_label_karakter"), "label: page pakai kunci localStorage ne_label_karakter");
+  ok(pageSrc2.includes("toggleLabel") && pageSrc2.includes("labelTampil={labelTampil}"), "label: page punya toggle + oper prop ke Map3D");
+  ok(pageSrc2.includes("Label karakter (nama, dialog, aksi)"), "label: ada baris setting di panel Pengaturan");
+  ok(mapSrc2.includes("labelTampil?: boolean") && mapSrc2.includes("labelTampilRef"), "label: Map3D punya prop + ref labelTampil");
+  ok(mapSrc2.includes('el.style.display = labelTampil ? "" : "none"'), "label: container label disembunyikan saat setting mati");
+  ok(mapSrc2.includes("if (!labelTampilRef.current)"), "label: loop frame melewatkan update label saat disembunyikan");
+  ok(pageSrc2.includes('<div className="topbar-scroll">'), "navbar: ada pembungkus strip topbar-scroll");
+  ok(cssSrc.includes(".topbar-scroll") && cssSrc.includes("display: contents"), "navbar: desktop topbar-scroll display contents (nol perubahan layout)");
+  ok(cssSrc.includes("@media (max-width: 760px)") && cssSrc.includes(".topbar-scroll {") && cssSrc.includes("overflow-x: auto"), "navbar: HP topbar-scroll jadi strip geser horizontal");
+  ok(cssSrc.includes(".hud-era-pill") && cssSrc.includes("display: none"), "navbar: pil era disembunyikan di HP");
+  // Fold tab tetap di luar strip (tidak ikut kegeser saat strip digeser).
+  ok(pageSrc2.indexOf("topbar-scroll") < pageSrc2.indexOf("nav-topbar-fold-tab"), "navbar: fold tab tetap di luar strip geser");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

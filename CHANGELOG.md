@@ -134,6 +134,41 @@ ubin tujuan yang rintangan (pengecualian final-step); (3) hewan kabur
 - Tombol "Rapikan Gemini" di topbar sebelah "Jalan Gemini", pola
   alert + muat ulang sama seperti tombol Gemini lain.
 
+## 2026-11-04 — Setting label karakter (mode ringan) + navbar mobile geser
+
+### Setting sembunyikan nama/dialog karakter (optimasi)
+- Penyebab berat: tiap warga/hewan punya label DOM (nama, bar HP,
+  teks aksi, pip, bubble dialog) yang diproyeksikan + digeser tiap
+  frame. Satu toggle di panel Pengaturan ("Label karakter (nama,
+  dialog, aksi)") menyembunyikan SEMUA label itu: prop labelTampil
+  dari page -> Map3D; container labelsEl display none (browser
+  melewatkan layout/paint seluruh label) + loop frame melewatkan
+  update posisi label saat mati. Karakter 3D tetap jalan seperti
+  biasa, hanya labelnya hilang. Pilihan tersimpan di localStorage
+  kunci ne_label_karakter ("0" = sembunyi) sehingga bertahan antar
+  kunjungan. Default tetap tampil (tidak mengubah pengalaman lama).
+- Tes: 11 penjaga statis baru (kunci storage, toggle + prop,
+  baris Pengaturan, prop/ref Map3D, container display, guard loop).
+
+### Navbar mobile: strip geser horizontal
+- Akar masalah (bukan sekadar "kepotong"): .game-topbar satu baris
+  nowrap + overflow visible + grup kanan flex-shrink 0, dan TIDAK
+  ADA aturan topbar di media query HP selama ini — jadi di layar
+  390px tombol kanan (gear, inventori, Balik Atas) keluar layar dan
+  tak terjangkau. Mengecilkan tombol saja tidak cukup karena isinya
+  memang lebih lebar dari layar.
+- Perbaikan: tiga grup topbar dibungkus .topbar-scroll. Di desktop
+  display:contents (nol perubahan layout). Di HP (<=760px) strip
+  menjadi satu baris geser horizontal: semua tombol tetap berteks
+  penuh dan bisa dibaca, tinggal geser untuk mencapai ujung kanan;
+  dock resource ikut strip (tidak lagi memendek sendiri); tombol
+  diperkecil (27px, padding 8px, font 10.5px); pil era
+  disembunyikan. Tab Balik Atas sengaja tetap di luar strip supaya
+  tidak ikut kegeser. Pengecekan viewport HP via browser juga
+  dijalankan untuk membuktikan potongan sebelum perbaikan.
+- Tes: penjaga statis untuk wrapper, display contents, strip geser
+  HP, pil era, dan posisi fold tab.
+
 ### Belum dikerjakan (antrean cron berikutnya)
 - UI pemilih bangunan untuk /api/gemini/penempatan (route
   sudah siap, tombol belum).

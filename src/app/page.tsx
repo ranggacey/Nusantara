@@ -186,6 +186,18 @@ export default function Page() {
   const [navTampil, setNavTampil] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [roadLevel, setRoadLevel] = useState<number>(1);
+  // Setting label karakter (2026-11-04): default tampil; "0" di
+  // localStorage = sembunyi (mode ringan, bertahan antar kunjungan).
+  const [labelTampil, setLabelTampil] = useState(true);
+  const toggleLabel = () => {
+    setLabelTampil((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("ne_label_karakter", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  };
   const [versiBaru, setVersiBaru] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Offset jam perangkat -> jam server (dari /api/world server_ms):
@@ -206,6 +218,7 @@ export default function Page() {
       }
       const rl = localStorage.getItem("ne_road_level");
       if (rl) setRoadLevel(Number(rl));
+      if (localStorage.getItem("ne_label_karakter") === "0") setLabelTampil(false);
     } catch {
       /* abaikan */
     }
@@ -472,6 +485,7 @@ export default function Page() {
   return (
     <div className={`game-root${orientasi === "landscape" ? " landscape-mode" : ""}`}>
       <header className={`game-topbar${navTampil ? "" : " nav-tersembunyi"}`}>
+        <div className="topbar-scroll">
         <div className="hud-left-group">
           <div className="hud-title-wrap">
             <span className="hud-game-title">Negara Emas</span>
@@ -592,6 +606,7 @@ export default function Page() {
             <span className="balik-atas-text">Balik Atas</span>
           </button>
         </div>
+        </div>
 
         {/* Tab Balik Atas Melayang di Tengah Bawah Topbar */}
         <button
@@ -696,6 +711,7 @@ export default function Page() {
             jamTotal={Number(world?.jam_total ?? 0)}
             onResourceHarvested={handleResourceHarvested}
             roadLevel={roadLevel}
+            labelTampil={labelTampil}
           />
         </div>
 
@@ -737,6 +753,17 @@ export default function Page() {
                 <p style={{ fontSize: 11, opacity: 0.75, marginTop: 0 }}>
                   Efek suara mengikuti jarak kamera: langkah kaki, perkakas (kapak/beliung/palu), api unggun, air sungai, dan suara
                   hewan — jauh tidak terdengar, dekat makin jelas. Suara mulai setelah sentuhan pertama (aturan autoplay HP).
+                </p>
+                <div style={{ fontSize: 12, marginBottom: 4 }}>
+                  Label karakter (nama, dialog, aksi):{" "}
+                  <button className="md-btn" style={{ padding: "4px 10px" }} onClick={toggleLabel}>
+                    {labelTampil ? "Tampil (ketuk untuk sembunyikan)" : "Sembunyi — mode ringan (ketuk untuk tampilkan)"}
+                  </button>
+                </div>
+                <p style={{ fontSize: 11, opacity: 0.75, marginTop: 0 }}>
+                  Mode ringan menyembunyikan semua label di atas karakter — nama, bubble dialog, teks aksi, dan bar HP — sehingga
+                  browser tidak lagi menggambar dan menggeser puluhan label tiap detik. Karakter 3D-nya tetap jalan seperti biasa,
+                  hanya labelnya yang hilang.
                 </p>
                 <div className="orient-mobile-only" style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 12, marginBottom: 4 }}>Orientasi (mobile): {orientasi}</div>
