@@ -4,8 +4,8 @@ import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong } from 
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement } from "../src/lib/batu/dunia";
-import { pintarUntukJalan, rencanaJalan, jalurJalan, SEGMEN_JALAN, TIM_JALAN_INT_MIN } from "../src/lib/batu/jalan";
-import { kecepatanJalan, lajuKumpul, jumlahKumpul, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
+import { pintarUntukJalan, rencanaJalan, jalurJalan, jalurSegmen, SEGMEN_JALAN, TIM_JALAN_INT_MIN } from "../src/lib/batu/jalan";
+import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, capHarianUntuk, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
 import { paceTampil, lajuServerPerDetik, langkahDisplay, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "../src/lib/batu/tampil";
 import { gainJarak, panKamera, SFX_JARAK, SFX_PERKAKAS, SFX_HEWAN } from "../src/lib/audio";
 import { HEWAN, hewanById } from "../src/lib/batu/hewan";
@@ -1047,12 +1047,13 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   ok(pemburu.membawa_daging != null && pemburu.membawa_daging.jenis === "Rusa", "r10: tiba di daging -> membawa_daging");
   ok(String(pemburu.fase_siklus) === "kembali", "r10: setelah ambil -> kembali ke kampung");
   ok((ctxH.daging ?? []).length === 0, "r10: daging diambil -> dokumen hilang dari peta");
-  // Tiba di kampung -> stok naik (rusa pangan 6).
+  // Tiba di kampung -> stok naik (rusa pangan 6, TAPI cap harian
+  // pangan 2026-11-03 = 3/hari/orang, jadi hanya 3 yang masuk stok).
   pemburu.lokasi = { gx: 100, gy: 100 };
   pemburu.tujuan = { gx: 100, gy: 100 };
   pemburu.fase_siklus = "kembali";
   stepWarga(pemburu, 14, ctxH);
-  ok(pemburu.membawa_daging === null && ctxH.stok.pangan === stokSebelum + 6, "r10: tiba kampung -> stok pangan +6, daging habis dibawa");
+  ok(pemburu.membawa_daging === null && ctxH.stok.pangan === stokSebelum + 3, "r10: tiba kampung -> stok pangan +3 (cap harian), daging habis dibawa");
   // Malam: pemburu tidak berburu.
   const malam = wargaDasar({ peran: "pemburu", stat: { int: 5, str: 10, agi: 10, sta: 10 }, lokasi: { gx: 100, gy: 100 }, fase_siklus: "jalan" });
   const ctxM = { ...ctxKosong(malam), hewan: [{ _id: "h10", jenis: "rusa", gx: 101, gy: 100 }], daging: [] as DagingDoc[], dagingHapus: new Set<string>(), wargaSemua: [malam] };
@@ -1896,6 +1897,113 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const mapSrc18 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(mapSrc18.includes("jalanGroup"), "r18: Map3D render grup jalan");
   ok(mapSrc18.includes("0xa08b6d"), "r18: Map3D warna strip jalan tanah/batu");
+}
+
+// ATURAN KUMPUL HARIAN (2026-11-03, DESAIN-EKONOMI.md): roll + cap + clamp + alihan.
+{
+  const wBiasa = {
+    peran: "penebang", bakat: "", perkakas: [], stat: { int: 5, str: 5, agi: 5, sta: 5 },
+  } as unknown as Warga;
+  const N = 20000;
+  let min = 99; let maks = -1; let total = 0;
+  for (let i = 0; i < N; i++) {
+    const r = rollHasilKumpul("kayu", wBiasa);
+    if (r < min) min = r;
+    if (r > maks) maks = r;
+    total += r;
+  }
+  ok(min >= 1 && maks <= 3, "kumpul biasa: roll kayu 1..3");
+  const meanKayu = total / N;
+  ok(meanKayu > 1.4 && meanKayu < 2.0, `kumpul biasa: rata-rata kayu ${meanKayu.toFixed(2)} di 1,4..2,0`);
+  let minB = 99; let maksB = -1; let totalB = 0; let nolB = 0;
+  for (let i = 0; i < N; i++) {
+    const r = rollHasilKumpul("besi", wBiasa);
+    if (r < minB) minB = r;
+    if (r > maksB) maksB = r;
+    totalB += r;
+    if (r === 0) nolB++;
+  }
+  ok(minB === 0 && maksB <= 2, "kumpul besi: roll 0..2");
+  const meanBesi = totalB / N;
+  ok(meanBesi > 0.4 && meanBesi < 0.7, `kumpul besi: rata-rata ${meanBesi.toFixed(2)} di 0,4..0,7`);
+  ok(nolB / N > 0.4, `kumpul besi: hari tanpa besi >40% (dapat ${(nolB / N * 100).toFixed(1)}%)`);
+  const wBakat = { ...wBiasa, bakat: "STR" } as unknown as Warga;
+  let totalBB = 0; let nolBB = 0;
+  for (let i = 0; i < N; i++) {
+    const r = rollHasilKumpul("besi", wBakat);
+    totalBB += r;
+    if (r === 0) nolBB++;
+  }
+  const meanBesiBakat = totalBB / N;
+  ok(meanBesiBakat > 0.6 && meanBesiBakat < 0.95, `kumpul besi berbakat: rata-rata ${meanBesiBakat.toFixed(2)} di 0,6..0,95`);
+  ok(nolBB / N < 0.5, `kumpul besi berbakat: hari tanpa besi <50% (dapat ${(nolBB / N * 100).toFixed(1)}%)`);
+  ok(capHarianUntuk("kayu") === 3 && capHarianUntuk("besi") === 2, "cap harian: 3 biasa, 2 langka");
+  const wCap = { kumpul_hari: undefined, kumpul_harian: undefined } as unknown as Warga;
+  ok(sisaCapHarian(wCap, "kayu", 10) === 3, "cap harian: kayu segar = 3");
+  ok(sisaCapHarian(wCap, "besi", 10) === 2, "cap harian: besi segar = 2");
+  catatKumpulHarian(wCap, "kayu", 2, 10);
+  ok(sisaCapHarian(wCap, "kayu", 10) === 1, "cap harian: kayu sisa 1 setelah 2");
+  catatKumpulHarian(wCap, "kayu", 1, 10);
+  ok(sisaCapHarian(wCap, "kayu", 10) === 0, "cap harian: kayu habis setelah 3");
+  ok(sisaCapHarian(wCap, "kayu", 11) === 3, "cap harian: reset hari baru");
+  const ctxClamp = {
+    stok: { kayu: 199, batu: 0, pangan: 0, kulit: 0, emas: 0, besi: 0 },
+    kapasitasMaks: { kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60 },
+  } as unknown as SimCtx;
+  ok(tambahStokClamp(ctxClamp, "kayu", 5) === 1, "clamp: tambah 5 di stok 199/200 hanya masuk 1");
+  ok((ctxClamp.stok as unknown as Record<string, number>).kayu === 200, "clamp: stok mentok di 200");
+  ok(tambahStokClamp(ctxClamp, "kayu", 5) === 0, "clamp: stok penuh, tambah 0");
+  const wPenuh = {
+    peran: "penebang", lokasi: { gx: 50, gy: 50 }, node: { kind: "pohon", gx: 51, gy: 51 },
+    fase_siklus: "kumpul", stamina: 80, lapar: 10,
+  } as unknown as Warga;
+  const ctxPenuh = {
+    stok: { kayu: 200, batu: 0, pangan: 0, kulit: 0, emas: 0, besi: 0 },
+    kapasitasMaks: { kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60 },
+    wargaSemua: [], rintangan: new Set<string>(), nodeTilesAll: new Set<string>(),
+    hunianTitik: () => ({ gx: 50, gy: 50 }),
+  } as unknown as SimCtx;
+  ok(apakahStokPeranPenuh(wPenuh, ctxPenuh), "stok penuh: penebang terdeteksi penuh");
+  ok(terapkanRehatStokPenuh(wPenuh, ctxPenuh), "stok penuh: alihan jalan");
+  const nodeSesudah = (wPenuh as unknown as { node: { pseudo?: string } | null }).node;
+  ok(nodeSesudah === null || nodeSesudah?.pseudo === "santai", "stok penuh: tidak lagi di node kumpul (bantu/santai/rehat)");
+  ok((wPenuh as unknown as { aksi_sekarang: string }).aksi_sekarang !== "mengumpulkan", "stok penuh: tidak lagi mengumpulkan");
+  const wLega = { peran: "penebang" } as unknown as Warga;
+  const ctxLega = {
+    stok: { kayu: 10, batu: 0, pangan: 0, kulit: 0, emas: 0, besi: 0 },
+    kapasitasMaks: { kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60 },
+  } as unknown as SimCtx;
+  ok(!terapkanRehatStokPenuh(wLega, ctxLega), "stok lega: tidak dialihkan");
+}
+
+// GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
+{
+  const plJalan = [
+    { kind: "lumbung", gx: 48, gy: 48, w: 2, h: 2 },
+    { kind: "paviliun_makan", gx: 54, gy: 48, w: 3, h: 3 },
+    { kind: "gubuk", gx: 48, gy: 54, w: 2, h: 2 },
+  ];
+  const j = jalurSegmen("lumbung-paviliun", plJalan, new Set(), new Set());
+  ok(j !== null && j.segmen === "lumbung-paviliun", "jalurSegmen: lumbung-paviliun ketemu");
+  ok(j !== null && j.tiles.length > 0, "jalurSegmen: ada ubin jalan");
+  ok(jalurSegmen("tidak-ada", plJalan, new Set(), new Set()) === null, "jalurSegmen: id tidak dikenal -> null");
+  if (j) {
+    const selesai = new Set(j.tiles.map((t) => `${t.gx},${t.gy}`));
+    ok(jalurSegmen("lumbung-paviliun", plJalan, selesai, new Set()) === null, "jalurSegmen: segmen selesai -> null");
+  }
+}
+
+// ANTI-DUPLIKAT (2026-11-03, pesan Fina): penjaga statis — seed
+// idempotent, upsert kunci posisi, indeks unik.
+{
+  const simSrcAnti = readFileSync("src/lib/batu/sim.ts", "utf8");
+  ok(!simSrcAnti.includes("tiles.insertOne"), "antidup: seed tidak lagi insertOne mentah");
+  ok(simSrcAnti.includes("{ gx: b.gx, gy: b.gy }"), "antidup: upsert selesai kunci posisi saja");
+  ok(simSrcAnti.includes("posisinya sudah dipakai bangunan lain"), "antidup: kabar batal bila posisi direbut");
+  ok(simSrcAnti.includes("plot antrean lain"), "antidup: plot antrean lain menghalangi plot baru");
+  const dbSrc = readFileSync("src/lib/db.ts", "utf8");
+  ok(dbSrc.includes("pastikanIndexPlacement"), "antidup: db punya pastikanIndexPlacement");
+  ok(dbSrc.includes("uniq_posisi") && dbSrc.includes("unique: true"), "antidup: indeks unik posisi");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

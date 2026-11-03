@@ -120,7 +120,7 @@ export default function RestoranInterior3D({
     scene.fog = new THREE.FogExp2(0x18100c, 0.016);
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
-    camera.position.set(0, 11, 18);
+    camera.position.set(0, 13, 26);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(width, height);
@@ -136,7 +136,7 @@ export default function RestoranInterior3D({
     controls.dampingFactor = 0.05;
     controls.maxPolarAngle = Math.PI / 2.05;
     controls.minDistance = 3;
-    controls.maxDistance = 30;
+    controls.maxDistance = 46;
     controls.target.set(0, 2, 0);
 
     // ==========================================
@@ -199,6 +199,11 @@ export default function RestoranInterior3D({
     tambahLentera(0, 6, 2, 0xffbb44, 2.0); // Balai Meja Utama
     tambahLentera(-5, 5, 6, 0xff9922, 1.4);
     tambahLentera(5, 5, 6, 0xff9922, 1.4);
+    // SAYAP BARU (2026-11-03, permintaan user): lentera hangat temaram
+    // di ruang yang diperbesar, supaya tidak gelap saat dijelajahi.
+    tambahLentera(-14, 5, 2, 0xffa033, 1.8); // Sayap kiri
+    tambahLentera(14, 5, 2, 0xff5511, 1.8); // Sayap kanan
+    tambahLentera(0, 6, -11, 0xffbb44, 2.0); // Dekat dinding belakang
 
     // ==========================================
     // MATERIAL RUANGAN
@@ -210,8 +215,9 @@ export default function RestoranInterior3D({
     const matEmasKoin = new THREE.MeshStandardMaterial({ color: 0xdfa024, metalness: 0.7, roughness: 0.3 });
     const matKarpetSichuan = new THREE.MeshStandardMaterial({ color: 0x8b1e16, roughness: 0.6 });
 
-    // Lantai Restoran Mewah (24 x 20)
-    const lantai = new THREE.Mesh(new THREE.BoxGeometry(24, 0.6, 20), matLantai);
+    // Lantai Restoran Mewah (36 x 28) — diperbesar 2026-11-03 supaya
+    // eksplorasi halaman restoran lebih lega.
+    const lantai = new THREE.Mesh(new THREE.BoxGeometry(36, 0.6, 28), matLantai);
     lantai.position.y = -0.3;
     lantai.receiveShadow = true;
     scene.add(lantai);
@@ -224,8 +230,8 @@ export default function RestoranInterior3D({
 
     // Tiang-tiang Kayu Penyangga Balai
     const posisiTiang = [
-      [-11, -9], [-11, 0], [-11, 9],
-      [11, -9], [11, 0], [11, 9],
+      [-17, -9], [-17, 0], [-17, 9],
+      [17, -9], [17, 0], [17, 9],
       [-4, -9], [-4, 9],
       [4, -9], [4, 9],
     ];
@@ -238,21 +244,21 @@ export default function RestoranInterior3D({
     });
 
     // Dinding Kisi-kisi Bambu & Rangka Kayu
-    const dindingBlk = new THREE.Mesh(new THREE.BoxGeometry(24, 7, 0.4), matDindingBambu);
-    dindingBlk.position.set(0, 3.5, -10);
+    const dindingBlk = new THREE.Mesh(new THREE.BoxGeometry(36, 7, 0.4), matDindingBambu);
+    dindingBlk.position.set(0, 3.5, -14);
     scene.add(dindingBlk);
 
-    const dindingKiri = new THREE.Mesh(new THREE.BoxGeometry(0.4, 7, 20), matDindingBambu);
-    dindingKiri.position.set(-12, 3.5, 0);
+    const dindingKiri = new THREE.Mesh(new THREE.BoxGeometry(0.4, 7, 28), matDindingBambu);
+    dindingKiri.position.set(-18, 3.5, 0);
     scene.add(dindingKiri);
 
-    const dindingKanan = new THREE.Mesh(new THREE.BoxGeometry(0.4, 7, 20), matDindingBambu);
-    dindingKanan.position.set(12, 3.5, 0);
+    const dindingKanan = new THREE.Mesh(new THREE.BoxGeometry(0.4, 7, 28), matDindingBambu);
+    dindingKanan.position.set(18, 3.5, 0);
     scene.add(dindingKanan);
 
     // Balok Atap Langit-langit Terbuka
-    for (let bz = -8; bz <= 8; bz += 4) {
-      const balokX = new THREE.Mesh(new THREE.BoxGeometry(24, 0.4, 0.4), matKayuBalok);
+    for (let bz = -12; bz <= 12; bz += 4) {
+      const balokX = new THREE.Mesh(new THREE.BoxGeometry(36, 0.4, 0.4), matKayuBalok);
       balokX.position.set(0, 7.2, bz);
       scene.add(balokX);
     }
@@ -416,6 +422,9 @@ export default function RestoranInterior3D({
 
     buatMejaBundar(-6.5, 6.5);
     buatMejaBundar(6.5, 6.5);
+    // SAYAP BARU (2026-11-03): meja bundar di ruang yang diperbesar.
+    buatMejaBundar(-14.5, 6.5);
+    buatMejaBundar(14.5, 6.5);
 
     // ==========================================
     // UAP HOTPOT & ASAP AROMA SICHUAN

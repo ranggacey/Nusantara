@@ -1199,6 +1199,9 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     scene.add(hewanGroup);
     let fireGroup = new THREE.Group();
     scene.add(fireGroup);
+    // LENTERA RESTORAN (2026-11-03): cahaya hangat di sekitar paviliun.
+    let lenteraGroup = new THREE.Group();
+    scene.add(lenteraGroup);
     let boats: THREE.Group[] = [];
 
     const ring = new THREE.Mesh(
@@ -1362,6 +1365,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         const next = new THREE.Group();
         const nextBoats: THREE.Group[] = [];
         const nextFire = new THREE.Group();
+        const nextLentera = new THREE.Group();
         for (const p of m.placements ?? []) {
           const kind = String(p.kind);
           const w = Number(p.w ?? 1);
@@ -1383,6 +1387,20 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
             light.position.set(p.gx + 0.5 - cx, 1.2, p.gy + 0.5 - cy);
             nextFire.add(light);
           }
+          // LENTERA SEKITAR RESTORAN (2026-11-03): cahaya hangat di
+          // sudut paviliun, menyala malam seperti api unggun.
+          if (kind === "paviliun_makan") {
+            const sudut: [number, number][] = [
+              [p.gx + 0.5, p.gy + 0.5],
+              [p.gx + w - 0.5, p.gy + 0.5],
+              [p.gx + w / 2, p.gy + h - 0.5],
+            ];
+            for (const [lx, lz] of sudut) {
+              const light = new THREE.PointLight(0xffa033, 0, 10, 2);
+              light.position.set(lx - cx, 1.5, lz - cy);
+              nextLentera.add(light);
+            }
+          }
         }
         scene.remove(buildingsGroup);
         disposeGroup(buildingsGroup);
@@ -1391,6 +1409,9 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         scene.remove(fireGroup);
         fireGroup = nextFire;
         scene.add(fireGroup);
+        scene.remove(lenteraGroup);
+        lenteraGroup = nextLentera;
+        scene.add(lenteraGroup);
         boats = nextBoats;
       }
       // ASET 3D MODULAR ROAD (Level 1, 2, 3) + AUTO-ADAPT CONNECTION PIECE
@@ -1832,6 +1853,12 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
       fireGroup.children.forEach((light, i) => {
         if (light instanceof THREE.PointLight) {
           light.intensity = night ? 26 + Math.sin(t * 13 + i * 2.1) * 7 : 0;
+        }
+      });
+      // Lentera restoran: hanya malam, berdenyut lembut.
+      lenteraGroup.children.forEach((light, i) => {
+        if (light instanceof THREE.PointLight) {
+          light.intensity = night ? 14 + Math.sin(t * 9 + i * 2.7) * 3 : 0;
         }
       });
       // Perahu bergoyang di air.

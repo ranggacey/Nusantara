@@ -118,6 +118,26 @@ export default function Page() {
       setLoadingTataKota(false);
     }
   };
+  const [loadingJalanGemini, setLoadingJalanGemini] = useState(false);
+
+  // GEMINI TUKANG MIKIR — JALAN (2026-11-03): saran segmen jalan
+  // berikutnya dari /api/gemini/jalan (penasihat, bukan auto-build).
+  const handleJalanGemini = async () => {
+    setLoadingJalanGemini(true);
+    try {
+      const res = await fetch("/api/gemini/jalan", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        alert(`🛤️ Saran Jalan Gemini (${data.sumber === "llm" ? "Gemini" : "aturan kampung"})!\n\nSegmen berikutnya: ${data.segmen} (${data.jumlahUbin} ubin tersisa).\n\nAlasan Kepala Suku: "${data.alasan}"\n\nPembangunan jalan tetap dikerjakan karakter pinter di kampung.`);
+      } else {
+        alert(data.message || data.error || "Belum ada jalan yang bisa disarankan.");
+      }
+    } catch {
+      alert("Gagal memanggil saran jalan Gemini.");
+    } finally {
+      setLoadingJalanGemini(false);
+    }
+  };
   const [musyawarahData, setMusyawarahData] = useState<any>(null);
 
   const loadMusyawarah = useCallback(async () => {
@@ -492,6 +512,15 @@ export default function Page() {
           >
             <span>🏡</span>
             <span>{loadingTataKota ? "Menata..." : "Tata Kota"}</span>
+          </button>
+          <button
+            className="hud-btn hud-btn-tatakota"
+            title="Saran Jalan Gemini"
+            onClick={handleJalanGemini}
+            disabled={loadingJalanGemini}
+          >
+            <span>🛤️</span>
+            <span>{loadingJalanGemini ? "Memikir..." : "Jalan Gemini"}</span>
           </button>
           <button
             className="hud-btn hud-btn-road"

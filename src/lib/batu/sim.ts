@@ -74,7 +74,7 @@
 // - Hook LLM: keputusan bangunan boleh konsultasi Gemini (throttle 24 jam
 //   game, fallback scripted). Selama format GEMINI_API_KEYS salah, hook
 //   selalu null -> yang berjalan fallback scripted (dilaporkan jujur).
-import { getCollection } from "../db";
+import { getCollection, pastikanIndexPlacement } from "../db";
 import { gameTime, cuacaGame, migrasiJam, migrasiJamV4 } from "../clock";
 import { faseDariJam, seededRandom } from "../world";
 import { peranById, labelNode, nodeHasil, pengaliFit, perkakasPeran, LABEL_ALAT, RESEP_PERKAKAS, type NodeKind, type PeranId } from "./peran";
@@ -137,6 +137,10 @@ export interface Warga {
   // RONDE 14 — bio karakter (tampil di KartuProfil bila ada). Figo:
   // "Pura-pura kepala suku padahal sebenarnya raja iblis😈😈".
   bio?: string;
+  // ATURAN KUMPUL HARIAN (2026-11-03, DESAIN-EKONOMI.md): tally hasil
+  // per hari game, dipakai cap harian (3 biasa / 2 langka).
+  kumpul_hari?: number;
+  kumpul_harian?: Partial<Record<string, number>>;
   lokasi: { gx: number; gy: number };
   tujuan: { gx: number; gy: number } | null;
   // Target kerja. `pseudo` = target BUKAN node biasa (tidak mengalami
@@ -199,6 +203,10 @@ export interface HewanDoc {
 }
 
 export async function getDuniaDoc(): Promise<DuniaDoc> {
+  // ANTI-DUPLIKAT (2026-11-03): pastikan indeks unik posisi sekali
+  // per proses server (best-effort; gagal = masih ada ganda lama,
+  // permainan tetap jalan dengan penjaga level kode).
+  await pastikanIndexPlacement();
   const col = await getCollection<DuniaDoc>("dunia");
   const doc = await col.findOne({ _id: "utama" });
   if (doc) {
@@ -206,10 +214,12 @@ export async function getDuniaDoc(): Promise<DuniaDoc> {
     return doc;
   }
   const baru: DuniaDoc = { _id: "utama", epoch_ms: Date.now(), stok: stokKosong(), sim_hari: 0, sim_jam: 0 };
-  await col.insertOne(baru);
+  // ANTI-DUPLIKAT (2026-11-03): seed idempotent — proses bersamaan
+  // tidak lagi menumpuk dunia/placement awal (upsert, bukan insert).
+  await col.updateOne({ _id: "utama" }, { $setOnInsert: baru }, { upsert: true });
   const tiles = await getCollection("peta_tile");
   for (const p of PLACEMENT_AWAL) {
-    await tiles.insertOne({ ...p });
+    await tiles.updateOne({ gx: p.gx, gy: p.gy }, { $setOnInsert: { ...p } }, { upsert: true });
   }
   const kabar = await getCollection("kabar");
   await kabar.insertOne({
@@ -273,6 +283,12 @@ export function apakahStokPeranPenuh(w: Warga, ctx: SimCtx): boolean {
 // Alihkan warga yang stok perannya sudah penuh untuk rehat santai di kampung
 export function terapkanRehatStokPenuh(w: Warga, ctx: SimCtx): boolean {
   if (!apakahStokPeranPenuh(w, ctx)) return false;
+  // ATURAN BARU (2026-11-03): stok penuh BUKAN berarti diam saja.
+  // Alihan dulu supaya kampung tetap hidup: bantu warga lain
+  // (khusus pemegang tombak), atau jalan santai; rehat murni hanya
+  // jalan terakhir bila tidak ada alihan yang layak.
+  if (terapkanBantu(w, ctx)) return true;
+  if (mulaiSantai(w, ctx)) return true;
   w.node = null;
   w.tujuan = ctx.hunianTitik(w);
   w.fase_siklus = "istirahat";
@@ -285,8 +301,76 @@ export function terapkanRehatStokPenuh(w: Warga, ctx: SimCtx): boolean {
 }
 
 export function jumlahKumpul(statFokus: number): number {
-  // 1 bahan baku per ekspedisi kumpul
+  // 1 bahan baku per ekspedisi kumpul (LEGACY: dipertahankan untuk
+  // kompatibilitas; pengiriman hasil kini memakai rollHasilKumpul
+  // + cap harian di bawah).
   return 1;
+}
+
+// ATURAN KUMPUL HARIAN (spesifikasi user 2026-11-03, DESAIN-EKONOMI.md):
+// pangan/kayu/batu/kulit: roll 1-3 (50/30/20), cap 3/hari/orang.
+// besi/emas: roll langka 0-2, cap 2/hari/orang. Pengali lama (STR,
+// perkakas, bakat) TIDAK lagi menambah jumlah — keunggulan hanya
+// menggeser peluang di dalam cap, supaya stok tidak meluber.
+export const CAP_KUMPUL_HARIAN_BIASA = 3;
+export const CAP_KUMPUL_HARIAN_LANGKA = 2;
+
+function peluangKumpul(resource: string, berbakat: boolean): number[] {
+  if (resource === "besi") return berbakat ? [0.4, 0.45, 0.15] : [0.55, 0.35, 0.1];
+  if (resource === "emas") return [0.45, 0.4, 0.15];
+  return [0.5, 0.3, 0.2];
+}
+
+export function rollHasilKumpul(resource: string, w: Warga): number {
+  const berbakat =
+    bonusJumlahBakat(w.bakat) > 0 || levelPerkakas(w, perkakasPeran(w.peran)) >= 1;
+  const p = peluangKumpul(resource, berbakat);
+  const r = Math.random();
+  if (resource === "besi" || resource === "emas") {
+    if (r < p[0]) return 0;
+    if (r < p[0] + p[1]) return 1;
+    return 2;
+  }
+  let hasil = r < p[0] ? 1 : r < p[0] + p[1] ? 2 : 3;
+  // Keunggulan hanya menggeser peluang di dalam cap 3.
+  if (berbakat && hasil < 3 && Math.random() < 0.5) hasil += 1;
+  return hasil;
+}
+
+export function capHarianUntuk(resource: string): number {
+  return resource === "besi" || resource === "emas"
+    ? CAP_KUMPUL_HARIAN_LANGKA
+    : CAP_KUMPUL_HARIAN_BIASA;
+}
+
+export function sisaCapHarian(w: Warga, resource: string, hari: number): number {
+  if (w.kumpul_hari !== hari) return capHarianUntuk(resource);
+  const sudah = w.kumpul_harian?.[resource] ?? 0;
+  return Math.max(0, capHarianUntuk(resource) - sudah);
+}
+
+export function catatKumpulHarian(w: Warga, resource: string, jumlah: number, hari: number): void {
+  if (w.kumpul_hari !== hari) {
+    w.kumpul_hari = hari;
+    w.kumpul_harian = {};
+  }
+  const h = w.kumpul_harian ?? (w.kumpul_harian = {});
+  h[resource] = (h[resource] ?? 0) + jumlah;
+}
+
+// Tambah stok dengan clamp kapasitas gudang — SATU-SATUNYA jalur
+// penambah stok yang boleh dipakai (node, buruan, bonus pemanjat).
+// Mengembalikan jumlah yang benar-benar masuk.
+export function tambahStokClamp(ctx: SimCtx, resource: string, jumlah: number): number {
+  const cap = (ctx.kapasitasMaks ?? {
+    kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60,
+  }) as Record<string, number>;
+  const stok = ctx.stok as unknown as Record<string, number>;
+  const current = stok[resource] ?? 0;
+  const limit = cap[resource] ?? 200;
+  const tambah = Math.min(jumlah, Math.max(0, limit - current));
+  stok[resource] = current + tambah;
+  return tambah;
 }
 
 // RONDE 14 — TOMBAK IBLIS FIGO (raja iblis, perintah user 00:23):
@@ -1851,16 +1935,16 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
     }
     if (w.progres_aksi_pct >= 100) {
       const hasil = nodeHasil(w.node.kind);
-      // Formula STR: tiap 3 poin STR memberi bonus +1 hasil panen
+      // STR kini hanya memengaruhi stamina panen, bukan jumlah hasil
+      // (aturan baru: jumlah dari roll harian + cap, lihat di bawah).
       const strVal = Number(w.stat?.str ?? 0);
       const bonusStr = Math.floor(strVal / 3);
-      let jumlah = jumlahKumpul(statFokus) + bonusJumlahBakat(w.bakat) + bonusStr;
+      let jumlah = rollHasilKumpul(hasil.resource, w);
 
       // Pengurasan stamina realistis: dasar 25 stamina + 10 per bonusStr
       const kurasStaminaPanen = 25 + bonusStr * 10;
       w.stamina = Math.max(0, w.stamina - kurasStaminaPanen);
 
-      if (levelPerkakas(w, perkakasPeran(w.peran)) >= 1) jumlah += 1;
       // Juru masak: masakan lebih bergizi (x1.5 pangan).
       if (w.peran === "juru_masak" && hasil.resource === "pangan") jumlah = Math.round(jumlah * 1.5);
       // RONDE 15 — satu ronde = satu node (SISA_NODE_AWAL 1): hasil
@@ -1874,11 +1958,10 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       // ikut terlipat 5 diam-diam.
       const pengaliRonde = 1;
       jumlah = jumlah * pengaliRonde;
-      const cap = ctx.kapasitasMaks ?? { kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60 };
-      const currentRes = ctx.stok[hasil.resource] ?? 0;
-      const limit = cap[hasil.resource] ?? 200;
-      const tambah = Math.min(jumlah, Math.max(0, limit - currentRes));
-      ctx.stok[hasil.resource] = currentRes + tambah;
+      // Cap harian dulu, baru cap gudang (keduanya via helper clamp).
+      const jumlahCapHari = Math.min(jumlah, sisaCapHarian(w, hasil.resource, hari));
+      const tambah = tambahStokClamp(ctx, hasil.resource, jumlahCapHari);
+      catatKumpulHarian(w, hasil.resource, tambah, hari);
 
       let kulitTotal = hasil.kulitBonus;
       if (w.peran === "penenun" && hasil.kulitBonus > 0) kulitTotal += 2;
@@ -1888,16 +1971,18 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
         : `${w.nama} membawa ${hasil.resource}, tetapi lumbung sudah penuh!`;
 
       if (kulitTotal > 0) {
-        const currentKulit = ctx.stok.kulit ?? 0;
-        const limitKulit = cap.kulit ?? 100;
-        const tambahKulit = Math.min(kulitTotal, Math.max(0, limitKulit - currentKulit));
-        ctx.stok.kulit = currentKulit + tambahKulit;
+        const kulitCapHari = Math.min(kulitTotal, sisaCapHarian(w, "kulit", hari));
+        const tambahKulit = tambahStokClamp(ctx, "kulit", kulitCapHari);
+        catatKumpulHarian(w, "kulit", tambahKulit, hari);
         teks = `${w.nama} membawa ${tambah} pangan dan ${tambahKulit} kulit ke lumbung.`;
       }
       // Pemanjat: buah dari pohon (+1 pangan) di samping kayu.
+      // ATURAN BARU: bonus ini juga kena cap harian + cap gudang.
       if (w.peran === "pemanjat" && hasil.resource === "kayu") {
-        ctx.stok.pangan = (ctx.stok.pangan ?? 0) + pengaliRonde; // RONDE 15: 5x node nyata (total per node tetap)
-        teks += ` + ${pengaliRonde} buah.`;
+        const buahCapHari = Math.min(pengaliRonde, sisaCapHarian(w, "pangan", hari));
+        const tambahBuah = tambahStokClamp(ctx, "pangan", buahCapHari);
+        catatKumpulHarian(w, "pangan", tambahBuah, hari);
+        if (tambahBuah > 0) teks += ` + ${tambahBuah} buah.`;
       }
       // Tabib/peramu: ramuannya memulihkan sehat kampung sedikit.
       if (w.peran === "tabib" || w.peran === "peramu") {
@@ -2016,9 +2101,14 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       // hewan jatuh). Tanpa ini, berburu = instan seperti dulu.
       if (w.membawa_daging) {
         const md = w.membawa_daging;
-        ctx.stok.pangan = (ctx.stok.pangan ?? 0) + md.pangan;
-        ctx.stok.kulit = (ctx.stok.kulit ?? 0) + md.kulit;
-        ctx.kabar.push({ jenis: "buru", teks: `${w.nama} membawa pulang daging ${md.jenis} (${md.pangan} pangan + ${md.kulit} kulit).`, hari, dibuat_pada: new Date() });
+        // ATURAN BARU: buruan juga kena cap harian + cap gudang.
+        const dagingPangan = Math.min(md.pangan, sisaCapHarian(w, "pangan", hari));
+        const tambahDagingPangan = tambahStokClamp(ctx, "pangan", dagingPangan);
+        catatKumpulHarian(w, "pangan", tambahDagingPangan, hari);
+        const dagingKulit = Math.min(md.kulit, sisaCapHarian(w, "kulit", hari));
+        const tambahDagingKulit = tambahStokClamp(ctx, "kulit", dagingKulit);
+        catatKumpulHarian(w, "kulit", tambahDagingKulit, hari);
+        ctx.kabar.push({ jenis: "buru", teks: `${w.nama} membawa pulang daging ${md.jenis} (${tambahDagingPangan} pangan + ${tambahDagingKulit} kulit).`, hari, dibuat_pada: new Date() });
         w.membawa_daging = null;
       }
       w.fase_siklus = "istirahat";
@@ -2944,6 +3034,14 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
             for (let dy = 0; dy < (p.h ?? 1); dy++)
               for (let dx = 0; dx < (p.w ?? 1); dx++) occupied.add(`${p.gx + dx},${p.gy + dy}`);
           }
+          // ANTI-DUPLIKAT (2026-11-03): plot antrean lain yang sudah
+          // ditetapkan ikut menghalangi — dua antrean tidak lagi dapat
+          // plot yang sama dalam satu advance yang sama.
+          for (const o of antrean) {
+            if (o === b || o.gx === null || o.gx === undefined || o.gy === null || o.gy === undefined) continue;
+            for (let dy = 0; dy < (o.h ?? 1); dy++)
+              for (let dx = 0; dx < (o.w ?? 1); dx++) occupied.add(`${o.gx + dx},${o.gy + dy}`);
+          }
           let plot: { gx: number; gy: number; w: number; h: number; rotasi?: number } | null = null;
           if (def.penempatan === "jembatan") plot = findBridgePlot(occupied);
           else if (def.penempatan === "perahu") plot = findBoatSpot(occupied);
@@ -2990,11 +3088,15 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
         if (b.progres >= 100) {
           // Idempotent: jangan dobel placement bila sudah ada.
           const sudah = placements.some((p) => p.bangunan_id === String(b._id));
+          let kabarBatal = false;
           if (!sudah && b.gx !== null && b.gy !== null) {
-            // RONDE 18 — upsert anti-duplikat (bukan insertOne): dua
-            // advance bersamaan tidak lagi membuat 2 placement di ubin
-            // sama (13x pagar dkk.). Kunci = kind+gx+gy; yang kalah
-            // race memakai dokumen yang sudah ada (findOne untuk _id).
+            // ANTI-DUPLIKAT (2026-11-03, pesan Fina: 1 bangunan kesimpan
+            // berkali-kali, ID beda posisi sama, dari proses bersamaan):
+            // kunci upsert kini POSISI saja (bukan kind+posisi) — dua
+            // bangunan berbeda pun tidak bisa menumpuk di ubin yang
+            // sama. Yang kalah race tidak membuat dokumen baru; bangun-
+            // annya batal dengan kabar jujur (bukan diam-diam hilang,
+            // dan antrean tidak menggantung selamanya).
             const docBaru = {
               kind: def.id,
               gx: b.gx,
@@ -3006,29 +3108,35 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
               ...(def.id === "paviliun_makan" ? { hidangan: 0 } : {}),
             };
             await tilesCol.updateOne(
-              { kind: def.id, gx: b.gx, gy: b.gy },
+              { gx: b.gx, gy: b.gy },
               { $setOnInsert: docBaru },
               { upsert: true }
             );
-            const jadi = (await tilesCol.findOne({ kind: def.id, gx: b.gx, gy: b.gy })) as unknown as {
+            const jadi = (await tilesCol.findOne({ gx: b.gx, gy: b.gy })) as unknown as {
               _id: unknown;
+              bangunan_id?: unknown;
             } | null;
-            if (!placements.some((p) => p.kind === def.id && p.gx === b.gx && p.gy === b.gy)) {
-              placements.push({
-                _id: jadi?._id,
-                ...docBaru,
-              });
+            const milikSendiri = jadi !== null && String(jadi.bangunan_id ?? "") === String(b._id);
+            if (milikSendiri) {
+              if (!placements.some((p) => p.gx === b.gx && p.gy === b.gy)) {
+                placements.push({
+                  _id: jadi?._id,
+                  ...docBaru,
+                });
+              }
+              if (def.id === "ladang") {
+                ctx.ladang = { gx: (b.gx ?? 0) + Math.floor((b.w ?? 2) / 2), gy: (b.gy ?? 0) + Math.floor((b.h ?? 2) / 2) };
+              }
+              if (def.id === "jembatan") {
+                for (let dx = 0; dx < (b.w ?? 4); dx++) ctx.jembatan.add(`${b.gx + dx},${b.gy}`);
+              }
+              if (def.id === "perahu") ctx.perahuAda = true;
+            } else {
+              kabarBatal = true;
             }
-            if (def.id === "ladang") {
-              ctx.ladang = { gx: (b.gx ?? 0) + Math.floor((b.w ?? 2) / 2), gy: (b.gy ?? 0) + Math.floor((b.h ?? 2) / 2) };
-            }
-            if (def.id === "jembatan") {
-              for (let dx = 0; dx < (b.w ?? 4); dx++) ctx.jembatan.add(`${b.gx + dx},${b.gy}`);
-            }
-            if (def.id === "perahu") ctx.perahuAda = true;
           }
           b.status = "selesai";
-          kabar.push({ jenis: "bangunan", teks: `${def.label} selesai dibangun di kampung!`, hari, dibuat_pada: new Date() });
+          kabar.push({ jenis: "bangunan", teks: kabarBatal ? `${def.label} batal dibangun: posisinya sudah dipakai bangunan lain.` : `${def.label} selesai dibangun di kampung!`, hari, dibuat_pada: new Date() });
           // RONDE 13 — BANGUNAN SELESAI (event bubble): pembangun
           // mengumumkan ke kampung (jangan timpa interaksi aktif).
           const pembangun = wargaDocs.find((wd) => wd.nama === b.pembangun_nama);

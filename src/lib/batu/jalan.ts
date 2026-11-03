@@ -217,30 +217,47 @@ export function rencanaJalan(
   jalanSelesai: Set<string>,
   nodeKeys: Set<string>
 ): { segmen: string; tiles: { gx: number; gy: number }[] } | null {
+  for (const s of SEGMEN_JALAN) {
+    const r = jalurSegmen(s.id, placements, jalanSelesai, nodeKeys);
+    if (r) return r;
+  }
+  return null;
+}
+
+// Jalur untuk SATU segmen tertentu (2026-11-03, dipakai
+// /api/gemini/jalan supaya Gemini bisa MEMILIH segmen, bukan hanya
+// urutan tetap rencanaJalan). Mengembalikan null bila segmen tidak
+// dikenal, ujungnya belum ada, jalurnya buntu, atau sudah selesai.
+export function jalurSegmen(
+  segmenId: string,
+  placements: PlacementMini[],
+  jalanSelesai: Set<string>,
+  nodeKeys: Set<string>
+): { segmen: string; tiles: { gx: number; gy: number }[] } | null {
+  const s = SEGMEN_JALAN.find((x) => x.id === segmenId);
+  if (!s) return null;
   const fp = new Set<string>();
   for (const p of placements)
     for (const k of footprintTiles(p)) fp.add(k);
-  for (const s of SEGMEN_JALAN) {
-    // Ujung hunian = hunian TERDEKAT ke pasangan segmen (bukan placement
-    // hunian pertama di list — gubuk awal (48,48) yang jauh pernah
-    // membuat rencana jalan 98 ubin melintasi hutan belantara).
-    let pa: PlacementMini | null;
-    let pb: PlacementMini | null;
-    if (s.a === "hunian") {
-      pb = cariPlacement(placements, s.b);
-      pa = pb ? cariPlacement(placements, "hunian", pb) : null;
-    } else if (s.b === "hunian") {
-      pa = cariPlacement(placements, s.a);
-      pb = pa ? cariPlacement(placements, "hunian", pa) : null;
-    } else {
-      pa = cariPlacement(placements, s.a);
-      pb = cariPlacement(placements, s.b);
-    }
-    if (!pa || !pb) continue;
-    const jalur = jalurJalan(pa, pb, { footprintSemua: fp, nodeKeys });
-    if (!jalur) continue;
-    const sisa = jalur.filter((t) => !jalanSelesai.has(`${t.gx},${t.gy}`));
-    if (sisa.length > 0) return { segmen: s.id, tiles: sisa };
+  // Ujung hunian = hunian TERDEKAT ke pasangan segmen (bukan placement
+  // hunian pertama di list — gubuk awal (48,48) yang jauh pernah
+  // membuat rencana jalan 98 ubin melintasi hutan belantara).
+  let pa: PlacementMini | null;
+  let pb: PlacementMini | null;
+  if (s.a === "hunian") {
+    pb = cariPlacement(placements, s.b);
+    pa = pb ? cariPlacement(placements, "hunian", pb) : null;
+  } else if (s.b === "hunian") {
+    pa = cariPlacement(placements, s.a);
+    pb = pa ? cariPlacement(placements, "hunian", pa) : null;
+  } else {
+    pa = cariPlacement(placements, s.a);
+    pb = cariPlacement(placements, s.b);
   }
-  return null;
+  if (!pa || !pb) return null;
+  const jalur = jalurJalan(pa, pb, { footprintSemua: fp, nodeKeys });
+  if (!jalur) return null;
+  const sisa = jalur.filter((t) => !jalanSelesai.has(`${t.gx},${t.gy}`));
+  if (sisa.length === 0) return null;
+  return { segmen: s.id, tiles: sisa };
 }
