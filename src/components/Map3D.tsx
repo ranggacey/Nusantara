@@ -22,7 +22,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { GUBUK_DINDING, GUBUK_ATAP, POHON_BATANG } from "@/lib/batu/skala";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "@/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "@/lib/batu/tampil";
 import { durasiJamMs } from "@/lib/clock";
 import { buatTombakIblis } from "@/lib/batu/senjataIblis";
 import { updateAudioScene, SFX_PERKAKAS } from "@/lib/audio";
@@ -1215,7 +1215,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
 
     const wargaMap = new Map<
       string,
-      { group: THREE.Group; label: HTMLDivElement; bar: HTMLDivElement; hpWrap: HTMLDivElement; hpFill: HTMLDivElement; actionWrap: HTMLDivElement; actionText: HTMLSpanElement; actionFill: HTMLDivElement; bubble: HTMLDivElement; pips: HTMLDivElement; pipSpans: HTMLSpanElement[]; dx: number; dz: number; tx: number; tz: number; ux: number; uz: number; goal: TujuanTerkunci; speedPerSec: number; data: J; idx: number; cycle: number; pace: number; lastChip: number; lastShot: number; lastPip: number; progShown: number; progStart: number; progTarget: number; progT0: number; lastActionCycle?: number; actionT0?: number; actionActiveKind?: string }
+      { group: THREE.Group; label: HTMLDivElement; bar: HTMLDivElement; hpWrap: HTMLDivElement; hpFill: HTMLDivElement; actionWrap: HTMLDivElement; actionText: HTMLSpanElement; actionFill: HTMLDivElement; bubble: HTMLDivElement; pips: HTMLDivElement; pipSpans: HTMLSpanElement[]; dx: number; dz: number; tx: number; tz: number; ux: number; uz: number; goal: TujuanTerkunci; speedPerSec: number; data: J; idx: number; cycle: number; pace: number; lastChip: number; lastShot: number; lastPip: number; progShown: number; progStart: number; progTarget: number; progT0: number; jalur?: { x: number; z: number }[]; jalurKey?: string; lastActionCycle?: number; actionT0?: number; actionActiveKind?: string }
     >();
     // RONDE 10: daging tergeletak + hewan jatuh + proyektil + serpihan.
     const dagingMap = new Map<string, THREE.Mesh>();
@@ -1255,6 +1255,12 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     // nodeSig (sig bisa sama bila 1 node hilang + 1 node lain muncul).
     let prevNodeKind = new Map<string, string>();
     let placeSig = "";
+    // Jalur display memutar bangunan (2026-11-04): footprint bangunan
+    // + lingkaran gunung sebagai rintangan display — display tidak lagi
+    // jalan lurus menembus rumah menuju tujuan server.
+    let rintanganTampil = new Set<string>();
+    let gunungTampil: { cx: number; cy: number; r: number }[] = [];
+    let gridTampil = { gw: 200, gh: 200, gmin: 0 };
     let konstruksiSig = "";
     let jalanSig = "";
     let jalanGroup = new THREE.Group();
@@ -1292,6 +1298,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
       const gmin = Number(m.grid?.min ?? 0);
       const cx = gmin + gw / 2;
       const cy = gmin + gh / 2;
+      gridTampil = { gw, gh, gmin };
       const tSig = `${gw}x${gh}`;
       if (tSig !== terrainSig) {
         terrainSig = tSig;
@@ -1351,6 +1358,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
       const gSig = (m.gunung ?? []).map((g: J) => `${g.cx},${g.cy},${g.r}`).join("|");
       if (gSig !== gunungSig) {
         gunungSig = gSig;
+        gunungTampil = (m.gunung ?? []).map((g: J) => ({ cx: Number(g.cx), cy: Number(g.cy), r: Number(g.r) }));
         if (gunungGroup) {
           scene.remove(gunungGroup);
           disposeGroup(gunungGroup);
@@ -1362,6 +1370,13 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
       const pSig = (m.placements ?? []).map((p: J) => `${p.kind}:${p.gx},${p.gy},${p.w},${p.h}:${p.level ?? 1}:${p.rotasi ?? 0}`).join("|");
       if (pSig !== placeSig) {
         placeSig = pSig;
+        const rint = new Set<string>();
+        for (const p of m.placements ?? []) {
+          const w = Number(p.w ?? 1);
+          const h = Number(p.h ?? 1);
+          for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) rint.add(`${p.gx + dx},${p.gy + dy}`);
+        }
+        rintanganTampil = rint;
         const next = new THREE.Group();
         const nextBoats: THREE.Group[] = [];
         const nextFire = new THREE.Group();
@@ -1616,6 +1631,8 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
             ux: ux0,
             uz: uz0,
             goal: { x: kunci0.goal.x, z: kunci0.goal.z, key: kunci0.key },
+            jalur: [],
+            jalurKey: "",
             speedPerSec: typeof (w as any).kecepatan === "number" && (w as any).kecepatan > 0 ? lajuServerPerDetik((w as any).kecepatan, durasiJamMs(jamRef.current % 24) / 1000) : 0.45,
             data: w,
             idx,
@@ -1962,13 +1979,33 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         }
         const goalX = cur.goal.x;
         const goalZ = cur.goal.z;
-        const stepR = langkahDisplay(cur.dx, cur.dz, goalX, goalZ, cur.speedPerSec, dt);
+        // Jalur memutar bangunan (2026-11-04): ganti garis lurus ke goal
+        // dengan waypoint BFS — display tidak lagi memotong rumah.
+        let tx = goalX;
+        let tz = goalZ;
+        const { gw, gh, gmin } = gridTampil;
+        const cxT = gmin + gw / 2;
+        const cyT = gmin + gh / 2;
+        const tileDari = { gx: Math.round(cur.dx + cxT - 0.5), gy: Math.round(cur.dz + cyT - 0.5) };
+        const tileKe = { gx: Math.round(goalX + cxT - 0.5), gy: Math.round(goalZ + cyT - 0.5) };
+        const jalurBasi = !cur.jalur || cur.jalurKey !== cur.goal.key || (cur.jalur.length > 0 && Math.hypot(cur.jalur[0].x - cur.dx, cur.jalur[0].z - cur.dz) > Math.hypot(goalX - cur.dx, goalZ - cur.dz) + 2);
+        if (jalurBasi) {
+          const tiles = jalurTampil(tileDari, tileKe, rintanganTampil, (gx, gy) => gunungTampil.some((g) => (gx - g.cx) ** 2 + (gy - g.cy) ** 2 <= g.r * g.r));
+          cur.jalurKey = cur.goal.key;
+          cur.jalur = tiles ? tiles.map((t) => toWorld(t.gx, t.gy, gw, gh, gmin)) : [];
+        }
+        if (cur.jalur && cur.jalur.length > 0) {
+          tx = cur.jalur[0].x;
+          tz = cur.jalur[0].z;
+        }
+        const stepR = langkahDisplay(cur.dx, cur.dz, tx, tz, cur.speedPerSec, dt);
+        if (stepR.tiba && cur.jalur && cur.jalur.length > 0) cur.jalur.shift();
         const px = stepR.x;
         const pz = stepR.z;
         const stepJalan = stepR.moved;
         const moving = stepJalan > 0;
         if (moving) {
-          cur.group.rotation.y = Math.atan2(goalX - cur.dx, goalZ - cur.dz);
+          cur.group.rotation.y = Math.atan2(tx - cur.dx, tz - cur.dz);
         }
         const fase = String(cur.data.fase_siklus ?? "");
         const berenang = cur.data.sedang_berenang === true;

@@ -120,6 +120,27 @@ export default function Page() {
   };
   const [loadingJalanGemini, setLoadingJalanGemini] = useState(false);
 
+  // GEMINI TUKANG MIKIR — RAPIKAN (2026-11-04): geser bangunan yang
+  // menabrak bangunan lain, pilihan + penilaian dari Gemini.
+  const [loadingRapikanGemini, setLoadingRapikanGemini] = useState(false);
+  const handleRapikanGemini = async () => {
+    setLoadingRapikanGemini(true);
+    try {
+      const res = await fetch("/api/gemini/rapikan", { method: "POST" });
+      const data = await res.json();
+      if (data.ok && data.dipindah) {
+        alert(`🔧 Rapikan Gemini (${data.sumber === "llm" ? "Gemini" : "aturan kampung"})!\n\n${data.dipindah.label} digeser dari (${data.dipindah.dari.gx},${data.dipindah.dari.gy}) ke (${data.dipindah.ke.gx},${data.dipindah.ke.gy}) karena menumpuk dengan ${data.tumpang.label}.\n\nPenilaian Kepala Suku: "${data.penilaian}"\n\nAlasan: "${data.alasan}"`);
+        await muat();
+      } else {
+        alert(data.message || data.error || "Tidak ada bangunan yang bertumpuk.");
+      }
+    } catch {
+      alert("Gagal memanggil rapikan Gemini.");
+    } finally {
+      setLoadingRapikanGemini(false);
+    }
+  };
+
   // GEMINI TUKANG MIKIR — JALAN (2026-11-03): saran segmen jalan
   // berikutnya dari /api/gemini/jalan (penasihat, bukan auto-build).
   const handleJalanGemini = async () => {
@@ -521,6 +542,15 @@ export default function Page() {
           >
             <span>🛤️</span>
             <span>{loadingJalanGemini ? "Memikir..." : "Jalan Gemini"}</span>
+          </button>
+          <button
+            className="hud-btn hud-btn-tatakota"
+            title="Rapikan Gemini: geser bangunan yang menabrak bangunan lain"
+            onClick={handleRapikanGemini}
+            disabled={loadingRapikanGemini}
+          >
+            <span>🔧</span>
+            <span>{loadingRapikanGemini ? "Merapi..." : "Rapikan Gemini"}</span>
           </button>
           <button
             className="hud-btn hud-btn-road"

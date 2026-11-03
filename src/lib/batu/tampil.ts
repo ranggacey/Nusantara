@@ -155,6 +155,64 @@ export function langkahDisplay(
   };
 }
 
+// Jalur display memutar bangunan (2026-11-04, permintaan user: karakter
+// tidak boleh KELIHATAN menembus rumah). Sebelumnya display berjalan
+// lurus menuju tujuan server sementara sim memutar lewat gerak — di
+// layar, warga memotong sudut bangunan. BFS 4-arah di jendela terbatas
+// (bbox start+tujuan + 20 ubin, maks 20000 node) menghindari ubin
+// rintangan; ubin TUJUAN selalu boleh dimasuki sebagai langkah terakhir
+// (cermin aturan sim: tidur malam di rumah sendiri, pintu paviliun).
+// Mengembalikan daftar waypoint TANPA titik awal, TERMASUK tujuan; []
+// bila sudah di tujuan; null bila tak ada jalur (pemanggil fallback ke
+// garis lurus seperti dulu). Murni + dites.
+export function jalurTampil(
+  dari: { gx: number; gy: number },
+  ke: { gx: number; gy: number },
+  rintangan: Set<string>,
+  isGunung?: (gx: number, gy: number) => boolean,
+): { gx: number; gy: number }[] | null {
+  if (dari.gx === ke.gx && dari.gy === ke.gy) return [];
+  const PAD = 20;
+  const minX = Math.min(dari.gx, ke.gx) - PAD;
+  const maxX = Math.max(dari.gx, ke.gx) + PAD;
+  const minY = Math.min(dari.gy, ke.gy) - PAD;
+  const maxY = Math.max(dari.gy, ke.gy) + PAD;
+  const key = (gx: number, gy: number) => `${gx},${gy}`;
+  const blocked = (gx: number, gy: number): boolean => {
+    if (gx === ke.gx && gy === ke.gy) return false;
+    if (rintangan.has(key(gx, gy))) return true;
+    if (isGunung && isGunung(gx, gy)) return true;
+    return false;
+  };
+  const prev = new Map<string, string>();
+  const q: { gx: number; gy: number }[] = [dari];
+  const seen = new Set<string>([key(dari.gx, dari.gy)]);
+  let head = 0;
+  while (head < q.length && seen.size < 60000) {
+    const cur = q[head++];
+    if (cur.gx === ke.gx && cur.gy === ke.gy) break;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nx = cur.gx + dx;
+      const ny = cur.gy + dy;
+      if (nx < minX || nx > maxX || ny < minY || ny > maxY) continue;
+      const k = key(nx, ny);
+      if (seen.has(k) || blocked(nx, ny)) continue;
+      seen.add(k);
+      prev.set(k, key(cur.gx, cur.gy));
+      q.push({ gx: nx, gy: ny });
+    }
+  }
+  if (!seen.has(key(ke.gx, ke.gy))) return null;
+  const path: { gx: number; gy: number }[] = [];
+  let k = key(ke.gx, ke.gy);
+  while (k !== key(dari.gx, dari.gy)) {
+    const [gx, gy] = k.split(",").map(Number);
+    path.push({ gx, gy });
+    k = prev.get(k) ?? key(dari.gx, dari.gy);
+  }
+  return path.reverse();
+}
+
 export function bubbleInteraksiAktif(sampaiJam: number, jamNow: number): boolean {
   // RONDE 15 — jendela (dibuat, sampai], BUKAN [dibuat, sampai]:
   // selisih harus > 0. Sebelumnya `jamNow <= sampaiJam` membuat

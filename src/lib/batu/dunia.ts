@@ -291,6 +291,35 @@ export function dedupePlacement<T extends { kind: string; gx: number; gy: number
   return out;
 }
 
+// Cari dua bangunan yang FOOTPRINT-nya saling tumpang (2026-11-04,
+// permintaan user: Gemini menggeser bangunan yang nabrak). Bukan cuma
+// posisi asal sama — bangunan besar yang menimpa bangunan kecil di
+// sebelahnya juga ketahuan. Pasangan pertama yang ditemukan: yang
+// dipertahankan = yang lebih dulu di daftar (sama dengan aturan dedupe
+// tampilan: pertama menang), yang digeser = yang kedua. Null bila
+// tidak ada tumpukan. Murni + dites.
+export function pasanganTumpuk<T extends { kind: string; gx: number; gy: number; w?: number; h?: number }>(
+  rows: T[]
+): { tetap: T; geser: T } | null {
+  const tiles = (p: T): Set<string> => {
+    const s = new Set<string>();
+    for (let dy = 0; dy < (p.h ?? 1); dy++) {
+      for (let dx = 0; dx < (p.w ?? 1); dx++) s.add(`${p.gx + dx},${p.gy + dy}`);
+    }
+    return s;
+  };
+  for (let i = 0; i < rows.length; i++) {
+    const ti = tiles(rows[i]);
+    for (let j = i + 1; j < rows.length; j++) {
+      const tj = tiles(rows[j]);
+      for (const k of tj) {
+        if (ti.has(k)) return { tetap: rows[i], geser: rows[j] };
+      }
+    }
+  }
+  return null;
+}
+
 // Cari plot JEMBATAN: segmen sungai (2 tile air) + 1 tile tepi di tiap sisi,
 // terdekat dari pusat, bebas placement. Footprint 4x1: [tepi barat, air, air,
 // tepi timur]. Dipakai sim saat NPC memutuskan membangun jembatan.

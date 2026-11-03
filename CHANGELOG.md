@@ -91,6 +91,49 @@ menumpuk lagi:
   terbentuk. Tanpa pembersihan, penjaga level kode tetap
   mencegah tumpukan BARU, tapi indeks belum aktif.
 
+## 2026-11-04 — Tabrakan penuh + display memutar bangunan + Rapikan Gemini
+
+### Tabrakan: tidak bisa nembus bangunan, kecuali malam masuk rumah sendiri
+Temuan awal: sim SUDAH memblokir bangunan (footprint = rintangan,
+gerak memutar + langkah menyamping sejak RONDE 2), tapi ada tiga
+celah: (1) display jalan lurus ke tujuan sehingga di layar warga
+memotong rumah — ini yang paling kelihatan; (2) gerak mengizinkan
+ubin tujuan yang rintangan (pengecualian final-step); (3) hewan kabur
+(gerakMenjauh) mengabaikan rintangan sama sekali. Yang diperbaiki:
+- `gerak`: pengecualian tujuan DIHAPUS — bangunan dan gunung tidak
+  bisa ditembus bahkan sebagai tujuan. Alur paviliun aman karena
+  masuk/keluar lewat kolom pintu (rintanganUntuk), bukan lewat
+  pengecualian ini (dibuktikan tes r10 yang tetap lolos).
+- `rintanganUntuk`: malam hari (20:00–06:00, sama dengan faseDariJam)
+  footprint rumah SENDIRI dikeluarkan dari rintangan — warga bisa
+  masuk rumahnya untuk tidur. Siang hari rumah sendiri tetap padat;
+  rumah orang lain dan hewan selalu menganggap semua rumah padat.
+- `gerakMenjauh`: hewan kabur kini menghormati rintangan (berhenti di
+  tembok, bukan lewat). Dua pemanggil di stepHewan sudah diberi
+  ctx.rintangan.
+- Display (`Map3D`): jalur warga kini BFS waypoint (`jalurTampil`
+  baru di tampil.ts, murni + dites) menghindari footprint bangunan +
+  lingkaran gunung, dihitung ulang tiap ganti tujuan terkunci;
+  ubin tujuan tetap boleh sebagai langkah terakhir (tidur malam).
+  Gagal BFS -> fallback garis lurus seperti dulu. Display hewan
+  belum diubah (tindak lanjut).
+- Tes: 12 baru (gerak anti-tembus, malam/siang rumah sendiri,
+  pulang malam, jalurTampil memutar/masuk/terkepung, pasanganTumpuk).
+
+### Gemini menggeser bangunan yang nabrak (tombol "Rapikan Gemini")
+- `pasanganTumpuk` baru di dunia.ts: deteksi footprint yang saling
+  tumpang (bukan cuma posisi asal sama) — yang dipertahankan yang
+  pertama di daftar (sama dengan aturan dedupe tampilan), yang
+  digeser yang kedua.
+- Route baru POST /api/gemini/rapikan: cari tumpukan pertama ->
+  kandidat petak kosong tepi jalan (divalidasi kode) -> Gemini
+  memilih petak + menilai kenapa penempatan lama jelek + alasan
+  petak baru bagus -> MEMINDAHKAN bangunan + kabar kampung
+  (jenis gemini_rapikan). Fallback scripted bila tanpa key/LLM gagal.
+  Bila tidak ada tumpukan, tidak ada yang dipindah.
+- Tombol "Rapikan Gemini" di topbar sebelah "Jalan Gemini", pola
+  alert + muat ulang sama seperti tombol Gemini lain.
+
 ### Belum dikerjakan (antrean cron berikutnya)
 - UI pemilih bangunan untuk /api/gemini/penempatan (route
   sudah siap, tombol belum).

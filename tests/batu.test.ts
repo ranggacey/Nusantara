@@ -3,10 +3,10 @@ import { PERAN, nodeHasil, labelNode, bobotFit, pengaliFit, perkakasPeran, RESEP
 import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong } from "../src/lib/batu/sumberdaya";
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
-import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement } from "../src/lib/batu/dunia";
+import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk } from "../src/lib/batu/dunia";
 import { pintarUntukJalan, rencanaJalan, jalurJalan, jalurSegmen, SEGMEN_JALAN, TIM_JALAN_INT_MIN } from "../src/lib/batu/jalan";
 import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, capHarianUntuk, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "../src/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "../src/lib/batu/tampil";
 import { gainJarak, panKamera, SFX_JARAK, SFX_PERKAKAS, SFX_HEWAN } from "../src/lib/audio";
 import { HEWAN, hewanById } from "../src/lib/batu/hewan";
 import { gameTime, migrasiJam, migrasiJamV4, durasiJamMs, jamAdalahMalam, realMsUntukJam } from "../src/lib/clock";
@@ -2004,6 +2004,53 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const dbSrc = readFileSync("src/lib/db.ts", "utf8");
   ok(dbSrc.includes("pastikanIndexPlacement"), "antidup: db punya pastikanIndexPlacement");
   ok(dbSrc.includes("uniq_posisi") && dbSrc.includes("unique: true"), "antidup: indeks unik posisi");
+}
+
+// TABRAKAN PENUH + RUMAH SENDIRI MALAM HARI + JALUR DISPLAY (2026-11-04,
+// permintaan user: karakter tidak menembus bangunan, kecuali malam masuk
+// rumah sendiri; Gemini menggeser bangunan yang nabrak).
+{
+  // gerak: ubin tujuan yang rintangan TIDAK PERNAH dimasuki — pengecualian
+  // tujuan lama dihapus, pengecualian kini hanya via rintanganUntuk.
+  const rTujuan = gerak({ gx: 47, gy: 49 }, { gx: 48, gy: 49 }, 10, { rintangan: new Set(["48,49"]) });
+  ok(!(rTujuan.lokasi.gx === 48 && rTujuan.lokasi.gy === 49), "tabrak: gerak tidak masuk ubin tujuan yang rintangan");
+  // rintanganUntuk: malam hari rumah sendiri dibuka, siang tetap padat,
+  // rumah orang lain selalu padat.
+  const rumahSendiri = { _id: "h1", kind: "gubuk", gx: 50, gy: 50, w: 2, h: 2 };
+  const rumahOrang = { _id: "h2", kind: "gubuk", gx: 60, gy: 60, w: 2, h: 2 };
+  const rint = new Set<string>();
+  for (const p of [rumahSendiri, rumahOrang]) {
+    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) rint.add(`${p.gx + dx},${p.gy + dy}`);
+  }
+  const wRumah = wargaDasar({ lokasi: { gx: 48, gy: 50 }, tujuan: { gx: 50, gy: 50 }, fase_siklus: "kembali", hunian: { id: "h1", tipe: "gubuk", label: "Gubuk Tes" } });
+  const ctxMalam = { ...ctxKosong(wRumah), jam: 22, rintangan: rint, placements: [rumahSendiri, rumahOrang] };
+  const rMalam = rintanganUntuk(wRumah, ctxMalam);
+  ok(!rMalam.has("50,50") && !rMalam.has("51,51") && rMalam.has("60,60"), "tabrak: malam rumah sendiri dibuka, rumah orang tetap padat");
+  const ctxSiang = { ...ctxKosong(wRumah), jam: 12, rintangan: rint, placements: [rumahSendiri, rumahOrang] };
+  const rSiang = rintanganUntuk(wRumah, ctxSiang);
+  ok(rSiang.has("50,50") && rSiang.has("60,60"), "tabrak: siang rumah sendiri tetap padat");
+  // gerak malam ke ubin tidur sendiri sampai (rintangan dibuka di atas).
+  const rPulang = gerak({ gx: 48, gy: 50 }, { gx: 50, gy: 50 }, 10, { rintangan: rMalam });
+  ok(rPulang.lokasi.gx === 50 && rPulang.lokasi.gy === 50, "tabrak: malam pulang ke ubin tidur sendiri sampai");
+  // jalurTampil: memutar blok 2x2, tidak ada waypoint di dalam blok.
+  const blok = new Set(["52,50", "53,50", "52,51", "53,51"]);
+  const j = jalurTampil({ gx: 50, gy: 50 }, { gx: 55, gy: 50 }, blok);
+  ok(j !== null && j.length > 0 && j[j.length - 1].gx === 55 && j[j.length - 1].gy === 50, "jalurTampil: sampai tujuan memutar blok");
+  ok(j !== null && j.every((t) => !blok.has(`${t.gx},${t.gy}`)), "jalurTampil: tidak ada waypoint di dalam bangunan");
+  // Tujuan di dalam blok tetap boleh sebagai langkah terakhir (tidur).
+  const jMasuk = jalurTampil({ gx: 50, gy: 50 }, { gx: 52, gy: 50 }, blok);
+  ok(jMasuk !== null && jMasuk[jMasuk.length - 1].gx === 52 && jMasuk[jMasuk.length - 1].gy === 50, "jalurTampil: tujuan di dalam bangunan boleh sebagai langkah akhir");
+  // Tujuan terkepung penuh -> null (fallback garis lurus di Map3D).
+  const ring = new Set(["51,49", "52,49", "53,49", "51,50", "53,50", "51,51", "52,51", "53,51"]);
+  ok(jalurTampil({ gx: 50, gy: 50 }, { gx: 52, gy: 50 }, ring) === null, "jalurTampil: tujuan terkepung -> null");
+  ok(JSON.stringify(jalurTampil({ gx: 50, gy: 50 }, { gx: 50, gy: 50 }, blok)) === "[]", "jalurTampil: sudah di tujuan -> []");
+  // pasanganTumpuk: tumpang 1 ubin ketahuan, bersebelahan saja tidak.
+  const p1 = { kind: "gubuk", gx: 50, gy: 50, w: 2, h: 2 };
+  const p2 = { kind: "lumbung", gx: 51, gy: 51, w: 2, h: 2 };
+  const t = pasanganTumpuk([p1, p2]);
+  ok(t !== null && t.tetap === p1 && t.geser === p2, "tumpuk: pasangan tumpang ketahuan, pertama dipertahankan");
+  ok(pasanganTumpuk([p1, { kind: "lumbung", gx: 52, gy: 50, w: 2, h: 2 }]) === null, "tumpuk: bersebelahan tanpa ubin sama -> null");
+  ok(pasanganTumpuk([p1, { kind: "lumbung", gx: 50, gy: 50, w: 1, h: 1 }]) !== null, "tumpuk: posisi asal sama beda kind -> ketahuan");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

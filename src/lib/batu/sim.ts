@@ -693,14 +693,33 @@ export function diDalamRestoran(pos: { gx: number; gy: number }, p: { gx: number
 // sedang makan lalu disuruh pulang (malam/stamina) harus bisa KELUAR
 // lewat pintu meski tujuannya sudah bukan paviliun lagi.
 export function rintanganUntuk(w: Warga, ctx: SimCtx): Set<string> {
+  let out: Set<string> | null = null;
   const r = ctx.restoran;
-  if (!r) return ctx.rintangan;
-  const diDalam = diDalamRestoran(w.lokasi, r) || (w.tujuan !== null && diDalamRestoran(w.tujuan, r)) || w.fase_siklus === "makan";
-  if (!diDalam) return ctx.rintangan;
-  const kolom = kolomPintuRestoran(r);
-  const out = new Set<string>();
-  for (const k of ctx.rintangan) if (!kolom.has(k)) out.add(k);
-  return out;
+  if (r) {
+    const diDalam = diDalamRestoran(w.lokasi, r) || (w.tujuan !== null && diDalamRestoran(w.tujuan, r)) || w.fase_siklus === "makan";
+    if (diDalam) {
+      const kolom = kolomPintuRestoran(r);
+      out = new Set<string>();
+      for (const k of ctx.rintangan) if (!kolom.has(k)) out.add(k);
+    }
+  }
+  // Malam (20:00–06:00, sama dengan faseDariJam): penghuni boleh masuk
+  // rumah SENDIRI — ubin footprint rumahnya dikeluarkan dari rintangan.
+  // Siang hari rumah sendiri tetap padat (warga memutar seperti bangunan
+  // lain); hewan + warga lain tetap menganggap rumah itu rintangan penuh
+  // kapan pun. Tanpa ini, gerak yang kini menolak semua rintangan tidak
+  // akan bisa mengantar warga ke ubin tidurnya sendiri.
+  const jamHari = ctx.jam % 24;
+  if ((jamHari >= 20 || jamHari < 6) && w.hunian) {
+    const p = (ctx.placements ?? []).find((x) => String(x._id) === w.hunian?.id);
+    if (p) {
+      if (!out) out = new Set<string>(ctx.rintangan);
+      for (let dy = 0; dy < (p.h ?? 1); dy++) {
+        for (let dx = 0; dx < (p.w ?? 1); dx++) out.delete(`${p.gx + dx},${p.gy + dy}`);
+      }
+    }
+  }
+  return out ?? ctx.rintangan;
 }
 
 // RONDE 10 — lokasi respawn node habis: lokasi BARU di tempat lain
@@ -1124,9 +1143,14 @@ export function gerak(
         const ny = gy + sy;
         const key = `${nx},${ny}`;
         if (dikunjungi.has(key)) continue;
-        const isTujuan = nx === tujuan.gx && ny === tujuan.gy;
-        if (!isTujuan && rintangan?.has(key)) continue;
-        if (!isTujuan && isGunung(nx, ny)) continue;
+        // Tabrakan penuh (2026-11-04, permintaan user): bangunan/gunung
+        // TIDAK bisa ditembus, bahkan sebagai ubin tujuan. Pengecualian
+        // satu-satunya diatur di rintanganUntuk (pintu paviliun, dan
+        // malam hari rumah sendiri yang sudah dikeluarkan dari set) —
+        // bukan di sini, supaya tidak ada tujuan liar yang menembus
+        // bangunan orang lain.
+        if (rintangan?.has(key)) continue;
+        if (isGunung(nx, ny)) continue;
         if (nx < GRID_MIN || ny < GRID_MIN || nx >= GRID_MAX || ny >= GRID_MAX) continue;
         if (isWater(nx, ny) && !jembatan?.has(key)) basah.push([sx, sy]);
         else kering.push([sx, sy]);
@@ -1154,7 +1178,8 @@ export function gerak(
 function gerakMenjauh(
   lokasi: { gx: number; gy: number },
   dari: { gx: number; gy: number },
-  speed: number
+  speed: number,
+  rintangan?: Set<string>
 ): { gx: number; gy: number } {
   let { gx, gy } = lokasi;
   for (let s = 0; s < speed; s++) {
@@ -1169,6 +1194,9 @@ function gerakMenjauh(
       const nx = gx + sx;
       const ny = gy + sy;
       if (nx <= GRID_MIN || ny <= GRID_MIN || nx >= GRID_MAX - 1 || ny >= GRID_MAX - 1) continue;
+      // Tabrakan penuh (2026-11-04): hewan kabur pun tidak menembus
+      // bangunan — berhenti di tembok ketimbang lewat.
+      if (rintangan?.has(`${nx},${ny}`)) continue;
       if (!isWater(nx, ny)) {
         gx = nx;
         gy = ny;
@@ -2291,7 +2319,7 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
     // Jinak kabur; buas pun KABUR bila yang terdekat adalah penjaga
     // (penjaga kampung mengusir hewan buas yang mendekati kampung).
     if (def.jinak || dekat.peran === "penjaga") {
-      const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, dekat.lokasi, def.kecepatan);
+      const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, dekat.lokasi, def.kecepatan, ctx.rintangan);
       h.gx = p.gx;
       h.gy = p.gy;
       return;
@@ -2363,7 +2391,7 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
   const arah = Math.floor(Math.random() * 4);
   const dx = arah === 0 ? 1 : arah === 1 ? -1 : 0;
   const dy = arah === 2 ? 1 : arah === 3 ? -1 : 0;
-  const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, { gx: h.gx - dx, gy: h.gy - dy }, def.kecepatan);
+  const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, { gx: h.gx - dx, gy: h.gy - dy }, def.kecepatan, ctx.rintangan);
   h.gx = p.gx;
   h.gy = p.gy;
 }
