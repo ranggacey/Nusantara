@@ -39,6 +39,35 @@ barisnya plus satu baris ringkasan di kepala daftar; sisanya
   Ide 25 (prefers-reduced-motion di panel/modal) dan Ide 26
   (cincin fokus terlihat di menu/modal).
 
+### Verifikasi pasca-deploy (20:42-20:44 WIB)
+- Vercel: deploy production READY dpl_Dcwx8i263JWhfkTVo8jqEYfewZ7N
+  dari commit 73a76ae (auto-deploy dari main). /api/version = r30.
+- Homepage termuat (judul "Negara Emas — Zaman Batu", teks
+  "Memuat peta 3D…") + satu ikon termuat (/batu/icons/kayu.png
+  128×128).
+- /api/world ok (isi, bukan hanya status): Suka Maju, populasi 6,
+  hari 294, 16.50 Sore, Hujan Petir; stok kayu 1/40, batu 1/30,
+  pangan 0/50, kulit 1/25, emas 1/10, besi 1/15 — konsisten dengan
+  desa baru + aturan susah r23/r28, bukan regresi (perubahan run
+  ini display-only, tidak menyentuh sim/API sama sekali).
+- /api/bangunan ok (katalog lengkap + 1 antrean gubuk, kurang 29
+  kayu / 9 kulit). Selisih kecil yang dicatat, bukan diklaim:
+  bacaan /api/world menyebut 2 gubuk antre sementara /api/bangunan
+  menampilkan 1 entri antrean — pola yang sama seperti run 18:29,
+  penyebabnya tidak terjelaskan dari bacaan saja, dan tidak ada
+  kaitannya dengan perubahan display-only run ini.
+- /api/map ok (isi, bukan hanya status): ok:true, 6 warga (Figo,
+  Nera, Praboti, Evos dyroth, Siti, Budi), grid 600×600, node
+  pohon/semak/buruan/batu/urat emas-besi. Catatan jujur: bacaan
+  teks langsung sempat timeout karena payload besar — bukan error
+  API; verifikasi ini didapat lewat bacaan browser pemulihan yang
+  membaca URL yang sama tanpa error.
+- Yang TETAP belum terverifikasi visual: tag "💤 tanpa tugas" itu
+  sendiri di Papan Warga live (butuh sesi browser yang membuka
+  Papan Warga pasca-deploy — dan bila saat itu tidak ada warga
+  yang tanpa tugas, tag memang tidak tampil, itu perilaku benar,
+  bukan bug).
+
 ### Observasi live (browser, hanya melihat, 20:31-20:35 WIB)
 - Muat pertama cukup berat tapi tidak ber menit-menit: teks
   "Memuat peta 3D…" / "Memuat dunia…" dulu, desa tampil penuh
