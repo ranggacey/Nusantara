@@ -237,6 +237,32 @@ satu fetch segar. Dampak kecil, usaha kecil-sedang; hati-hati:
 jam game server tetap jalan, jadi saat kembali UI harus langsung
 fetch ulang, bukan menunggu interval berikutnya.
 
+## Ide 18 — Papan Warga satu layar (dari riset 2026-11-04 12:29 WIB, sudut fitur baru)
+
+Sumber: ulasan Village in the Shade (peta satu layar berisi posisi +
+info setiap warga dipuji karena menghormati waktu pemain).
+Masalah: untuk tahu siapa sedang apa, pemain harus mengetuk warga
+satu per satu atau membaca label kecil yang berdesakan. Cara kerja:
+satu entri di kartu menu ("Papan Warga") yang menampilkan daftar
+seluruh warga dari data /api/map yang SUDAH diambil (nama, peran,
+aktivitas/mood saat ini) — tanpa fetch baru, tanpa ubah sim.
+Display-only. Dampak sedang-tinggi, usaha kecil. Jembatan menuju
+Ide 5: baris warga tanpa pos bisa diberi tanda di papan ini.
+
+## Ide 19 — Musim visual kampung (dari riset 2026-11-04 12:29 WIB, sudut fitur baru)
+
+Sumber: Farming Season "Village Seasons" (semi berbunga, gugur emas,
+dingin bersalju — murni visual, tanpa efek ekonomi menurut sumbernya).
+Masalah: kampung terlihat sama sepanjang tahun game; tidak ada
+penanda waktu berlalu selain angka hari. Cara kerja: rona/aksen
+visual ringan yang berputar menurut hari game — murni tampilan,
+TIDAK mengubah hasil kumpul/cuaca sim supaya tidak bertabrakan
+dengan DESAIN-EKONOMI.md. Dampak sedang, usaha sedang; mulai dari
+satu musim dulu, bukan empat sekaligus. Tidak direkomendasikan dari
+riset ini: jadwal warga diatur pemain (mengubah pengamat jadi
+manajer), aturan horor larangan keluar malam, dan event ulang tahun
+per warga (sim tidak menyimpan tanggal lahir).
+
 ## Ide-ide berikutnya
 
 Diisi dari riset web tiap run cron (fitur baru yang fresh,

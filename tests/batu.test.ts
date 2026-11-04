@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r20"'), "version: BUILD_ID r20 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r21"'), "version: BUILD_ID r21 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r20"'), "versi: BUILD_ID r20");
+  ok(ver.includes('"r21"'), "versi: BUILD_ID r21");
 }
 
 {
@@ -2172,7 +2172,25 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r20"'), "vis: BUILD_ID naik ke r20 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r21"'), "vis: BUILD_ID naik ke r21 (pil Versi baru bisa membedakan rilis ini)");
+}
+
+// Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
+// penjaga statis — effect poll di page.tsx memasang listener
+// visibilitychange; hidden -> interval dibersihkan + ref di-null-kan
+// (penjaga anti interval ganda saat kembali); visible -> fetch segar
+// dulu lalu interval dimulai lagi; listener dilepas saat cleanup.
+// Catatan: penjaga ini memeriksa pola di dalam effect poll (blok yang
+// memuat "setInterval(muat, 3000)"), bukan listener Map3D (Ide 9).
+{
+  const pageSrcPoll = readFileSync("src/app/page.tsx", "utf8");
+  const pollIdx = pageSrcPoll.indexOf("setInterval(muat, 3000)");
+  ok(pollIdx > 0, "poll-vis: effect poll 3 detik ada di page");
+  const pollBlock = pageSrcPoll.slice(Math.max(0, pollIdx - 1200), pollIdx + 1200);
+  ok(pollBlock.includes('document.addEventListener("visibilitychange"'), "poll-vis: listener visibilitychange dipasang di effect poll");
+  ok(pollBlock.includes("document.hidden") && pollBlock.includes("pollRef.current = null"), "poll-vis: hidden -> interval dibersihkan + ref null");
+  ok(pollBlock.includes("muat();") && pollBlock.includes("mulaiPoll()"), "poll-vis: visible -> fetch segar dulu lalu interval dimulai lagi");
+  ok(pollBlock.includes('document.removeEventListener("visibilitychange"'), "poll-vis: listener dilepas saat cleanup");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

@@ -1,5 +1,89 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 12:29 WIB — Jeda poll data saat tab disembunyikan (Ide 17)
+
+Pasangan dari jeda loop render (Ide 9): poll data `/api/world`,
+`/api/map`, `/api/bangunan` kini berhenti saat tab tidak terlihat,
+lalu dilanjutkan lagi saat kembali dengan satu fetch segar.
+
+- `src/app/page.tsx`: effect poll mendapat listener
+  `visibilitychange` — hidden -> interval dibersihkan + ref
+  di-null-kan (penjaga anti interval ganda); visible -> `muat()`
+  segar dulu, baru interval 3 detik dimulai lagi. Alasan fetch
+  segar dulu: jam game jalan di server selama tab hidden, jadi
+  menunggu interval berikutnya akan menampilkan dunia tertinggal.
+  Interval label jam 1 detik TIDAK dijeda (murah, dan label jam
+  harus tetap benar saat kembali). Sim tidak ikut dijeda: dunia
+  bersama tetap jalan untuk semua orang.
+- `src/lib/version.ts`: BUILD_ID r20 -> r21 (pil "Versi baru" bisa
+  membedakan rilis ini). Tiga penjaga tes yang mengunci string r20
+  ikut diperbarui ke r21 — itu mekanisme bump yang disengaja,
+  bukan regresi (pelajaran run ini: penjaga versi tersebar di tiga
+  tempat di tests/batu.test.ts, bukan satu).
+- Tes: 5 penjaga statis baru (effect poll ada, listener dipasang,
+  hidden -> bersih + ref null, visible -> fetch segar + mulai lagi,
+  listener dilepas). Total: 7716 lolos / 656 gagal — baseline
+  7711/656, jadi +5 lolos, nol regresi baru. Sempat terlihat
+  7714/658 sebelum dua penjaga r20 lama diperbarui, dan perbandingan
+  daftar FAIL membuktikan 2 selisih itu persis dua penjaga r20
+  tersebut (bukan efek perubahan poll).
+- Build Next.js hijau.
+- Catatan kejujuran: penghematan ini kecil dalam hitungan request
+  (poll hanya tiap 3 detik, dan browser modern sudah men-throttle
+  interval di tab hidden) — nilainya ada di berhentinya fetch yang
+  tidak dilihat siapa pun dan kembalinya UI yang langsung segar.
+  Efek kuota/baterai tidak diukur dan tidak diklaim.
+
+### Observasi live (browser, hanya melihat, 12:29-12:33 WIB)
+- Muat pertama: frame pertama gelap kosong tanpa teks/spinner/
+  pesan muat apa pun (hanya tombol menu, "Panduan Kontrol", dan
+  "＋ Tambah karakter"); desa tampil pada pengecekan 30 detik
+  berikutnya — jadi tampil dalam jendela 30 detik pertama, bukan
+  klaim "30 detik persis". Frame gelap tanpa indikator ini masih
+  menjadi pekerjaan Ide 7 (layar muat jujur), belum diklaim bug.
+- Desa hidup: malam lalu siang, warga bernama terlihat (Figo, Nuna,
+  Renata, Jokowi, Gibran, Siti, Wahid, Bajir) dengan bubble obrolan
+  berganti ("Makan bersama!", ajakan gotong royong, ajakan ke
+  hutan); label + bubble berpindah antar pengecekan 30 detik.
+  Hewan terdaftar (Rusa, Kelinci, Ayam Hutan) tapi sprite-nya kecil
+  dan jauh sehingga gerakannya kurang jelas dibanding warga.
+- Menu ☰: terbuka dan tertutup normal; tidak ada tombol yang tidak
+  merespons. Label + bubble kadang tumpang tindih di tengah yang
+  ramai (sekitar Renata/Jokowi) — dicatat sebagai kerapian label,
+  bukan error. Baris "Orientasi" di bawah lipatan dengan scrollbar
+  = scroll normal, bukan terpotong.
+- Panel "🎯 Kampung menginginkan" TERLIHAT, tapi isinya BERBEDA dari
+  run sebelumnya: kini menampilkan "Makan bersama untuk naikkan
+  mood" 2/20, "Rakit 2 tombak" 0/2, "Bangun 1 rumah" 0/1 — bukan
+  lagi teks "sampai ujung tangga". Penyebab perbedaan ini tidak
+  terjelaskan dari observasi saja (kemungkinan panel menampilkan
+  tugas/misi di samping kebutuhan tangga); dicatat sebagai hal
+  yang perlu dicek run berikutnya, bukan diklaim bug maupun
+  perubahan diam-diam. Baris "Mulai dari sini" TIDAK ADA — masih
+  konsisten dengan by design run 08:29/10:29 (fungsi sengaja null
+  di ujung tangga), tapi mengingat isi panel yang berubah, status
+  "ujung tangga" desa live ini perlu dikonfirmasi ulang lewat
+  /api/map pada verifikasi pasca-deploy run ini.
+- Tidak ada area blank/error menetap setelah desa tampil.
+
+### Riset + backlog (brief research/2026-11-04-1229.md)
+- Sudut: FITUR BARU (rotasi dari PERFORMA 10:29). Sumber: Farming
+  Season "Village Seasons" (ganti musim visual: semi berbunga,
+  gugur emas, dingin bersalju — murni visual menurut sumbernya),
+  Village in the Shade update #2 (event ulang tahun protagonis di
+  tahun ke-2 + hadiah dari warga berafinitas >= 3), ulasan Houston
+  Press (peta satu layar berisi info setiap warga dipuji karena
+  menghormati waktu pemain), panduan ASKA (jadwal Kerja/Santai/
+  Tidur; jadwal default yang terlalu banyak kerja membuat AI bodoh).
+- Ide 18 (Papan Warga satu layar, display-only dari data /api/map
+  yang sudah diambil) dan Ide 19 (musim visual kampung, display-only
+  tanpa efek ekonomi sim) masuk IDE-FITUR.md. Tidak
+  direkomendasikan: jadwal warga diatur pemain (mengubah pengamat
+  jadi manajer), aturan horor larangan keluar malam, event ulang
+  tahun per warga (sim tidak menyimpan tanggal lahir).
+- Irisan run ini dari backlog Ide 17 (brief performa 10:29), bukan
+  dari brief fitur baru ini — brief ini jadi antrean berikutnya.
+
 ## 2026-11-04 10:29 WIB — Jeda loop render saat tab disembunyikan (Ide 9)
 
 Loop render 3D utama di `src/components/Map3D.tsx` kini dijeda

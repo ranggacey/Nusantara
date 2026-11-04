@@ -302,11 +302,33 @@ export default function Page() {
     }
   }, []);
 
+  // Ide 17 (2026-11-04): jeda poll data saat tab disembunyikan —
+  // pasangan dari jeda loop render (Ide 9). Poll /api/world dkk. tidak
+  // ada gunanya saat tidak dilihat; saat kembali, langsung fetch segar
+  // (bukan menunggu interval berikutnya) karena jam game server tetap
+  // jalan selama tab hidden. Interval lokal 1 detik untuk label jam
+  // TIDAK dijeda: murah dan label jam harus tetap benar saat kembali.
   useEffect(() => {
     muat();
-    pollRef.current = setInterval(muat, 3000);
-    return () => {
+    const mulaiPoll = () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(muat, 3000);
+    };
+    mulaiPoll();
+    const onVis = () => {
+      if (document.hidden) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
+      } else {
+        muat();
+        mulaiPoll();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = null;
     };
   }, [muat]);
 
