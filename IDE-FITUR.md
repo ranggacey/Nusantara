@@ -378,11 +378,23 @@ animasi panel/modal menjadi fade singkat/statis. Dampak
 kecil-sedang, usaha kecil. Mulai dari panel saja, bukan kanvas 3D.
 
 ## Ide 26 — Cincin fokus terlihat di menu dan modal (dari riset 2026-11-04 20:29 WIB, sudut aksesibilitas)
+~~DIBANGUN 2026-11-05 04:29 WIB~~ — satu aturan `:focus-visible`
+di `globals.css` untuk FAB menu + semua kontrol di kartu menu dan
+modal (`.menu-fab`, `.menu-card :`, `.modal-box :`): outline putih
+3px + offset 2px + box-shadow gelap 5px (= offset + lebar, dua nada
+bersentuhan sehingga satu sisi selalu kontras di atas latar terang
+maupun gelap) + fallback forced-colors (outline Highlight, tanpa
+shadow). Tanpa transisi/animasi pada cincin (patuh reduced-motion
+r31); TIDAK menghapus outline global apa pun dan TIDAK menyentuh
+`.px-input` yang sudah punya `:focus` sendiri. BUILD_ID r32 -> r33
++ 6 tes penjaga. Uji Tab/Shift+Tab/Escape secara visual menyusul
+(browser task run ini hanya mengamati, bukan menekan Tab).
 
 Sumber: RunMob (indikator fokus harus tetap terlihat di atas
-gambar game, urutan Tab mengikuti layar). Masalah: pemain
-keyboard/tab tidak tahu tombol mana yang sedang aktif karena
-fokus tenggelam di atas gambar peta. Cara kerja: aturan
+gambar game, urutan Tab mengikuti layar) + riset run ini
+(Level Access + Modern CSS Layouts, dua nada + forced-colors).
+Masalah: pemain keyboard/tab tidak tahu tombol mana yang sedang
+aktif karena fokus tenggelam di atas gambar peta. Cara kerja: aturan
 `:focus-visible` dengan outline kontras untuk tombol menu/modal
 (bukan menghilangkan outline global). Dampak kecil, usaha kecil.
 Uji dengan Tab/Shift+Tab/Escape.

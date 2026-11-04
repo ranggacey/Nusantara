@@ -428,6 +428,31 @@ canvas.game-canvas {
   margin-top: 2px;
   line-height: 1.45;
 }
+
+/* Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26): satu aturan
+   :focus-visible untuk FAB menu + semua kontrol di kartu menu/modal.
+   Dua nada yang bersentuhan (tanpa celah latar): outline putih 3px di
+   luar + bayangan gelap 5px (= offset 2px + lebar 3px) tepat di dalamnya,
+   jadi satu sisi cincin selalu kontras di atas latar terang maupun
+   gelap. Hanya keyboard (focus-visible), klik mouse tidak meninggalkan
+   cincin. Tanpa transisi/animasi sehingga patuh reduced-motion r31.
+   TIDAK menghapus outline global apa pun; ini hanya menambah. */
+.menu-fab:focus-visible,
+.menu-card :focus-visible,
+.modal-box :focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px #0b1220;
+}
+@media (forced-colors: active) {
+  .menu-fab:focus-visible,
+  .menu-card :focus-visible,
+  .modal-box :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+}
 .papan-warga-list {
   display: flex;
   flex-direction: column;

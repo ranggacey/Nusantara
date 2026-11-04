@@ -1,5 +1,100 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 04:29 WIB — Cincin fokus keyboard di menu/modal (Ide 26) + brief riset aksesibilitas
+
+Perubahan dalam 2 kalimat: tombol di kartu menu dan modal kini
+mendapat cincin fokus `:focus-visible` dua-nada yang terlihat di
+atas latar terang maupun gelap, khusus untuk navigasi keyboard;
+sim, ekonomi, kanvas 3D, dan urutan Tab tidak disentuh sama sekali.
+
+- `src/app/globals.css`: satu aturan untuk `.menu-fab:focus-visible`,
+  `.menu-card :focus-visible`, dan `.modal-box :focus-visible` —
+  outline putih 3px + offset 2px + box-shadow gelap 5px (= offset +
+  lebar, dua nada bersentuhan tanpa celah latar) + fallback
+  forced-colors (outline `Highlight`, tanpa shadow). Tanpa
+  transisi/animasi pada cincin sehingga otomatis patuh aturan
+  reduced-motion r31. TIDAK menghapus outline global apa pun dan
+  TIDAK menyentuh `.px-input` yang sudah punya `:focus` sendiri.
+- `src/lib/version.ts`: BUILD_ID r32 -> r33.
+- Tes: 6 penjaga statis baru (cakupan selektor, outline + offset,
+  nada kedua 5px, fallback forced-colors, tidak ada penghapus
+  outline global, BUILD_ID r33) + 6 penjaga versi diperbarui
+  r32 -> r33. Total: 7795 lolos / 656 gagal — baseline r32
+  7789/656, jadi +6 lolos, nol regresi baru (tidak ada gagal
+  bernama fokus/r33). Build Next.js hijau.
+- Backlog: Ide 26 dicatat DIBANGUN di IDE-FITUR.md; riset run ini
+  menambah penguat Ide 26 (dua nada + forced-colors, bukan sekadar
+  outline satu warna).
+
+### Observasi live (browser, hanya melihat, 04:31-04:35 WIB)
+- Muat pertama berat tapi tidak macet: overlay gelap + teks
+  "Memuat peta 3D…" dulu, desa penuh dalam waktu kurang dari
+  ~1 menit. Tidak ada blank/error menetap; tampilan awal sempat
+  gelap/redup lalu cerah seiring waktu game (siang), konsisten
+  dengan pergantian waktu, bukan error.
+- Geser/zoom tidak ngelag pada uji sampel: seretan menggeser peta
+  langsung, tombol ▲/▼ kamera mengubah skala langsung tiap klik.
+  Kelancaran dinilai dari tangkapan diskret, bukan video kontinu
+  — dicatat, bukan diklaim sebagai angka FPS.
+- Warga mayoritas diam/berkerumun di sekitar bangunan tengah pada
+  sampel beberapa menit ini (9 nama yang sama: Figo, Nera, Praboti,
+  Evos dyroth, Siti, Budi, ribran gakabuming, Miners, Renata),
+  hanya bergeser kecil antar tampilan, tanpa jalan jauh yang
+  terlihat jelas. Ini SAMPEL observasi, bukan vonis "warga diam":
+  run sebelumnya melihat warga bergerak, dan sim tidak diubah run
+  ini — perilaku tugas spesifik tetap tidak terverifikasi dari
+  tampilan ini saja.
+- Hewan TIDAK terlihat jelas sebagai sprite di tampilan peta yang
+  diamati, meski label hewan (Rusa, Kelinci, Ayam Hutan, Serigala,
+  Beruang) terdaftar di halaman; kemungkinan di luar kamera atau
+  di area peta lain — tidak terverifikasi, bukan diklaim hilang.
+- Tombol/panel tidak ada yang tertutup: tombol menu kanan-atas,
+  kontrol kamera/analog kiri-bawah, pil "🎮 Panduan Kontrol", dan
+  pil "＋ Tambah karakter" utuh dan yang dites merespons. Dua
+  catatan yang TIDAK terverifikasi run ini (bukan klaim bug):
+  bagian bawah kartu menu melampaui lipatan layar ("Suara: Nyala"
+  hanya sebagian terlihat, entri di bawahnya belum digulir untuk
+  dicek — scroll internal kartu tidak diuji run ini, padahal
+  run sebelumnya mencatat kartu menu bisa di-scroll); dan bar
+  status atas yang sempat terlihat lalu tidak ada di tampilan
+  akhir — tidak bisa dipastikan apakah itu auto-hide atau state
+  UI lain.
+- VERIFIKASI TERTUNDA YANG KINI SELESAI: baris tip r32 TERLIHAT
+  di kartu menu live, di bawah panel "Kampung menginginkan" dan
+  "Mulai dari sini", di atas daftar tombol, dengan teks persis
+  seperti yang ditulis run 00:29 ("💡 Kamu menonton, bukan
+  mengatur: warga bekerja sendiri. Arah kampung diputuskan lewat
+  Musyawarah, dan target berikutnya ada di panel Kampung
+  menginginkan di atas."). Tugas observasi run 02:29 itu kini
+  tertutup.
+- Data menu saat observasi: Suka Maju, populasi 9, H-325, 07.58
+  Pagi, Cerah; panel "Kampung menginginkan: 📦 400 Kayu — Hadiah:
+  100 Emas", "Mulai dari sini: 📜 Musyawarah: Pemilihan Kepala
+  Kampung". Stok: kayu 225/160 (Penuh), batu 14/130, emas 1/40,
+  besi 47/55, pangan 0/200, kulit 104/95 (Penuh). Kayu TURUN dari
+  266/160 (verifikasi r32) searah pembusukan + konsumsi, tapi
+  kayu dan kulit MASIH di atas kapasitas yang ditampilkan — status
+  "perlu diselidiki" dari run-run sebelumnya TETAP berlaku, dan
+  tidak ada tindakan atas stok yang diambil run ini (cron dilarang
+  menulis DB, perubahan ini display-only CSS).
+
+### Riset (brief research/2026-11-05-0429.md, sudut AKSESIBILITAS — rotasi dari performa 02:29)
+- Sumber: Level Access (WCAG 2.4.7 terlihat, 1.4.11 kontras 3:1,
+  2.4.13 perimeter 2px; `:focus-visible` bukan `:focus`; dua nada
+  >= 9:1 satu sama lain dijamin lolos di atas latar solid apa pun;
+  jangan pernah `outline: none` tanpa pengganti; forced-colors
+  memakai `Highlight`; uji akhir = tab-through manual) +
+  Modern CSS Layouts (cincin dua nada yang bersentuhan, outline =
+  nada luar yang dipertahankan forced-colors, box-shadow tanpa
+  blur = nada dalam, spread = offset + lebar; awas terpotong
+  ancestor `overflow: hidden`).
+- Ide 26 dibangun run ini persis dari pola dua nada itu; Ide 26
+  yang lama hanya menyebut "outline kontras" tanpa dua nada —
+  riset ini yang menaikkan spesifikasinya. Tidak
+  direkomendasikan: hapus outline global dulu-ganti nanti, cincin
+  satu warna, cincin hanya dari box-shadow, tabindex positif, dan
+  animasi pada cincin.
+
 ## 2026-11-05 00:29 WIB — Tip kontekstual satu baris di kartu menu (Ide 14) + brief riset onboarding
 
 Perubahan dalam 2 kalimat: kartu menu kini menampilkan satu baris

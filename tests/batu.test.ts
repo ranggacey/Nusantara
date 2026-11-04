@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r32"'), "version: BUILD_ID r32 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r33"'), "version: BUILD_ID r33 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r32"'), "versi: BUILD_ID r32");
+  ok(ver.includes('"r33"'), "versi: BUILD_ID r33");
 }
 
 {
@@ -2225,7 +2225,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r32"'), "vis: BUILD_ID naik ke r32 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r33"'), "vis: BUILD_ID naik ke r33 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2332,7 +2332,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r32"'), "muat3d: BUILD_ID naik ke r32");
+  ok(verMuat.includes('BUILD_ID = "r33"'), "muat3d: BUILD_ID naik ke r33");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2376,7 +2376,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r32"'), "geraktenang: BUILD_ID naik ke r32");
+  ok(verGerak.includes('BUILD_ID = "r33"'), "geraktenang: BUILD_ID naik ke r33");
 }
 
 
@@ -2384,7 +2384,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
 // penjaga statis — state + kunci localStorage, baris tip di kartu menu
 // dengan teks model pengamat (bukan janji bangun sendiri), tombol ✕
 // yang menyimpan "0", tombol buka-lagi di Pengaturan, CSS baris ada,
-// dan BUILD_ID naik ke r32.
+// dan BUILD_ID naik ke r33.
 {
   const pageSrcTip = readFileSync("src/app/page.tsx", "utf8");
   ok(pageSrcTip.includes("ne_tip_kontekstual") && pageSrcTip.includes("tipTampil"), "tip: state + kunci localStorage ada");
@@ -2395,7 +2395,25 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r32"'), "tip: BUILD_ID naik ke r32");
+  ok(verTip.includes('BUILD_ID = "r33"'), "tip: BUILD_ID naik ke r33");
+}
+
+// Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
+// penjaga statis — satu aturan :focus-visible untuk FAB + kartu menu +
+// modal, dua nada bersentuhan (outline putih 3px + shadow gelap 5px =
+// offset 2px + lebar 3px), fallback forced-colors Highlight, dan
+// BUILD_ID naik ke r33. Aturan ini hanya menambah, tidak menghapus
+// outline global (tidak ada aturan *:focus-visible yang mematikan
+// outline di globals.css).
+{
+  const cssSrcFokus = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcFokus.includes(".menu-fab:focus-visible") && cssSrcFokus.includes(".menu-card :focus-visible") && cssSrcFokus.includes(".modal-box :focus-visible"), "fokus: aturan mencakup FAB + kartu menu + modal");
+  ok(cssSrcFokus.includes("outline: 3px solid #ffffff") && cssSrcFokus.includes("outline-offset: 2px"), "fokus: outline 3px + offset 2px");
+  ok(cssSrcFokus.includes("box-shadow: 0 0 0 5px #0b1220"), "fokus: nada kedua gelap 5px (= offset + lebar, bersentuhan tanpa celah)");
+  ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
+  ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
+  const verFokus = readFileSync("src/lib/version.ts", "utf8");
+  ok(verFokus.includes('BUILD_ID = "r33"'), "fokus: BUILD_ID naik ke r33");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
