@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r23"'), "version: BUILD_ID r23 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r24"'), "version: BUILD_ID r24 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r23"'), "versi: BUILD_ID r23");
+  ok(ver.includes('"r24"'), "versi: BUILD_ID r24");
 }
 
 {
@@ -2210,7 +2210,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r23"'), "vis: BUILD_ID naik ke r23 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r24"'), "vis: BUILD_ID naik ke r24 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2252,6 +2252,29 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcPapan = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcPapan.includes(".papan-warga-row") && cssSrcPapan.includes("min-height: 48px"), "papan: CSS baris + tinggi sentuh 48px");
   ok(cssSrcPapan.includes(".papan-warga-tutup"), "papan: CSS tombol Tutup ada");
+}
+
+// Fallback muat jujur untuk chunk 3D (Ide 7, irisan kecil): dynamic import
+// Map3D selama ini tanpa `loading`, jadi selama chunk diunduh setelah
+// hydration, area peta kosong tanpa teks apa pun — persis frame gelap
+// yang berulang kali dilaporkan observasi. Fallback memakai gaya
+// .map3d-loading yang sama dengan layar muat di dalam Map3D, dan
+// ssr:false tetap dipertahankan (WebGL/window tidak boleh dirender
+// server). Kejujuran: frame SEBELUM hydration JS masih mungkin gelap
+// (React belum jalan) — itu butuh cangkang HTML statis di layout,
+// bukan irisan ini, dan tidak diklaim beres di sini.
+{
+  const pageSrcMuat = readFileSync("src/app/page.tsx", "utf8");
+  const dynIdx = pageSrcMuat.indexOf('import("@/components/Map3D")');
+  ok(dynIdx > 0, "muat3d: dynamic import Map3D ada");
+  const dynBlock = pageSrcMuat.slice(Math.max(0, dynIdx - 120), dynIdx + 400);
+  ok(dynBlock.includes("ssr: false"), "muat3d: ssr:false dipertahankan");
+  ok(dynBlock.includes("loading:"), "muat3d: fallback loading ada di dynamic import");
+  ok(dynBlock.includes("map3d-loading") && dynBlock.includes("Memuat peta 3D…"), "muat3d: fallback memakai gaya + teks layar muat yang sama");
+  const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
+  const verMuat = readFileSync("src/lib/version.ts", "utf8");
+  ok(verMuat.includes('BUILD_ID = "r24"'), "muat3d: BUILD_ID naik ke r24");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

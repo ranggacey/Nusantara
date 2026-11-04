@@ -1,5 +1,85 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 16:29 WIB — Fallback muat jujur untuk chunk 3D (Ide 7, irisan kecil)
+
+Selama ini `Map3D` diimpor lewat `dynamic(..., { ssr: false })` TANPA
+`loading`, jadi selama chunk 3D diunduh setelah hydration, area peta
+kosong tanpa teks apa pun — persis frame gelap yang berulang kali
+dilaporkan observasi (termasuk run ini: frame gelap penuh tanpa teks/
+spinner, desa baru tampil dalam <30 detik).
+
+- `src/app/page.tsx`: dynamic import kini memakai
+  `loading: () => <div className="map3d-loading">Memuat peta 3D…</div>`
+  — gaya + teks yang sama dengan layar muat di dalam `Map3D`
+  (`!map` → `.map3d-loading`), jadi tidak ada gaya/teks muat kedua
+  yang bisa drift. `ssr: false` dipertahankan (WebGL/window tidak
+  boleh dirender server).
+- `src/lib/version.ts`: BUILD_ID r23 -> r24.
+- Tes: 6 penjaga statis baru (dynamic import ada, ssr:false
+  dipertahankan, fallback loading ada, gaya + teks sama, CSS
+  `.map3d-loading` ada, BUILD_ID r24) + 3 penjaga versi lama
+  diperbarui r23 -> r24 (mekanisme bump yang disengaja). Total:
+  7743 lolos / 656 gagal — baseline 7737/656, jadi +6 lolos, nol
+  regresi baru. Build Next.js hijau.
+- Kejujuran: yang ditutup irisan ini hanya jendela SETELAH hydration
+  (chunk diunduh). Frame SEBELUM hydration JS masih mungkin gelap
+  karena React belum jalan — itu butuh cangkang HTML statis di
+  layout dan menjadi sisa Ide 7, tidak diklaim beres di sini.
+  Penampakan visual fallback di live belum terverifikasi (butuh
+  sesi dengan cache/chunk dingin) — jadi tugas observasi run
+  berikutnya, bukan klaim di sini.
+
+### Observasi live (browser, hanya melihat, 16:30-16:35 WIB) — DENGAN PERINGATAN
+- Yang KONSISTEN dengan semua run sebelumnya dan dipakai di sini:
+  frame pertama gelap penuh tanpa teks/spinner/indikator, hanya
+  tombol menu, "Panduan Kontrol", dan "＋ Tambah karakter"; desa
+  tampil dalam <30 detik; tidak ada pesan error.
+- Yang TIDAK DIPAKAI karena BERTENTANGAN dengan kode tree dan API
+  yang terverifikasi: laporan browser menyebut menu berisi
+  Beranda/Gacha/Profil Negara/dst. dan modal "Papan Warga" berisi
+  7 warga (Raja/Menteri/dst.) — tree Nusantara punya menu ☰
+  (Resto, Musyawarah, Tata Kota, ...) dan Papan Warga dari
+  `map.warga` (27 warga, nama + nomor + peran + status_teks,
+  tanpa usia/jabatan Raja). Daftar menu dan isi modal dari
+  laporan itu TIDAK dipakai di entri ini; kemungkinan alat
+  browser mengamati tab/sesi lain. Panel "Kampung menginginkan"
+  yang tidak terlihat di laporan itu juga tidak disimpulkan
+  apa-apa — panel itu ada di kode menu dan terverifikasi
+  terlihat di run 08:29/10:29/12:29/14:29.
+- Catatan data live (BUKAN dari laporan browser): pembacaan
+  /api/world lewat text-fetch run ini memberi salinan CACHE
+  20 menit (r22, H-276, pangan 632.266) — TIDAK dipakai sebagai
+  keadaan live saat ini. Sementara itu, catatan memori terpisah
+  yang masuk saat run ini berjalan mengonfirmasi dari DUA
+  pembacaan independen: stok live kini ~0 (kayu 1, batu 1,
+  emas 1, besi 1, pangan 0, kulit 1; kapasitas tetap). Itu BUKAN
+  efek pembusukan r23 (lantainya di kapasitas, tidak pernah 0)
+  dan tidak ada mekanik belanja massal/endpoint reset di kode —
+  penyebab pengosongan masih diselidiki di jalur lain, rollback
+  kode tidak mengembalikan stok, dan cron ini DILARANG menulis
+  DB sehingga tidak mengambil tindakan apa pun atas stok.
+  Perubahan run ini (fallback muat, display-only) tidak
+  menyentuh sim/stok sama sekali.
+
+### Riset + backlog (brief research/2026-11-04-1629.md)
+- Sudut: KEMBALI BERMAIN / rekap (rotasi dari UX 14:29). Sumber:
+  Plai: Village Tale (kronik kampung satu baris + produksi
+  dibatasi 8 jam lalu warga "jujur tidur"), Knightfall Idle
+  (dunia bersama persisten, waktu pergi disimulasikan saat
+  kembali, cap 8 jam), studi engagement idle game (kejar
+  ketertinggalan lebih cepat terasa memuaskan, tapi angka
+  harus jujur sesuai ekspektasi).
+- Ide 22 ("Selama kamu pergi" di kartu menu, display-only dari
+  snapshot localStorage vs poll terbaru, maks 3 baris, tanpa
+  hadiah offline) dan Ide 23 (kronik kampung satu baris dari
+  data poll, bukan LLM) masuk IDE-FITUR.md. Tidak
+  direkomendasikan: hadiah offline/klaim sumber saat kembali
+  (menggandakan stok di dunia bersama), cap 8 jam untuk sim
+  (sim server tidak pernah tidur), rekap berbasis LLM tiap
+  kunjungan (boros + rawan mengarang peristiwa).
+- Irisan run ini dari backlog Ide 7 (bukan dari brief ini) —
+  brief ini jadi antrean berikutnya.
+
 ## 2026-11-04 16:45 WIB — Kelangkaan realistis: kumpul sangat susah + pembusukan stok (perintah user)
 
 Keluhan user 16:14 WIB: makanan 400 ribu jam 10 jadi 600 ribu,

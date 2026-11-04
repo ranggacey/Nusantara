@@ -32,7 +32,12 @@ import { NeoIcon, type IconName } from "@/components/icons";
 import { ensureAudio, setSuaraAktif } from "@/lib/audio";
 
 // Peta 3D butuh WebGL/window → client-only (ssr:false), jangan dirender server.
-const Map3D = dynamic(() => import("@/components/Map3D"), { ssr: false });
+// Fallback muat jujur: selama chunk 3D diunduh setelah hydration, tampilkan
+// teks yang sama dengan layar muat di dalam Map3D, bukan frame kosong.
+const Map3D = dynamic(() => import("@/components/Map3D"), {
+  ssr: false,
+  loading: () => <div className="map3d-loading">Memuat peta 3D…</div>,
+});
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
 import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya } from "@/lib/batu/sumberdaya";

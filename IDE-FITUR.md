@@ -86,6 +86,13 @@ Tidak direkomendasikan dari riset ini: voice chat/trading antar
 pemain dan combat gua real-time (terlalu berat / mengubah genre).
 
 ## Ide 7 — Layar muat jujur + tunda chunk 3D (dari riset 2026-11-04 02:29 WIB, sudut performa)
+~~SEBAGIAN DIBANGUN 2026-11-04 16:29 WIB~~ — fallback `loading` di
+dynamic import `Map3D` (teks "Memuat peta 3D…" + gaya
+`.map3d-loading` yang sama dengan layar muat di dalam Map3D),
+menutup jendela kosong setelah hydration selama chunk diunduh.
+SISA: frame SEBELUM hydration masih mungkin gelap (butuh cangkang
+HTML statis di layout) + pemisahan chunk 3D dari paket awal belum
+diukur ulang. Verifikasi visual live menyusul (butuh chunk dingin).
 
 Sumber: Mobitoss (muat hanya layar pertama + progres bergerak,
 bukan layar kosong) + Playgama (cap DPR, kurangi draw call).
@@ -287,6 +294,32 @@ bawah daftar + ketuk latar sebagai jalan keluar kedua, bukan hanya
 ✕ pojok atas. Panel lama menyusul bila disentuh run berikutnya.
 Sumber: Wandr (tombol tutup di pojok atas jauh = titik tersulit
 satu tangan; sediakan ketuk di luar panel sebagai jalan keluar).
+
+## Ide 22 — "Selama kamu pergi" di kartu menu (dari riset 2026-11-04 16:29 WIB, sudut kembali bermain)
+
+Sumber: Knightfall Idle (waktu pergi disimulasikan saat kembali,
+cap 8 jam) + studi engagement idle game (kejar ketertinggalan
+lebih cepat terasa memuaskan, angka harus jujur). Masalah: pemain
+kembali setelah berjam-jam, jam game loncat puluhan hari, tapi
+tidak ada yang merangkum apa yang berubah. Cara kerja: blok
+ringkas di kartu menu membandingkan snapshot kunjungan terakhir
+(localStorage: hari game + stok + populasi + bangunan selesai)
+dengan data poll terbaru — maksimal 3 baris ("Hari 269 -> 276",
+"Bangunan selesai: 2"). Display-only, tanpa fetch baru, tanpa
+ubah sim, TANPA hadiah offline (dunia bersama jalan terus untuk
+semua orang, bukan untuk satu pemain). Dampak sedang-tinggi,
+usaha kecil-sedang.
+
+## Ide 23 — Kronik kampung satu baris (dari riset 2026-11-04 16:29 WIB, sudut kembali bermain)
+
+Sumber: Plai: Village Tale (satu baris kronik yang bereaksi pada
+keadaan game, gaya Dwarf Fortress, lakonis). Masalah: kabar
+kampung daftar panjang yang mudah tenggelam; pemain yang hanya
+melirik 10 detik tidak menangkap "cerita hari ini". Cara kerja:
+satu baris bergilir di kartu menu yang merangkum keadaan terkini
+dari data poll (aturan prioritas sederhana, bukan LLM). Syarat:
+kalimat harus berasal dari data nyata, bukan karangan. Dampak
+sedang, usaha kecil.
 
 ## Ide-ide berikutnya
 
