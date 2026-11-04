@@ -147,6 +147,35 @@ tidak disentuh sama sekali.
   membabi buta tanpa baseline, hapus bayangan sekaligus tanpa
   ukur, dan log renderer.info permanen di production.
 
+### Verifikasi pasca-deploy r32 (03:23-03:24 WIB)
+- Vercel: deploy production READY dpl_3z7QRNEBGwdjhPi6La1fsbbQaoeE
+  dari commit 793bc64 (auto-deploy dari main). /api/version = r32.
+- Homepage termuat (judul "Negara Emas — Zaman Batu", teks
+  "Memuat peta 3D…") + satu ikon termuat (/batu/icons/kayu.png
+  128x128, log + tunas hijau, render utuh).
+- /api/world ok (isi): Suka Maju, populasi 9, hari 321, 12.12
+  Siang, Cerah, Level 16; stok kayu 266/160, batu 14/130,
+  emas 1/40, besi 47/55, pangan 0/200, kulit 104/95.
+- /api/map ok (isi): ok:true, grid 600x600, 9 warga (Figo, Nera,
+  Praboti, Evos dyroth, Siti, Budi, ribran gakabuming, Miners,
+  Renata) — cocok dengan populasi /api/world.
+- /api/bangunan ok (isi): katalog 26 jenis + 16 antrean (15
+  selesai, 1 antre: paviliun_makan, kurang 6 batu).
+- TIDAK ADA regresi API setelah deploy ini (semua route yang
+  tadinya ok tetap ok). Perubahan ini display-only, jadi tidak
+  menyentuh sim/API sama sekali.
+- YANG TETAP berlaku: kayu 266/160 dan kulit 104/95 MASIH di atas
+  kapasitas yang ditampilkan (turun dari 304/160 di observasi
+  02:31, searah pembusukan + konsumsi, tapi belum sampai di
+  bawah kap) — status "perlu diselidiki" dari run-run sebelumnya
+  tetap, bukan akibat deploy ini, dan tidak ada tindakan atas
+  stok yang diambil run ini.
+- Yang TETAP belum terverifikasi visual: baris tip r32 itu sendiri
+  di kartu menu live (butuh sesi browser yang membuka menu
+  pasca-deploy r32 — observasi run ini dilakukan saat live masih
+  r31, sebelum deploy); CSS + tes membuktikan aturannya ada, dan
+  penampakan visualnya menjadi tugas observasi run berikutnya.
+
 ## 2026-11-04 22:29 WIB — Hormati prefers-reduced-motion di panel/modal (Ide 25) + brief riset performa
 
 Perubahan dalam 2 kalimat: pemain yang mengaktifkan
