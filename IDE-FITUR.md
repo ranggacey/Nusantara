@@ -105,6 +105,14 @@ Dampak sedang, usaha kecil-sedang (culling butuh uji visual tepi
 layar).
 
 ## Ide 9 — Jeda loop render saat tab disembunyikan (dari riset 2026-11-04 02:29 WIB, sudut performa)
+~~DIBANGUN 2026-11-04 10:29 WIB~~ — listener `visibilitychange`
+di `Map3D.tsx` (hidden -> cancelAnimationFrame + raf = 0;
+visible -> reset timestamp + mulai lagi hanya bila raf = 0;
+listener dilepas saat cleanup) + BUILD_ID r20 + 5 tes penjaga.
+Catatan jujur: browser modern sudah menahan RAF di tab hidden,
+jadi nilai tambah ini ada di frame basi yang dibatalkan eksplisit,
+pencegahan loop ganda, dan reset timestamp — efek baterai tidak
+diukur dan tidak diklaim. Sim tidak ikut dijeda (dunia bersama).
 
 Sumber: Mobitoss (Page Visibility API). Masalah: baterai terkuras
 saat tab ditinggal terbuka. Cara kerja: hentikan requestAnimationFrame
@@ -218,6 +226,16 @@ punya pilihan. Cara kerja: di panel Pengaturan, pecah jadi dua
 switch/slider (Efek, Ambien) + simpan di localStorage seperti
 pilihan label karakter; default mengikuti toggle lama. Dampak
 sedang, usaha kecil.
+
+## Ide 17 — Jeda poll data saat tab hidden (dari riset 2026-11-04 10:29 WIB, sudut performa)
+
+Sumber: Spicy Yoghurt + Codrops (lihat research/2026-11-04-1029.md).
+Masalah: poll `/api/world` dkk. tetap jalan (meski di-throttle
+browser) saat tab tidak dilihat. Cara kerja: di `page.tsx`,
+hentikan interval poll saat hidden, lanjutkan saat visible dengan
+satu fetch segar. Dampak kecil, usaha kecil-sedang; hati-hati:
+jam game server tetap jalan, jadi saat kembali UI harus langsung
+fetch ulang, bukan menunggu interval berikutnya.
 
 ## Ide-ide berikutnya
 

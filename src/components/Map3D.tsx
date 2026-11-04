@@ -2827,8 +2827,27 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     };
     raf = requestAnimationFrame(loop);
 
+    // Jeda loop render saat tab disembunyikan (Ide 9, 2026-11-04):
+    // browser memang sudah menahan RAF di tab hidden, tapi frame yang
+    // tertunda tetap terjadwal; membatalkannya eksplisit + reset `last`
+    // saat kembali mencegah frame basi, loop ganda, dan lompatan dt.
+    // Sim TIDAK ikut dijeda: jam game jalan di server, jadi saat kembali
+    // desa tampil di waktu server terbaru. Penjaga raf = 0 memastikan
+    // hanya satu loop yang berjalan.
+    const onVis = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else if (!raf) {
+        last = performance.now();
+        raf = requestAnimationFrame(loop);
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
     return () => {
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVis);
       ro.disconnect();
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointerup", onUp);

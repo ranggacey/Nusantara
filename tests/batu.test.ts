@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r19"'), "version: BUILD_ID r19 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r20"'), "version: BUILD_ID r20 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r19"'), "versi: BUILD_ID r19");
+  ok(ver.includes('"r20"'), "versi: BUILD_ID r20");
 }
 
 {
@@ -2159,6 +2159,20 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(pageSrcMulai.includes("setShowMusyawarah(true)") && pageSrcMulai.includes("setMenuOpen(false)"), "mulai: aksi Musyawarah menutup menu dulu");
   const cssSrcMulai = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMulai.includes(".menu-mulai") && cssSrcMulai.includes(".menu-mulai-label") && cssSrcMulai.includes(".menu-mulai-teks"), "mulai: CSS baris ada");
+}
+
+// Jeda loop render saat tab disembunyikan (2026-11-04, Ide 9):
+// penjaga statis — loop Map3D dibatalkan saat hidden, dimulai lagi
+// saat visible hanya bila tidak ada loop berjalan, timestamp di-reset
+// supaya tidak ada lompatan dt, dan listener dilepas saat cleanup.
+{
+  const mapSrcVis = readFileSync("src/components/Map3D.tsx", "utf8");
+  ok(mapSrcVis.includes('document.addEventListener("visibilitychange"'), "vis: listener visibilitychange dipasang");
+  ok(mapSrcVis.includes("document.hidden") && mapSrcVis.includes("cancelAnimationFrame(raf)"), "vis: hidden -> cancelAnimationFrame");
+  ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
+  ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
+  const verSrc = readFileSync("src/lib/version.ts", "utf8");
+  ok(verSrc.includes('BUILD_ID = "r20"'), "vis: BUILD_ID naik ke r20 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

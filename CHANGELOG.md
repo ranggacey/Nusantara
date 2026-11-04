@@ -1,5 +1,89 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 10:29 WIB — Jeda loop render saat tab disembunyikan (Ide 9)
+
+Loop render 3D utama di `src/components/Map3D.tsx` kini dijeda
+eksplisit saat tab tidak terlihat, lalu dilanjutkan lagi saat
+kembali — tanpa menyentuh sim atau data apa pun.
+
+- `Map3D.tsx`: listener `visibilitychange` — hidden ->
+  `cancelAnimationFrame(raf)`, raf = 0; visible -> reset
+  `last = performance.now()` lalu `requestAnimationFrame(loop)`
+  lagi, hanya bila raf = 0 (penjaga anti loop ganda); listener
+  dilepas di cleanup unmount. Sim TIDAK ikut dijeda: jam game
+  jalan di server, jadi saat kembali desa tampil di waktu
+  server terbaru, bukan waktu yang tertinggal.
+- `src/lib/version.ts`: BUILD_ID r19 -> r20 (menutup celah
+  run sebelumnya: pil "Versi baru" kini bisa membedakan rilis
+  ini). Dua penjaga tes lama yang mengunci string r19 ikut
+  diperbarui ke r20 — itu mekanisme bump yang disengaja,
+  bukan regresi.
+- Tes: 5 penjaga statis baru (listener dipasang, hidden ->
+  cancel, visible -> mulai lagi hanya bila raf 0 + reset
+  timestamp, listener dilepas, BUILD_ID r20). Total: 7711 lolos
+  / 656 gagal — baseline 7706/656, jadi +5 lolos, nol regresi
+  baru (656 gagal = baseline lama; sempat terlihat 7709/658
+  sebelum bump tes r19 diperbarui, dan perbandingan FAIL
+  membuktikan 2 selisih itu persis dua penjaga r19 tersebut).
+  Build Next.js hijau.
+- Catatan kejujuran: browser modern SUDAH menahan RAF di tab
+  hidden, jadi penghematan tambahan ini kecil — nilainya ada
+  di frame basi yang dibatalkan eksplisit, pencegahan loop
+  ganda, dan reset timestamp anti-lompatan. Efek baterai tidak
+  diukur di sini dan tidak diklaim. Ide 17 (jeda poll data saat
+  hidden) masuk backlog, tidak dibangun run ini.
+
+### Observasi live (browser, hanya melihat, 10:30-10:46 WIB)
+- Muat pertama: tampilan awal gelap/kosong, lalu langit +
+  "Memuat peta 3D…" tanpa persentase; desa tampil penuh dalam
+  <60 detik (lebih lambat dari <30 detik run 08:29 — dicatat
+  sebagai variasi sesi/cache, bukan klaim perbaikan maupun
+  regresi; tidak ada error saat muat).
+- Desa hidup: jam game berjalan (12.24 Siang -> 19.15 Sore,
+  Berawan, H-253), posisi warga + hewan berubah antar
+  tangkapan (Figo, Gibran, Joel, Wahyu, Jarvis, Bajir, Wahid,
+  Hina, Sagita, Nuna, Nura, Pinka; hewan Kucing, Anjing, Ayam,
+  Kambing). Di tampilan diam, warga tampak kecil dan tidak
+  terlihat jelas sedang bekerja — terkesan mondar-mandir /
+  idle di sekitar gubuk, dengan label mood ("Nyaman", "Lapar")
+  dan bubble obrolan. Ini tampilan diam, bukan bukti warga
+  tidak bekerja (sim jalan di server).
+- Geser peta: drag pan selesai tanpa robek/beku/stutter yang
+  terlihat di frame diam; zoom lewat scroll tidak terverifikasi
+  jelas dari tangkapan. Jeda panjang selama observasi sebagian
+  adalah jeda tangkapan alat browser (~8 detik per aksi),
+  bukan lag game yang terbukti.
+- Menu ☰: terbuka lewat ketukan langsung di lingkaran kanan
+  atas (klik via referensi tombol berulang kali "page_busy" =
+  batas alat browser, bukan bug situs; glif ☰ tampak kotak
+  kecil emas di tangkapan = artefak render tangkapan, bukan
+  bukti ikon rusak). Panel "🎯 Kampung menginginkan" TERLIHAT
+  (ujung tangga, Tugu Leluhur Agung menanti). Baris "Mulai
+  dari sini" TIDAK ADA — KONSISTEN dengan by design run
+  08:29: desa live sudah di ujung tangga (populasi 27,
+  paviliun + balai + dapur + bengkel berdiri) sehingga fungsi
+  sengaja mengembalikan null. Entri "Festival Esok" +
+  "Pustaka Leluhur" terlihat di satu pembukaan menu lalu tidak
+  di pembukaan berikutnya — penyebabnya tidak terjelaskan dari
+  observasi saja; dicatat sebagai hal yang perlu dicek run
+  berikutnya, bukan diklaim bug.
+- Tidak ada area blank/error menetap; tombol bawah "Panduan
+  Kontrol" dan "＋ Tambah karakter" tetap terlihat, tidak
+  tertutup.
+
+### Riset + backlog (brief research/2026-11-04-1029.md)
+- Sudut: PERFORMA (rotasi dari AUDIO 08:29). Sumber: Spicy
+  Yoghurt (game loop + Page Visibility: pause saat hidden,
+  resume dengan timestamp segar), Codrops (Three.js: frameloop
+  'never' saat hidden, lepas listener saat cleanup), Reintech
+  (cancelAnimationFrame + id null cegah frame menumpuk).
+- Ide 9 dibangun run ini; Ide 17 (jeda poll data saat hidden)
+  masuk IDE-FITUR.md. Tidak direkomendasikan: menghentikan sim
+  server saat tab hidden (dunia bersama akan membeku untuk
+  semua orang), klaim hemat baterai tanpa pengukuran, dan
+  IntersectionObserver untuk kanvas fullscreen (tidak menambah
+  sinyal dibanding visibilitychange).
+
 ## 2026-11-04 08:29 WIB — Satu aksi pertama "Mulai dari sini" di kartu menu (Ide 12, adaptasi jujur)
 
 Baris ketuk "▶ Mulai dari sini" di kartu menu (☰), di bawah
