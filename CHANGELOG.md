@@ -1,5 +1,97 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 22:29 WIB — Hormati prefers-reduced-motion di panel/modal (Ide 25) + brief riset performa
+
+Perubahan dalam 2 kalimat: pemain yang mengaktifkan
+"kurangi gerakan" di perangkatnya kini mendapat panel/modal yang
+muncul langsung tanpa transisi, titik stok penuh yang statis, dan
+label melayang yang hanya memudar di tempat; sim, ekonomi, dan
+kanvas 3D tidak disentuh sama sekali.
+
+- `src/app/globals.css`: blok `@media (prefers-reduced-motion:
+  reduce)` — transisi dimatikan untuk `.overlay-full`,
+  `.modal-box`, `.menu-card`, `.menu-fab`, `.menu-item`,
+  `.side-panel`, `.papan-warga-row`, `.hud-res-chip`, dan
+  `.map3d-label` (panel/modal/papan muncul langsung, bukan
+  meluncur/membesar); `.hud-full-dot` berhenti berdenyut tapi
+  tetap merah penuh (sinyal stok penuh dipertahankan lewat warna
+  + bentuk, bukan gerak — pelajaran riset aksesibilitas run
+  sebelumnya); `.map3d-float-badge` memakai keyframes baru
+  `floatFadeTenang` (hanya opacity, tanpa translate/scale) selama
+  1,6 detik yang sama. Kanvas 3D sengaja TIDAK disentuh: gerak
+  kamera/warga di sana adalah inti permainan, bukan dekorasi panel.
+- `src/lib/version.ts`: BUILD_ID r30 -> r31.
+- Tes: 8 penjaga statis baru (media query ada; panel/modal/papan
+  masuk di dalamnya; transisi dimatikan; titik penuh statis;
+  label melayang pakai fade tenang; keyframes fade tenang ada;
+  keyframes itu tanpa translate/scale; BUILD_ID r31) + 4 penjaga
+  versi diperbarui r30 -> r31. Total: 7782 lolos / 656 gagal —
+  baseline pra-perubahan 7774/656, jadi +8 lolos, nol regresi baru
+  (himpunan gagal tidak berubah nama). Build Next.js hijau.
+- Backlog: Ide 25 dicatat DIBANGUN di IDE-FITUR.md; riset run ini
+  menambah Ide 27 (baseline draw call lewat `renderer.info`
+  sebelum optimasi apa pun) dan Ide 28 (InstancedMesh untuk
+  pohon/batu berulang, setelah baseline ada).
+
+### Observasi live (browser, hanya melihat, 22:29-22:33 WIB)
+- Muat pertama bukan frame kosong: layar biru gelap dengan teks
+  "Memuat peta 3D…" lalu langit + teks yang sama, desa tampil
+  dalam <1 menit (waktu persis tidak terukur dari stempel
+  menit alat browser, jadi dilaporkan sebagai <1 menit).
+- Geser/zoom tidak ngelag pada uji lembut: seret di rumput kosong
+  menggeser peta tanpa lompat/beku yang terlihat, tombol ▼ kamera
+  turun ditekan 3x mendekat bertahap dengan bersih. FPS tidak
+  diukur, jadi ini penilaian respons dari tangkapan, bukan angka.
+- Warga tampak sibuk, bukan diam: label tugas berprogres
+  ("ladang 60%", "bengkel_kayu 10%", "Menghalau Hewan!" naik
+  36% -> ~74-77%) plus peringatan "Tolong! Ada hewan buas!"
+  di dekat gubuk. Sebagian warga berjalan antar gubuk, tapi kesan
+  dominan adalah label tugas, bukan mondar-mandir tanpa tujuan.
+- Hewan terlihat jelas dan banyak: Rusa, Kelinci, Ayam Hutan,
+  Serigala, Beruang — termasuk beruang cukup dekat sampai memicu
+  peringatan pertahanan desa.
+- Tombol/panel tidak ada yang tertutup atau terpotong: klaster
+  analog kiri-bawah utuh (dasar + knop kuning, ▲/▼, ✕), pil
+  "🎮 Panduan Kontrol" di bawahnya utuh, pil "＋ Tambah karakter"
+  kanan-bawah utuh, tombol ☰ kanan-atas membuka menu dan "Tutup
+  menu" menutupnya bersih. Catatan jujur: knop analog, pil
+  Panduan, pil Tambah, dan tombol ▲ tidak diketuk (observasi
+  hanya melihat), jadi respons ketuknya tidak terverifikasi —
+  hanya visibilitasnya, kecuali tombol ▼ yang terverifikasi
+  merespons. Panel menu sendiri sangat tinggi (hampir setinggi
+  layar, dengan scrollbar sendiri); "Tutup menu" tetap terjangkau
+  di tampilan itu.
+- Tidak ada area blank/error menetap; satu tampilan sempat jauh
+  lebih gelap lalu cerah lagi, konsisten dengan pergantian
+  waktu game, bukan error.
+- Data menu saat observasi (BUKAN dari perubahan run ini, dicatat
+  sebagai keadaan desa): Suka Maju, Zaman Batu, populasi 8 (Figo,
+  Nera, Praboti, Evos dyroth, Siti, Budi, ribran gakabuming,
+  Miners), H-301, 05.36 Malam, Berawan; bangunan antara lain
+  Ladang x3, Gubuk x3, bengkel_kayu, Gudang, Balai Kampung,
+  Api Unggun, Sumur, Menara Pengawas. PERHATIAN untuk run
+  berikutnya, bukan diperbaiki run ini: stok yang ditampilkan
+  menu melampaui kapasitas yang ditampilkan juga (kayu 943/160,
+  pangan 655/200, kulit 110/95 — semua bertanda PENUH). Ini
+  bertentangan dengan pemahaman clamp gudang dari run-run
+  sebelumnya dan belum terjelaskan dari bacaan menu saja
+  (bisa jadi angka kapasitas di menu bukan kap clamp yang sama);
+  perubahan run ini display-only CSS dan tidak menyentuh sim/stok
+  sama sekali, jadi tidak ada kaitannya dengan angka itu — tapi
+  angka ini perlu dicek ulang lewat /api/world pada verifikasi
+  pasca-deploy, bukan diklaim bug dari menu saja.
+
+### Riset (brief research/2026-11-04-2229.md, sudut PERFORMA — rotasi dari aksesibilitas 20:29)
+- Sumber: Simplified (draw call bottleneck utama WebGL; target HP
+  <50/frame; merge geometri statis, InstancedMesh, cap pixel ratio
+  2, matikan shadow map di HP) + Glitchless (ukur dulu lewat
+  `renderer.info`; draw call ribuan sejak awal = mesh terpisah
+  terlalu banyak; draw call naik terus = tidak di-dispose; uji di
+  perangkat paling lambat).
+- Ide 27 dan Ide 28 masuk IDE-FITUR.md (lihat di atas). Tidak
+  direkomendasikan: migrasi WebGPU, cap pixel ratio membabi buta
+  tanpa baseline, dan hapus bayangan/efek sekaligus tanpa ukur.
+
 ## 2026-11-04 20:29 WIB — Tanda "tanpa tugas" di Papan Warga (sebagian Ide 5) + brief riset aksesibilitas
 
 Perubahan dalam 2 kalimat: Papan Warga kini menandai warga yang

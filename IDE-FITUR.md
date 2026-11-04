@@ -348,6 +348,13 @@ menganggur otomatis cari kerja terdekat, bunyi peringatan tiap jumlah
 menganggur bertambah, dan memindah pil Panduan Kontrol ke atas layar.
 
 ## Ide 25 — Hormati prefers-reduced-motion di panel/modal (dari riset 2026-11-04 20:29 WIB, sudut aksesibilitas)
+~~DIBANGUN 2026-11-04 22:29 WIB~~ — blok `@media
+(prefers-reduced-motion: reduce)` di `globals.css`: transisi
+panel/modal/papan dimatikan (muncul langsung), titik stok penuh
+berhenti berdenyut tapi tetap merah statis, label melayang diganti
+keyframes `floatFadeTenang` (hanya memudar di tempat, tanpa
+naik/membesar). Kanvas 3D sengaja tidak disentuh. BUILD_ID
+r30 -> r31 + 8 tes penjaga.
 
 Sumber: RunMob (alternatif tenang, bukan hapus umpan balik) +
 Game Accessibility Guidelines (kontras, teks jelas). Masalah:
@@ -366,6 +373,32 @@ fokus tenggelam di atas gambar peta. Cara kerja: aturan
 `:focus-visible` dengan outline kontras untuk tombol menu/modal
 (bukan menghilangkan outline global). Dampak kecil, usaha kecil.
 Uji dengan Tab/Shift+Tab/Escape.
+
+## Ide 27 — Hitung draw call peta sebelum mengoptimalkan apa pun (dari riset 2026-11-04 22:29 WIB, sudut performa)
+
+Sumber: Simplified (draw call = bottleneck utama WebGL, target HP
+<50/frame) + Glitchless (`renderer.info` sebagai pengukur: draw
+call + segitiga + geometri/tekstur yang hidup). Masalah: "ngelag
+di HP" dilaporkan tanpa angka, jadi perbaikan performa selama ini
+menebak. Cara kerja: tampilkan/log sekali `renderer.info.render.calls`
++ triangles dari Map3D, catat sebagai baseline di CHANGELOG sebelum
+mengubah render apa pun. Display-only, tanpa ubah sim. Dampak
+sedang (membuat optimasi berikutnya terukur), usaha kecil.
+
+## Ide 28 — Instancing untuk pohon/batu yang berulang di peta (dari riset 2026-11-04 22:29 WIB, sudut performa)
+
+Sumber: Simplified + Glitchless (InstancedMesh: banyak salinan
+geometri sama = 1 draw call; jangan buat geometri/material per
+objek). Masalah: desa ramai = ratusan objek berulang yang
+masing-masing satu draw call, pola yang kedua sumber sebut
+penyebab utama ngelag HP. Cara kerja: kelompokkan mesh statis
+berulang (pohon, batu, semak) per jenis menjadi InstancedMesh,
+mulai dari satu jenis dulu, ukur draw call sebelum/sesudah
+(Ide 27), pastikan klik/raycast tetap benar. Dampak
+sedang-tinggi, usaha sedang. Bukan untuk satu run tanpa baseline
+Ide 27 dulu. Tidak direkomendasikan dari riset ini: migrasi
+WebGPU (perombakan renderer, risiko kompatibilitas) dan cap pixel
+ratio membabi buta tanpa baseline + cek label.
 
 ## Ide-ide berikutnya
 

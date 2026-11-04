@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r30"'), "version: BUILD_ID r30 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r31"'), "version: BUILD_ID r31 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r30"'), "versi: BUILD_ID r30");
+  ok(ver.includes('"r31"'), "versi: BUILD_ID r31");
 }
 
 {
@@ -2225,7 +2225,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r30"'), "vis: BUILD_ID naik ke r30 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r31"'), "vis: BUILD_ID naik ke r31 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2332,7 +2332,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r30"'), "muat3d: BUILD_ID naik ke r30");
+  ok(verMuat.includes('BUILD_ID = "r31"'), "muat3d: BUILD_ID naik ke r31");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2357,6 +2357,28 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTanpa = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTanpa.includes(".papan-warga-tanpatugas"), "tanpatugas: CSS ringkasan ada");
 }
+
+// Hormati prefers-reduced-motion di panel/modal (Ide 25, 2026-11-04):
+// umpan balik dipertahankan tanpa gerakan — panel/modal muncul
+// langsung (tanpa transisi), titik stok penuh jadi statis (bukan
+// berdenyut), label melayang hanya memudar di tempat (bukan naik).
+// Kanvas 3D sengaja tidak disentuh (gerak di sana inti permainan).
+{
+  const cssSrcGerak = readFileSync("src/app/globals.css", "utf8");
+  const mqIdx = cssSrcGerak.indexOf("@media (prefers-reduced-motion: reduce)");
+  ok(mqIdx > 0, "geraktenang: media query prefers-reduced-motion ada");
+  const mqBlock = cssSrcGerak.slice(mqIdx, mqIdx + 1200);
+  ok(mqBlock.includes(".overlay-full") && mqBlock.includes(".modal-box") && mqBlock.includes(".menu-card") && mqBlock.includes(".side-panel"), "geraktenang: panel/modal/papan masuk media query");
+  ok(mqBlock.includes("transition: none"), "geraktenang: transisi panel dimatikan di mode tenang");
+  ok(mqBlock.includes(".hud-full-dot") && mqBlock.includes("animation: none"), "geraktenang: titik stok penuh berhenti berdenyut tapi tetap ada");
+  ok(mqBlock.includes(".map3d-float-badge") && mqBlock.includes("floatFadeTenang"), "geraktenang: label melayang pakai fade tenang, bukan naik");
+  ok(cssSrcGerak.includes("@keyframes floatFadeTenang"), "geraktenang: keyframes fade tenang ada");
+  const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
+  ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
+  const verGerak = readFileSync("src/lib/version.ts", "utf8");
+  ok(verGerak.includes('BUILD_ID = "r31"'), "geraktenang: BUILD_ID naik ke r31");
+}
+
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
 if (fail > 0) process.exit(1);

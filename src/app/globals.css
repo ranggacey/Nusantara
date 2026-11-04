@@ -994,3 +994,34 @@ canvas.game-canvas {
   border-radius: 8px;
   font-size: 14px;
 }
+
+/* Hormati prefers-reduced-motion di panel/modal (Ide 25, 2026-11-04):
+   pemain yang sensitif gerak tetap mendapat umpan baliknya, tapi
+   tanpa gerakan. Panel/modal/papan tidak lagi bertransisi (muncul
+   langsung, bukan meluncur/membesar); titik stok penuh berhenti
+   berdenyut tapi tetap merah statis (sinyal warna + bentuk, bukan
+   gerak); label melayang berhenti naik dan hanya memudar di tempat
+   (keyframes tenang di bawah menggantikan floatUpFade saat media
+   ini aktif). Kanvas 3D sengaja TIDAK disentuh — gerak kamera/warga
+   di sana adalah inti permainan, bukan dekorasi panel. */
+@media (prefers-reduced-motion: reduce) {
+  .overlay-full, .modal-box, .menu-card, .menu-fab, .menu-item,
+  .side-panel, .papan-warga-row, .hud-res-chip, .map3d-label {
+    transition: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .hud-full-dot {
+    animation: none !important;
+    opacity: 1;
+  }
+  .map3d-float-badge {
+    animation-name: floatFadeTenang;
+  }
+}
+@keyframes floatFadeTenang {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  75% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
