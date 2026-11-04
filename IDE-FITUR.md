@@ -197,13 +197,26 @@ pernah jadi keluhan). Dampak sedang, usaha sedang; JANGAN dipindah
 sebelum uji visual HP (risiko tumpang tindih tombol bawah).
 
 ## Ide 14 — Tip kontekstual singkat yang bisa ditutup (dari riset 2026-11-04 06:29 WIB, sudut UX)
+~~DIBANGUN 2026-11-05 00:29 WIB, DENGAN ADAPTASI JUJUR~~ — baris tip
+di kartu menu (di bawah panel "Kampung menginginkan" + "Mulai dari
+sini", di atas daftar tombol), teks "💡 Kamu menonton, bukan
+mengatur: warga bekerja sendiri. Arah kampung diputuskan lewat
+Musyawarah, dan target berikutnya ada di panel Kampung
+menginginkan." Tombol ✕ menyimpan "0" di localStorage
+(`ne_tip_kontekstual`); dibuka lagi dari panel Pengaturan
+("Tip kontekstual di menu"). ADAPTASI: contoh awal "Kumpul dulu —
+lalu bangun lewat Tata Kota" TIDAK dipakai, karena di game ini
+pemain adalah pengamat dan tidak ada tombol bangun — tip menunjuk
+Musyawarah sebagai tempat arah diputuskan, bukan Tata Kota sebagai
+"bangun". Display-only, tanpa ubah sim. BUILD_ID r31 -> r32 + 7 tes
+penjaga. Riset 00:29 (Wayline: tutorial opsional + bisa diakses
+lagi, bukan ceramah pembuka) menguatkan spesifikasi ini persis.
 
 Sumber: DEV Community (panduan kontekstual di dekat kontrol asing,
 bisa ditutup, bisa dibuka lagi). Masalah: 10 tombol menu sudah
 punya penjelasan satu baris, tapi pemain baru tetap tidak tahu
 urutan mainnya (kumpul -> bangun -> musyawarah). Cara kerja: satu
-baris tip di kartu menu ("Kumpul dulu — warga bekerja sendiri,
-lalu bangun lewat Tata Kota") dengan tombol ✕ yang menyimpan
+baris tip di kartu menu dengan tombol ✕ yang menyimpan
 pilihan di localStorage, bisa dibuka lagi dari
 Pengaturan/Orientasi. Display-only, tanpa ubah sim. Dampak sedang,
 usaha kecil. Tidak direkomendasikan dari riset ini: tur
@@ -399,6 +412,42 @@ sedang-tinggi, usaha sedang. Bukan untuk satu run tanpa baseline
 Ide 27 dulu. Tidak direkomendasikan dari riset ini: migrasi
 WebGPU (perombakan renderer, risiko kompatibilitas) dan cap pixel
 ratio membabi buta tanpa baseline + cek label.
+
+## Ide 29 — Tonggak kampung yang terlihat (dari riset 2026-11-05 00:29 WIB, sudut onboarding + prestasi)
+
+Sumber: Wayline (umpan balik jelas + tutorial opsional) + catatan
+desain idle (retensi = frekuensi umpan balik bermakna; milestone
+otomatis pada ambang; achievement terbaik bila bermakna, bukan
+kosmetik; jangan menumpuk banyak sistem sebelum satu loop
+diinternalisasi). Masalah: antara panel "Kampung menginginkan"
+(target berikutnya) dan kabar yang tenggelam, tidak ada rekam "apa
+yang sudah dicapai" — pemain yang kembali hanya melihat keadaan
+sesaat, bukan kemajuan kumulatif. Cara kerja: deretan kecil di
+kartu menu yang diturunkan dari data poll yang SUDAH ada
+(populasi, bangunan berdiri, hari game) — mis. "Gubuk pertama
+berdiri", "Populasi 10", "Balai berdiri" — display-only, tanpa
+efek ekonomi, tanpa sim baru, tanpa hadiah yang bisa digandakan di
+dunia bersama. Mulai dari 4-5 tonggak tangga DESAIN-EKONOMI.md,
+bukan puluhan achievement. Dampak sedang, usaha kecil-sedang.
+Tidak direkomendasikan dari riset ini: lapisan prestige/reset,
+hadiah klaim offline, tur interaktif multi-langkah, dan puluhan
+achievement sekaligus (lihat brief research/2026-11-05-0029.md).
+
+## Ide 30 — Audit geometri/material bersama sebelum instancing (dari riset 2026-11-05 02:29 WIB, sudut performa)
+
+Sumber: Glitchless (ukur dulu lewat renderer.info; tiap mesh minimal
+satu draw call) + Aetumi (InstancedMesh = satu geometri + satu
+material + N matriks; culling instancing all-or-nothing). Masalah:
+belum ada yang tahu apakah ngelag di HP berasal dari draw call,
+bayangan, atau piksel — dan instancing (Ide 28) sia-sia bila tiap
+pohon/batu ternyata masih membuat geometri/material sendiri di
+loop render. Cara kerja: tes statis + audit kode Map3D — pastikan
+geometri/material pohon, batu, semak dibuat sekali di luar loop
+dan dipakai ulang semua salinan; laporkan temuan di CHANGELOG
+sebagai prasyarat Ide 28, tanpa mengubah render dulu. Dampak
+sedang, usaha kecil. BUKAN duplikat Ide 27 (angka baseline
+runtime) maupun Ide 28 (InstancedMesh itu sendiri). Detail di
+research/2026-11-05-0229.md.
 
 ## Ide-ide berikutnya
 

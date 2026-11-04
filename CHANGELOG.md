@@ -1,5 +1,152 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 00:29 WIB — Tip kontekstual satu baris di kartu menu (Ide 14) + brief riset onboarding
+
+Perubahan dalam 2 kalimat: kartu menu kini menampilkan satu baris
+tip yang menjelaskan model pengamat game (warga bekerja sendiri,
+arah kampung diputuskan lewat Musyawarah), yang bisa ditutup lewat
+✕ dan dibuka lagi dari Pengaturan; sim, ekonomi, dan kanvas 3D
+tidak disentuh sama sekali.
+
+- `src/app/page.tsx`: state `tipTampil` + `tutupTip`/`tampilkanTip`
+  (kunci localStorage `ne_tip_kontekstual`, pola yang sama dengan
+  `ne_label_karakter`); baris `.menu-tip` di kartu menu, di bawah
+  panel "Kampung menginginkan" + "Mulai dari sini", di atas daftar
+  tombol — terlihat saat menu dibuka tanpa memblokir apa pun.
+  Teks: "💡 Kamu menonton, bukan mengatur: warga bekerja sendiri.
+  Arah kampung diputuskan lewat Musyawarah, dan target berikutnya
+  ada di panel Kampung menginginkan." ADAPTASI JUJUR dari contoh
+  awal Ide 14 ("Kumpul dulu — lalu bangun lewat Tata Kota"): frasa
+  itu tidak dipakai karena pemain di game ini adalah pengamat dan
+  tidak ada tombol bangun — menunjuk Tata Kota sebagai "bangun"
+  akan jadi janji palsu, sama seperti adaptasi Ide 12. Panel
+  Pengaturan mendapat baris "Tip kontekstual di menu" untuk membuka
+  lagi tip yang ditutup.
+- `src/app/globals.css`: `.menu-tip/.menu-tip-teks/.menu-tip-label/
+  .menu-tip-tutup` (bingkai kuning temaram, tanpa animasi sehingga
+  otomatis patuh pada aturan reduced-motion r31).
+- `src/lib/version.ts`: BUILD_ID r31 -> r32.
+- Tes: 7 penjaga statis baru (state + kunci localStorage, baris +
+  teks model pengamat, ✕ menyimpan "0", Pengaturan membuka lagi,
+  isi menunjuk Musyawarah + panel kebutuhan, CSS, BUILD_ID r32) +
+  5 penjaga versi diperbarui r31 -> r32. Total: 7789 lolos / 656
+  gagal — baseline r31 7782/656, jadi +7 lolos, nol regresi baru
+  (tidak ada gagal bernama tip/r32). Build Next.js hijau.
+- Backlog: Ide 14 dicatat DIBANGUN di IDE-FITUR.md; riset run ini
+  menambah Ide 29 (tonggak kampung yang terlihat, display-only dari
+  data poll yang sudah ada).
+
+### Observasi live (browser, hanya melihat, 00:32-00:35 WIB)
+- Muat pertama lambat tapi tidak macet: layar biru gelap + teks
+  "Memuat peta 3D…" dulu, lalu langit + teks yang sama, desa penuh
+  setelah jeda ~30 detik. Tidak ada error.
+- Geser/zoom tidak ngelag pada uji lembut: seret tengah peta
+  menggeser tanpa robek/ubin kosong, tombol ▲/▼ kamera merespons
+  langsung dan adegan ter-render penuh.
+- Warga tampak aktif, bukan diam: 9 nama terlihat (Figo, Nera,
+  Praboti, Evos dyroth, Siti, Budi, ribran gakabuming, Miners,
+  Renata), posisi berubah antar tampilan, pop-up melayang "+1
+  Berry" berulang di dekat semak beri menandakan aktivitas kumpul.
+  Label tugas per warga tidak terbaca dari tampilan (tidak ada
+  label tugas yang ditampilkan), jadi tugas individu tidak
+  terverifikasi dari observasi ini — dicatat, bukan disimpulkan.
+- Hewan terlihat: Kelinci dan Ayam Hutan tampak di layar; Rusa,
+  Serigala, Beruang disebut di data dunia.
+- Tombol/panel tidak ada yang tertutup atau tumpang tindih:
+  klaster analog kiri-bawah utuh, pil "🎮 Panduan Kontrol" utuh di
+  bawahnya, pil "＋ Tambah karakter" kanan-bawah utuh, tombol menu
+  kanan-atas membuka dan menutup menu dengan cepat. Satu keanehan
+  visual kecil: glif ☰ tombol menu tampak sangat kecil/redup di
+  tangkapan — tombolnya sendiri terlihat sebagai lingkaran gelap
+  dan berfungsi, jadi ini dicatat sebagai keanehan tangkapan, bukan
+  klaim ikon rusak (pola yang sama pernah muncul di run 10:29).
+  Panel menu tinggi dan bisa di-scroll (entri bawah seperti
+  Inventori, Papan Warga, Orientasi di bawah lipatan pertama) =
+  scroll normal, bukan terpotong.
+- Tidak ada area blank/error menetap setelah muat.
+- Data menu saat observasi: Suka Maju, populasi 9, H-309, 08.53
+  Pagi (berjalan ke 08.55 selama menu dibuka), Cerah, Level 6,
+  Musim Kemarau. Stok: kayu 487/160, batu 13/130, emas 1/40, besi
+  47/55, pangan 151/200, kulit 104/95 — kayu dan kulit MASIH di atas
+  kapasitas yang ditampilkan, seperti run 22:29 (waktu itu kayu
+  943/160). Ini BUKAN akibat deploy run ini (perubahan display-only
+  + belum deploy saat observasi) dan BUKAN diklaim bug dari bacaan
+  menu saja — tapi statusnya tetap "perlu diselidiki": hitung
+  kasar dari sim Nusantara saja tidak menjelaskan 487 kayu
+  pasca-reset sore 2026-11-04 (1 hari game = 15 menit nyata, cap
+  kumpul 3/hari/orang, populasi 9), jadi penyebabnya belum bisa
+  dipastikan dari kode tree ini saja; tidak ada tindakan atas stok
+  yang diambil run ini, dan cron dilarang menulis DB.
+
+### Riset (brief research/2026-11-05-0029.md, sudut ONBOARDING + PRESTASI — rotasi dari performa 22:29)
+- Sumber: Wayline "Tutorials Aren't Docs" (pemain belajar dengan
+  melakukan; tutorial opsional + mudah diakses lagi, bukan ceramah
+  pembuka; dokumentasi sebagai referensi di menu) + catatan desain
+  idle (retensi = frekuensi umpan balik bermakna; milestone
+  otomatis pada ambang; achievement terbaik bila bermakna; jangan
+  menumpuk banyak sistem sebelum satu loop dipahami).
+- Ide 14 dibangun run ini (riset menguatkan spesifikasinya persis);
+  Ide 29 masuk backlog. Tidak direkomendasikan: lapisan
+  prestige/reset, hadiah klaim offline, tur interaktif
+  multi-langkah, dan puluhan achievement sekaligus.
+
+### Observasi live run ini (browser, hanya melihat, 02:31-02:33 WIB)
+- Catatan proses: run 00:29 ternyata meninggalkan perubahan r32
+  di tree lokal TANPA push — live saat observasi masih r31, jadi
+  baris tip r32 BELUM bisa terlihat di sesi ini; yang diobservasi
+  adalah keadaan live pra-r32, dan deploy r32 menjadi tugas run
+  ini (bukan fitur baru tambahan di atasnya, supaya tidak menumpuk
+  dua rilis).
+- Muat pertama cukup berat tapi tidak macet: judul "Negara Emas —
+  Zaman Batu" langsung tampil, layar "Memuat peta 3D…" dulu, desa
+  penuh pada pengecekan ~1 menit berikutnya. Tidak ada error.
+- Geser tidak ngelag pada uji lembut: dua seretan di rumput kosong
+  menggeser peta mulus dua arah, tanpa robek/beku/area kosong.
+  Zoom ▲/▼ TIDAK diuji run ini (instruksi observasi membatasi
+  interaksi ke seretan lembut), jadi kelancaran zoom tetap belum
+  terverifikasi — dicatat, bukan diklaim.
+- Warga tampak bergerak, bukan beku total: Evos dyroth, Budi, Siti,
+  Nera berpindah posisi antar tampilan, tapi dari zoom ini mereka
+  mostly berkerumun/berkeliaran di sekitar bangunan tengah dan
+  rumah — tidak terlihat jelas animasi membawa hasil, bertani,
+  atau kerja perkakas — jadi perilaku tugas spesifik TIDAK bisa
+  dikonfirmasi dari observasi ini, hanya bahwa mereka bergerak.
+- Hewan terlihat sebagai label + model kecil: Rusa, Kelinci, Ayam
+  Hutan, Serigala, Beruang; model individual sulit dibedakan di
+  zoom itu.
+- Tombol/panel tidak ada yang tertutup atau tidak merespons:
+  menu kanan-atas dibuka dan ditutup normal lewat "Tutup"; kontrol
+  kamera terlihat. Dua catatan kerapian (bukan error): label nama
+  bertumpuk berat di klaster desa yang padat, dan lahan luas di
+  luar desa adalah rumput/terrain kosong yang normal, bukan blank
+  render. Tombol menu kanan-atas kecil di pojok tapi berfungsi.
+- Data menu saat observasi: Suka Maju, populasi 9 (Figo, Nera,
+  Praboti, Evos dyroth, Siti, Budi, ribran gakabuming, Miners,
+  Renata), H-317, 06.55 -> 06.57 Pagi, Cerah, Level 16. Stok:
+  kayu 304/160 (Penuh), batu 13/130, emas 1/40, besi 47/55,
+  pangan 12/200, kulit 104/95 (Penuh). Kayu turun dari 487/160 di
+  run 00:29 dan pangan dari 151/200 — searah dengan pembusukan di
+  atas kapasitas + konsumsi — tapi kayu dan kulit MASIH di atas
+  kapasitas yang ditampilkan, jadi status "perlu diselidiki" dari
+  run-run sebelumnya TETAP berlaku; tidak ada tindakan atas stok
+  yang diambil run ini (cron dilarang menulis DB, perubahan ini
+  display-only).
+
+### Riset run ini (brief research/2026-11-05-0229.md, sudut PERFORMA — rotasi dari onboarding 00:29)
+- Sumber: Glitchless (ukur dulu lewat renderer.info: draw call +
+  segitiga + geometri/tekstur hidup; laporkan frame tipikal, p95,
+  terburuk — bukan rata-rata FPS) + Aetumi (InstancedMesh = satu
+  geometri + satu material + N matriks; culling instancing
+  all-or-nothing, jadi cocok untuk klaster lokal) + Simplified
+  (patokan <50 draw call HP, <100 desktop — patokan, bukan klaim,
+  karena baseline Nusantara belum pernah diukur).
+- Ide 30 masuk backlog: audit geometri/material bersama di Map3D
+  sebagai prasyarat Ide 28 (bukan duplikat Ide 27 baseline runtime
+  maupun Ide 28 instancing). Ide 27/28 diperkuat, bukan dibangun
+  ulang. Tidak direkomendasikan: migrasi WebGPU, cap pixel ratio
+  membabi buta tanpa baseline, hapus bayangan sekaligus tanpa
+  ukur, dan log renderer.info permanen di production.
+
 ## 2026-11-04 22:29 WIB — Hormati prefers-reduced-motion di panel/modal (Ide 25) + brief riset performa
 
 Perubahan dalam 2 kalimat: pemain yang mengaktifkan

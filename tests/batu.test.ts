@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r31"'), "version: BUILD_ID r31 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r32"'), "version: BUILD_ID r32 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r31"'), "versi: BUILD_ID r31");
+  ok(ver.includes('"r32"'), "versi: BUILD_ID r32");
 }
 
 {
@@ -2225,7 +2225,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r31"'), "vis: BUILD_ID naik ke r31 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r32"'), "vis: BUILD_ID naik ke r32 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2332,7 +2332,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r31"'), "muat3d: BUILD_ID naik ke r31");
+  ok(verMuat.includes('BUILD_ID = "r32"'), "muat3d: BUILD_ID naik ke r32");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2376,9 +2376,27 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r31"'), "geraktenang: BUILD_ID naik ke r31");
+  ok(verGerak.includes('BUILD_ID = "r32"'), "geraktenang: BUILD_ID naik ke r32");
 }
 
+
+// Tip kontekstual satu baris di kartu menu (2026-11-05, Ide 14):
+// penjaga statis — state + kunci localStorage, baris tip di kartu menu
+// dengan teks model pengamat (bukan janji bangun sendiri), tombol ✕
+// yang menyimpan "0", tombol buka-lagi di Pengaturan, CSS baris ada,
+// dan BUILD_ID naik ke r32.
+{
+  const pageSrcTip = readFileSync("src/app/page.tsx", "utf8");
+  ok(pageSrcTip.includes("ne_tip_kontekstual") && pageSrcTip.includes("tipTampil"), "tip: state + kunci localStorage ada");
+  ok(pageSrcTip.includes("menu-tip") && pageSrcTip.includes("Kamu menonton, bukan mengatur"), "tip: baris terpasang di kartu menu dengan teks model pengamat");
+  ok(pageSrcTip.includes("tutupTip") && pageSrcTip.includes('localStorage.setItem("ne_tip_kontekstual", "0")'), "tip: tombol ✕ menyimpan pilihan tutup");
+  ok(pageSrcTip.includes("tampilkanTip") && pageSrcTip.includes("Tip kontekstual di menu"), "tip: Pengaturan bisa membuka lagi tip yang ditutup");
+  ok(pageSrcTip.includes("Musyawarah") && pageSrcTip.includes("Kampung menginginkan"), "tip: isi menunjuk Musyawarah + panel kebutuhan, bukan tombol bangun");
+  const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
+  const verTip = readFileSync("src/lib/version.ts", "utf8");
+  ok(verTip.includes('BUILD_ID = "r32"'), "tip: BUILD_ID naik ke r32");
+}
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
 if (fail > 0) process.exit(1);

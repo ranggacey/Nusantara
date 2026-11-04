@@ -207,6 +207,23 @@ export default function Page() {
       return next;
     });
   };
+  // Tip kontekstual satu baris di kartu menu (2026-11-05, Ide 14):
+  // satu kalimat yang menjelaskan model pengamat (warga bekerja
+  // sendiri, arah diputuskan Musyawarah) — bukan tur multi-langkah.
+  // ✕ menyimpan pilihan di localStorage; dibuka lagi dari Pengaturan.
+  const [tipTampil, setTipTampil] = useState(true);
+  const tutupTip = () => {
+    setTipTampil(false);
+    try {
+      localStorage.setItem("ne_tip_kontekstual", "0");
+    } catch {}
+  };
+  const tampilkanTip = () => {
+    setTipTampil(true);
+    try {
+      localStorage.setItem("ne_tip_kontekstual", "1");
+    } catch {}
+  };
   const [versiBaru, setVersiBaru] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Offset jam perangkat -> jam server (dari /api/world server_ms):
@@ -228,6 +245,7 @@ export default function Page() {
       const rl = localStorage.getItem("ne_road_level");
       if (rl) setRoadLevel(Number(rl));
       if (localStorage.getItem("ne_label_karakter") === "0") setLabelTampil(false);
+      if (localStorage.getItem("ne_tip_kontekstual") === "0") setTipTampil(false);
     } catch {
       /* abaikan */
     }
@@ -602,6 +620,21 @@ export default function Page() {
                 </>
               );
             })()}
+            {/* Tip kontekstual satu baris (2026-11-05, Ide 14): di bawah
+                panel kebutuhan + "Mulai dari sini", di atas daftar tombol
+                — terlihat saat menu dibuka, tidak memblokir apa pun.
+                ✕ menutup + menyimpan; dibuka lagi dari Pengaturan. */}
+            {tipTampil && (
+              <div className="menu-tip">
+                <div className="menu-tip-teks">
+                  <span className="menu-tip-label">💡 Kamu menonton, bukan mengatur:</span>{" "}
+                  warga bekerja sendiri. Arah kampung diputuskan lewat Musyawarah, dan target berikutnya ada di panel “Kampung menginginkan” di atas.
+                </div>
+                <button className="menu-tip-tutup" title="Tutup tip (bisa dibuka lagi dari Pengaturan)" aria-label="Tutup tip" onClick={tutupTip}>
+                  ✕
+                </button>
+              </div>
+            )}
             <div className="menu-list">
               <button className="menu-item" title="Masuk ke Interior Restoran Nirwana 3D" onClick={() => { setMenuOpen(false); router.push("/restoransichuan"); }}>
                 <span className="menu-item-icon">🏮</span>
@@ -842,6 +875,16 @@ export default function Page() {
                   Mode ringan menyembunyikan semua label di atas karakter — nama, bubble dialog, teks aksi, dan bar HP — sehingga
                   browser tidak lagi menggambar dan menggeser puluhan label tiap detik. Karakter 3D-nya tetap jalan seperti biasa,
                   hanya labelnya yang hilang.
+                </p>
+                <div style={{ fontSize: 12, marginBottom: 4 }}>
+                  Tip kontekstual di menu:{" "}
+                  <button className="md-btn" style={{ padding: "4px 10px" }} onClick={tipTampil ? tutupTip : tampilkanTip}>
+                    {tipTampil ? "Tampil (ketuk untuk sembunyikan)" : "Sembunyi (ketuk untuk tampilkan)"}
+                  </button>
+                </div>
+                <p style={{ fontSize: 11, opacity: 0.75, marginTop: 0 }}>
+                  Satu baris di kartu menu yang mengingatkan model pengamat: warga bekerja sendiri, arah kampung diputuskan lewat
+                  Musyawarah. Menutupnya dari menu menyimpan pilihan; tombol ini membukanya lagi.
                 </p>
                 <div className="orient-mobile-only" style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 12, marginBottom: 4 }}>Orientasi (mobile): {orientasi}</div>

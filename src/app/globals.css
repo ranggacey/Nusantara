@@ -351,6 +351,38 @@ canvas.game-canvas {
   line-height: 1.5;
   opacity: 0.9;
 }
+/* Tip kontekstual satu baris di kartu menu (2026-11-05, Ide 14):
+   bingkai kuning temaram, teks + tombol ✕ sebaris; tanpa animasi
+   (jadi otomatis patuh pada reduced-motion run r31). */
+.menu-tip {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  background: rgba(250, 204, 21, 0.10);
+  color: inherit;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.menu-tip-teks {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.menu-tip-label {
+  font-weight: 800;
+}
+.menu-tip-tutup {
+  flex: none;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: inherit;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
 .menu-list {
   display: flex;
   flex-direction: column;
