@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r28"'), "version: BUILD_ID r28 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r29"'), "version: BUILD_ID r29 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r28"'), "versi: BUILD_ID r28");
+  ok(ver.includes('"r29"'), "versi: BUILD_ID r29");
 }
 
 {
@@ -2225,7 +2225,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r28"'), "vis: BUILD_ID naik ke r28 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r29"'), "vis: BUILD_ID naik ke r29 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2300,6 +2300,16 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(cssSrcAnalog.includes(".analog-dasar") && cssSrcAnalog.includes("width: 120px"), "analog: CSS dasar 120px ada");
   ok(cssSrcAnalog.includes(".analog-zoom-btn") && cssSrcAnalog.includes("width: 48px"), "analog: CSS tombol zoom 48px ada");
   ok(!cssSrcAnalog.includes(".dpad-kamera"), "analog: CSS D-pad lama sudah dihapus");
+  // Observasi live 2026-11-04 18:29: pil "Panduan Kontrol"
+  // (.bottom-controls, bottom 12px kiri, z 25) menumpuk dasar analog
+  // yang tadinya juga bottom 12px. Klaster + tombol 🕹️ kini bottom
+  // 60px: di atas pil (~32px) dengan jeda 12px, bukan tumpukan.
+  // Cara ceknya kasar tapi cukup: blok .analog-kamera dan
+  // .analog-muncul masing-masing harus menyebut bottom 60px.
+  const kameraBlok = cssSrcAnalog.slice(cssSrcAnalog.indexOf(".analog-kamera {"), cssSrcAnalog.indexOf(".analog-sembunyi"));
+  const munculBlok = cssSrcAnalog.slice(cssSrcAnalog.indexOf(".analog-muncul {"), cssSrcAnalog.indexOf(".map3d-labels"));
+  ok(kameraBlok.includes("bottom: 60px"), "analog: klaster di atas pil Panduan Kontrol (bottom 60px, bukan 12px)");
+  ok(munculBlok.includes("bottom: 60px"), "analog: tombol muncul 🕹️ juga di atas pil (bottom 60px)");
 }
 
 // Fallback muat jujur untuk chunk 3D (Ide 7, irisan kecil): dynamic import
@@ -2322,7 +2332,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r28"'), "muat3d: BUILD_ID naik ke r28");
+  ok(verMuat.includes('BUILD_ID = "r29"'), "muat3d: BUILD_ID naik ke r29");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

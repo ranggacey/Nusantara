@@ -321,6 +321,24 @@ dari data poll (aturan prioritas sederhana, bukan LLM). Syarat:
 kalimat harus berasal dari data nyata, bukan karangan. Dampak
 sedang, usaha kecil.
 
+## Ide 24 — Aturan kolom kontrol kiri (dari riset 2026-11-04 18:29 WIB, sudut sosial/QoL + UX sentuh)
+
+Sumber: Wandr (target sentuh harus besar DAN berjarak — tetangga yang
+terlalu dekat adalah generator salah ketuk). Masalah: tumpukan pil
+"Panduan Kontrol" di atas dasar analog terjadi karena dua lapisan UI
+(bottom-controls dan Map3D) sama-sama mengklaim pojok kiri-bawah
+tanpa aturan bersama. Cara kerja: aturan tertulis — setiap kontrol
+baru di kolom kiri-bawah WAJIB menumpuk di atas yang sudah ada
+dengan jeda minimal 12px, tidak boleh berbagi koordinat bottom yang
+sama; dijaga tes statis (bottom klaster analog + tombol 🕹️ = 60px).
+Diterapkan run ini untuk analog; kontrol berikutnya wajib ikut.
+Penguat Ide 5 dari riset yang sama: forum Age of Empires menunjukkan
+pemain lebih mau MELIHAT warga menganggur (banner/daftar) daripada
+kerja mereka diambil alih otomatis — jadi Ide 5 tetap display-only,
+tanpa otomasi sim. Tidak direkomendasikan dari riset ini: warga
+menganggur otomatis cari kerja terdekat, bunyi peringatan tiap jumlah
+menganggur bertambah, dan memindah pil Panduan Kontrol ke atas layar.
+
 ## Ide-ide berikutnya
 
 Diisi dari riset web tiap run cron (fitur baru yang fresh,

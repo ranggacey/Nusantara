@@ -1,5 +1,77 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 18:29 WIB — Klaster analog naik di atas pil Panduan Kontrol (temuan observasi live)
+
+Observasi run ini menemukan tumpukan: pil "🎮 Panduan Kontrol"
+(`.bottom-controls`, bottom 12px kiri, z 25) menumpuk bagian bawah
+dasar analog yang juga duduk di bottom 12px kiri (z 10) — dasar
+analog tertutup sebagian dan area sentuhnya berlapis. Perbaikan
+satu baris posisi, tanpa memindah pil mana pun:
+
+- `src/app/globals.css`: `.analog-kamera` dan `.analog-muncul`
+  (tombol 🕹️ saat klaster disembunyikan) bottom 12px -> 60px:
+  klaster kini menumpuk DI ATAS pil (~32px) dengan jeda 12px
+  (12 + 32 + 12 ≈ 56, dibulatkan 60), tetap di kolom kiri-bawah
+  yang terjangkau jempol. Komentar CSS menjelaskan hitungannya
+  supaya kontrol berikutnya tidak mengulang tumpukan yang sama
+  (aturan kolom kiri, Ide 24).
+- `src/lib/version.ts`: BUILD_ID r28 -> r29.
+- Tes: 2 penjaga statis baru (blok `.analog-kamera` dan
+  `.analog-muncul` masing-masing menyebut bottom 60px) + 4 penjaga
+  versi diperbarui r28 -> r29. Total: 7762 lolos / 656 gagal —
+  baseline r28 7760/656, jadi +2 lolos, nol regresi baru (tidak ada
+  gagal bernama analog/r29/Panduan). Build Next.js hijau.
+- Kejujuran: popover Panduan Kontrol yang DIBUKA sengaja masih
+  menutupi analog selama terbuka (popover z 45, ditutup lewat ✕-nya
+  sendiri) — yang diperbaiki adalah tumpukan permanen pilnya, bukan
+  popover sesaat itu. Penampakan visual perbaikan di live menjadi
+  tugas verifikasi pasca-deploy, bukan klaim di sini.
+
+### Observasi live (browser, hanya melihat, 18:29-18:32 WIB)
+- Muat pertama: frame biru gelap dengan teks "Memuat peta 3D…"
+  (bukan frame kosong tanpa teks seperti run-run lama) dan desa
+  sudah tampil pada pengecekan 30 detik — jadi tampil dalam
+  <30 detik, bukan klaim detik persis. Tidak ada error atau area
+  blank menetap setelah muat.
+- Desa hidup: 6 warga desa baru terkonfirmasi (Figo, Nera, Praboti,
+  Evos dyroth, Siti, Budi — cocok dengan desa pasca-reset 17:14);
+  jam game berjalan (03.51 -> 04.01 Malam). Warga tampak berkerumun
+  di tengah dengan pergeseran kecil dan satu bubble obrolan yang
+  sama bertahan ~1 menit — dicatat sebagai tampilan diam, bukan
+  bukti sim menganggur (sim jalan di server). Hewan terlihat sebagai
+  label (Rusa, Kelinci, Ayam Hutan, Serigala) tapi figuranya kecil
+  di zoom itu.
+- Klaster analog kiri-bawah tampil UTUH (✕, ▲, ▼, dasar + knop
+  kuning) dan tidak terpotong tepi layar — menutup kekhawatiran
+  run 17:21 soal dasar analog terpotong (kemungkinan artefak
+  viewport browser saat itu). Pil ＋ Tambah karakter kanan-bawah
+  utuh, tidak menumpuk apa pun. Satu-satunya tumpukan yang
+  ditemukan adalah pil Panduan Kontrol di atas dasar analog —
+  itulah yang diperbaiki run ini.
+- Panel "🎯 Kampung menginginkan" TERLIHAT dan isinya KONSISTEN
+  dengan desa baru: "Kampung menetap: Lumbung, Ladang, Sumur Batu.
+  Masih kurang: 1 Gubuk, 1 Api Unggun." — bukan lagi teks ujung
+  tangga, karena 2 gubuk desa baru masih antre (belum berdiri).
+  Entri "👥 Papan Warga" ada di kartu menu (di bawah lipatan,
+  tidak terbaca visual langsung — dicatat jujur, bukan diklaim
+  terlihat). Menu dibuka dan ditutup normal, responsif.
+
+### Riset + backlog (brief research/2026-11-04-1829.md)
+- Sudut: SOSIAL/QoL + UX SENTUH (rotasi dari KEMBALI BERMAIN 16:29).
+  Sumber: Wandr (target sentuh harus besar DAN berjarak — tetangga
+  yang terlalu dekat adalah generator salah ketuk; aksi utama di
+  sepertiga bawah) + forum Age of Empires III (pemain lebih mau
+  MELIHAT warga menganggur lewat banner/daftar daripada kerja mereka
+  diambil alih otomatis).
+- Ide 24 (aturan kolom kontrol kiri, jeda minimal 12px antar kontrol
+  di pojok yang sama) masuk IDE-FITUR.md dan langsung diterapkan
+  run ini untuk analog. Riset ini juga MENGUATKAN Ide 5 (penanda
+  warga tanpa pos, display-only) sebagai irisan berikutnya — tanpa
+  mengubah spesifikasinya menjadi otomasi. Tidak direkomendasikan:
+  warga menganggur otomatis cari kerja terdekat, bunyi peringatan
+  tiap jumlah menganggur bertambah, dan memindah pil Panduan Kontrol
+  ke atas layar (melanggar jangkauan jempol yang sama).
+
 ## 2026-11-04 17:23 WIB — Kumpul biasa minimal 1 maksimal 3, nol dihapus (permintaan user)
 
 Perintah user: "sehari 1 orang bisa dpt minimal 1 maksimal 3".
