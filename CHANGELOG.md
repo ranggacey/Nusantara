@@ -95,6 +95,37 @@ sim, ekonomi, kanvas 3D, dan urutan Tab tidak disentuh sama sekali.
   satu warna, cincin hanya dari box-shadow, tabindex positif, dan
   animasi pada cincin.
 
+### Verifikasi pasca-deploy r33
+- Vercel: deploy production READY dpl_FjTUmt32jsisTMrybochKvzAM5DT
+  dari commit 954d52f (auto-deploy dari main). /api/version = r33.
+- Homepage termuat (judul "Negara Emas — Zaman Batu", teks
+  "Memuat peta 3D…") + satu ikon termuat (/batu/icons/kayu.png
+  128x128, render utuh).
+- /api/world ok (isi): Suka Maju, populasi 9, hari 327, 17.32
+  Sore, Cerah; stok kayu 219/160, batu 14/130, emas 1/40,
+  besi 47/55, pangan 0/200, kulit 104/95 — cocok dengan
+  /api/map (stok yang sama) dan searah tren observasi (kayu
+  225 -> 219).
+- /api/map ok (isi): ok:true, grid 600x600, placements lengkap
+  (gubuk, lumbung, bengkel, paviliun 8x8), hewan terdata
+  (rusa, kelinci, ayam, serigala, beruang — jadi hewan yang
+  tidak terlihat di observasi tadi memang ada di data, hanya di
+  luar kamera), warga termasuk Figo (penebang, beristirahat).
+- /api/bangunan ok (isi): katalog 26 jenis + antrean (1 antre:
+  paviliun_makan, kurang 6 batu; sisanya selesai).
+- TIDAK ADA regresi API setelah deploy ini (semua route yang
+  tadinya ok tetap ok dengan isi yang konsisten). Perubahan ini
+  display-only CSS, jadi tidak menyentuh sim/API sama sekali.
+- YANG TETAP berlaku: kayu 219/160 dan kulit 104/95 MASIH di atas
+  kapasitas yang ditampilkan — status "perlu diselidiki" tetap,
+  bukan akibat deploy ini, dan tidak ada tindakan atas stok yang
+  diambil run ini.
+- Yang TETAP belum terverifikasi visual: cincin fokus r33 itu
+  sendiri (butuh sesi browser yang menekan Tab di menu/modal —
+  observasi run ini hanya melihat, dan browser task tidak
+  menekan Tab); CSS + tes membuktikan aturannya ada, dan
+  penampakan visualnya menjadi tugas observasi run berikutnya.
+
 ## 2026-11-05 00:29 WIB — Tip kontekstual satu baris di kartu menu (Ide 14) + brief riset onboarding
 
 Perubahan dalam 2 kalimat: kartu menu kini menampilkan satu baris
