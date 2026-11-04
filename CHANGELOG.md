@@ -1,5 +1,188 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 06:29 WIB — Deploy tertunda Ide 6 + bersih-bersih CSS (KOREKSI entri 04:29)
+
+KOREKSI CATATAN: entri 04:29 menulis "deploy Ide 6 yang tertunda",
+tapi verifikasi run ini membuktikan deploy itu TIDAK PERNAH terjadi
+— tidak ada commit baru setelah 8c0f348 di `git log` maupun di
+`list_commits` GitHub, dan deployment production terbaru Vercel
+tetap dari commit 8c0f348 ("Navbar dihapus, ganti menu modal").
+Jadi panel "Kampung menginginkan" + bersih-bersih CSS selama ini
+hanya ada di working tree. Run ini TIDAK membangun fitur baru:
+tugasnya menutup antrean itu — verifikasi ulang tree apa adanya
+(tes + build), lalu push beneran, lalu verifikasi live.
+
+- Isi push (sama persis dengan pekerjaan run 02:29 + 04:29, tanpa
+  tambahan kode): panel "🎯 Kampung menginginkan" (Ide 6,
+  `kebutuhanKampungBerikutnya` di `sumberdaya.ts` + panel di kartu
+  menu + gaya `.menu-kebutuhan`) dan hapus ~352 baris CSS topbar
+  mati dari `globals.css` (kelas strip resource yang masih dipakai
+  kartu menu dipertahankan).
+- Verifikasi ulang run ini pada kondisi akhir tree: tes offline
+  7698 lolos / 656 gagal — persis baseline 04:29, nol regresi baru
+  (656 gagal = baseline lama yang sudah merah sebelum perubahan
+  ini). Build Next.js hijau.
+- Catatan kejujuran: panel ini belum terverifikasi visual di live
+  (lihat observasi di bawah: menu tidak berhasil dibuka sesi ini),
+  jadi verifikasi live run ini hanya homepage + API, bukan panelnya.
+
+### Observasi live (browser, hanya melihat, 08:28-08:34 WIB)
+- Muat pertama: layar gelap kosong sesaat tanpa teks/pesan muat
+  apa pun (berbeda dengan run sebelumnya yang melihat teks
+  "Memuat Peta 3D..."); desa terkonfirmasi tampil dalam 30 detik.
+  Layar muat yang diam tanpa indikator ini dicatat sebagai
+  pekerjaan UX berikutnya, bukan diklaim sebagai bug — bisa jadi
+  variasi sesi browser.
+- Setelah muat: desa hidup — 24 warga berlabel + hewan terlihat
+  (Rusa, Kelinci, Ayam Hutan, 1 Serigala); dialog warga berganti
+  antar pengecekan (08:29 ada dialog, 08:32 tidak ada, 08:34 ada
+  lagi yang baru). Gerakan jalan kaki tidak terverifikasi dari
+  piksel (keterbatasan alat browser, bukan bukti diam).
+- Tombol utuh, tidak terpotong/tumpang tindih: "Buka menu kampung"
+  ☰ kanan-atas, "Panduan Kontrol" kiri-bawah, "Tambah karakter"
+  kanan-bawah. PERINGATAN: 5 klik ke tombol ☰ gagal terkirim
+  karena halaman sibuk (`page_busy`) + 1 percobaan gagal tangkap
+  layar — menu TIDAK berhasil dibuka sesi ini, jadi panel
+  "Kampung menginginkan" TIDAK terverifikasi visual dan tidak
+  boleh diklaim live-terlihat sampai ada sesi yang membukanya.
+  Ini bisa jadi keterbatasan alat browser, bukan bug situs, tapi
+  dicatat sebagai item pantau.
+- Tidak ada area blank/error menetap setelah desa tampil.
+
+### Riset + backlog (brief research/2026-11-04-0629.md)
+- Sudut: UX (rotasi dari fitur baru 04:29). Sumber: The Morphic
+  Studio (onboarding sepotong kecil interaktif saat relevan),
+  Wandr (aksi utama di jangkauan jempol bawah, umpan balik di
+  atas/samping titik sentuh, HUD dikurangi ke yang sering atau
+  mendesak), DEV Community (satu aksi pertama yang bermakna +
+  panduan kontekstual yang bisa ditutup/dibuka lagi).
+- Ide 12 (satu aksi pertama "Mulai dari sini" di kartu menu),
+  Ide 13 (tombol menu utama ke jangkauan jempol — butuh uji
+  visual HP dulu), Ide 14 (tip kontekstual singkat yang bisa
+  ditutup) masuk IDE-FITUR.md. Tidak direkomendasikan: tur
+  interaktif multi-langkah dan memperkecil teks HUD.
+- Irisan run ini BUKAN dari brief ini melainkan menutup antrean
+  deploy 02:29/04:29 yang tertunda — prioritas antrean di atas
+  ide baru.
+
+## 2026-11-04 04:29 WIB — Bersih-bersih CSS topbar mati + deploy Ide 6 yang tertunda
+
+Dua pekerjaan dalam satu push (keduanya sudah jadi, tinggal deploy):
+(1) Panel "Kampung menginginkan" (Ide 6) dari run 02:29 — saat run
+itu selesai, perubahannya masih tertinggal di working tree belum
+ter-commit; run ini memverifikasi ulang (tes + build hijau) lalu
+men-deploy-nya, bukan membangun ulang. (2) Irisan run ini:
+bersih-bersih CSS topbar mati yang dicatat commit 8c0f348 sebagai
+pekerjaan run berikutnya.
+
+- `src/app/globals.css`: ~352 baris CSS topbar lama dihapus
+  (`.game-topbar`, `.topbar-scroll`, `.hud-btn` + varian,
+  `.hud-info-chip`, `.hud-resource-dock`, `.nav-topbar-fold-tab`,
+  `.nav-handle`, `.nav-gear-float`, media 1280/1024/760px-nya,
+  plus `.game-topbar.nav-tersembunyi`). SENGAJA dipertahankan:
+  `.hud-res-chip`, `.hud-res-icon`, `.hud-res-num`,
+  `.hud-full-dot` — strip resource itu masih dipakai di dalam
+  kartu modal menu, jadi klaim lama "hud-* tidak dipakai siapa
+  pun" tidak sepenuhnya benar; hanya yang benar-benar tanpa
+  pemakai yang dihapus (dicek per kelas terhadap seluruh src/).
+- Tes: 15 penjaga statis baru (kelas mati tidak ada, kelas hidup
+  tetap ada). Total: 7698 lolos / 656 gagal — 656 = baseline lama
+  yang sudah merah sebelum perubahan ini, nol regresi baru.
+  Build Next.js hijau.
+- Catatan ukur: klaim performa di sini hanya "CSS lebih kecil
+  ~352 baris"; tidak ada klaim kecepatan muat, karena observasi
+  di bawah justru menunjukkan muat pertama masih 1-2 menit.
+
+### Observasi live (browser, hanya melihat, 04:30-04:36 WIB)
+- Muat pertama MASIH berat: layar "Memuat peta 3D..." masih tampil
+  setelah ~1 menit, desa penuh baru terlihat sekitar menit ke-2
+  (beda dengan run 02:29 yang terasa hitungan detik — kemungkinan
+  cache; variasi ini dicatat, bukan diklaim sebagai perbaikan).
+- Setelah muat: desa hidup, bukan gambar statis — aktivitas
+  "Menghalau Hewan!" naik 53% -> 61% selama observasi; hewan
+  terlihat berlabel (Rusa, Kelinci, Ayam Hutan, Babi Hutan,
+  Beruang, Telo); dialog warga tampil ("Hasil kumpulmu hari ini
+  banyak, Renata?").
+- Tombol utuh, tidak ada yang terpotong/tumpang tindih: "Buka menu
+  kampung" kanan-atas, "Tambah karakter" kanan-bawah, "Panduan
+  Kontrol" kiri-bawah. Tidak ada area blank/error menetap (frame
+  pertama gelap sesaat sebelum layar muat = transien).
+- Responsivitas tombol TIDAK dites (observasi dilarang klik ubah
+  state); jank geser/zoom juga tidak terverifikasi sesi ini.
+
+### Riset + backlog (brief research/2026-11-04-0429.md)
+- Sudut: FITUR BARU (rotasi dari sosial/QoL lalu performa).
+  Sumber: Town to City update 27 Okt 2026 (bangunan modular,
+  jalan dicat, mode jalan kaki, mode foto; 97% positif Steam),
+  Hazel's Cauldron v3 (hati persahabatan 0-5, festival tiap
+  tanggal 28 + persiapan seminggu sebelumnya), Starsand Island
+  1.0 (festival musiman Autumn Pumpkin Carnival + hadiah
+  eksklusif), Everdream Village (ikatan warga -> ikut membantu
+  kerja). Ide 10 (festival kampung berkala, mulai display-only)
+  dan Ide 11 (jejak kebersamaan warga) masuk IDE-FITUR.md.
+  Tidak direkomendasikan: multiplayer dan combat dungeon
+  (mengubah arsitektur/genre).
+
+## 2026-11-04 02:29 WIB — Papan kebutuhan kampung di kartu menu (Ide 6)
+
+Irisan kecil DESAIN-EKONOMI langkah 2, versi display-only: panel
+"🎯 Kampung menginginkan" di kartu menu (☰), di bawah strip
+resource, di atas daftar tombol. Menampilkan SATU tingkat
+berikutnya dari tangga progresi + apa yang masih kurang
+(mis. "Kampung besar: Balai, Dapur Umum. Masih kurang: 1 bengkel,
+populasi 12"). Panel ini TIDAK mengunci bangunan apa pun —
+bangunan tetap berdiri lewat sim seperti biasa; kuncinya tetap
+pekerjaan terpisah. Syarat dibaca harfiah dari spesifikasi
+(tingkat 1 butuh gubuk + api unggun, bukan tenda; tingkat 5
+menampilkan Bengkel Besi + Tugu Leluhur Agung sebagai rencana
+karena belum ada di katalog).
+
+- `src/lib/batu/sumberdaya.ts`: fungsi murni baru
+  `kebutuhanKampungBerikutnya(populasi, jenisBerdiri,
+  adaPenambang)` — data dari payload yang sudah ada di klien
+  (`world.populasi`, `map.placements[].kind`,
+  `map.warga[].peran`), tanpa fetch/API baru, tanpa ubah sim.
+- `src/app/page.tsx`: panel di kartu menu + impor fungsi.
+- `src/app/globals.css`: gaya `.menu-kebutuhan` (bingkai kuning
+  temaram, selaras kartu menu).
+- Tes: 15 baru (urutan tingkat 1->5, tenda tidak membuka
+  tingkat 1, keadaan selesai, penjaga statis panel + CSS).
+  Total: 7683 lolos / 656 gagal — baseline 7668/656, jadi +15
+  lolos, nol regresi baru (656 gagal = baseline lama yang sudah
+  merah sebelum perubahan ini). Build Next.js hijau.
+- Catatan kecil saat implementasi: edit pertama sempat menimpa
+  `bangunanById` (fungsi itu hilang dari file) sehingga tes
+  crash; langsung dikembalikan sebelum tes/build final — tes dan
+  build di atas adalah hasil kondisi akhir tree.
+
+### Observasi live (browser, hanya melihat, 02:31-02:38 WIB)
+- Muat pertama TIDAK berat sesi ini: desa tampil dalam hitungan
+  detik (beda dengan 60-90 detik di run 00:29 — kemungkinan cache;
+  tidak bisa dibuktikan dari sini, dicatat sebagai perbedaan
+  observasi, bukan klaim perbaikan).
+- Hewan terlihat: 16 ekor (4 Rusa, 4 Kelinci, 7 Ayam Hutan,
+  1 Beruang); 27 warga; label aktivitas berubah seiring waktu
+  ("Makan bersama!" serentak 02:37 — sim hidup, bukan gambar statis).
+- Satu tombol ☰ saja, tidak ada tombol ganda; tidak ada area
+  blank/error. Jank geser/zoom peta TIDAK teruji (alat browser
+  gagal menangkap layar untuk menempatkan drag — keterbatasan
+  alat, bukan error situs). Info kampung/stok tidak tampak di
+  tampilan default karena topbar sudah dihapus — info itu kini
+  hanya di dalam modal menu, tempat panel baru ini ditaruh.
+- Responsivitas tombol menu sendiri tidak dites (dilarang klik
+  ubah state pada observasi).
+
+### Riset + backlog (brief research/2026-11-04-0229.md)
+- Sudut: PERFORMA (rotasi dari sosial/QoL run sebelumnya).
+  Sumber: Mobitoss (muat layar pertama saja + progres jujur +
+  jeda loop saat tab hidden), Playgama (cap DPR 1-2, kurangi
+  draw call, tanpa alokasi di render loop), ulasan Idle City
+  Builder (pemain minta culling peta). Ide 7/8/9 masuk
+  IDE-FITUR.md; irisan run ini BUKAN dari brief ini melainkan
+  dari prioritas DESAIN-EKONOMI. Tidak direkomendasikan:
+  rewrite renderer ke WebGL murni dan potong kualitas visual
+  global sebelum diukur.
+
 ## 2026-11-03 malam — Aturan kumpul susah + restoran lebih besar + Gemini tukang mikir
 
 Perintah user 23:21-23:37 WIB: halaman restoran dibesarkan, lampu

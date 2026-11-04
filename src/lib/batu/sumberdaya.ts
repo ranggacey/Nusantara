@@ -90,6 +90,79 @@ export function bangunanById(id: string): Bangunan | undefined {
   return BANGUNAN.find((b) => b.id === id);
 }
 
+// ── Papan kebutuhan kampung (2026-11-04, Ide 6 / DESAIN-EKONOMI langkah 2,
+// irisan display-only) ────────────────────────────────────────────────
+// Fungsi MURNI, display-only: membaca tangga progresi DESAIN-EKONOMI.md
+// §2 dan mengembalikan SATU tingkat berikutnya yang syaratnya belum
+// terpenuhi, beserta apa yang masih kurang. TIDAK mengunci apa pun:
+// bangunan tetap bisa berdiri lewat sim seperti biasa; panel ini hanya
+// memberi tahu pemain target berikutnya supaya progresi tidak terasa
+// datar. Kunci tingkat yang sesungguhnya (menolak bangun sebelum syarat)
+// tetap pekerjaan terpisah, bukan di sini.
+// Syarat dibaca harfiah dari spesifikasi: tingkat 1 butuh "gubuk" (bukan
+// tenda), tingkat 2 butuh lumbung + populasi 8, tingkat 3 butuh satu
+// bengkel + populasi 12, tingkat 4 butuh balai + dapur umum, tingkat 5
+// butuh penambang aktif + paviliun makan + populasi 20.
+export interface KebutuhanKampung {
+  selesai: boolean;
+  tingkat: string;
+  target: string;
+  kurang: string[];
+}
+
+function labelBangunan(id: string): string {
+  return bangunanById(id)?.label ?? id;
+}
+
+export function kebutuhanKampungBerikutnya(
+  populasi: number,
+  jenisBerdiri: string[],
+  adaPenambang: boolean
+): KebutuhanKampung {
+  const pop = Number.isFinite(populasi) ? Math.max(0, Math.floor(populasi)) : 0;
+  const ada = (id: string) => jenisBerdiri.includes(id);
+  const kurangPop = (min: number) => (pop >= min ? [] : [`populasi ${min} (sekarang ${pop})`]);
+
+  // Tingkat 1 — Kampung menetap.
+  if (!ada("gubuk") || !ada("api_unggun")) {
+    const kurang = [
+      ...(!ada("gubuk") ? [`1 ${labelBangunan("gubuk")}`] : []),
+      ...(!ada("api_unggun") ? [`1 ${labelBangunan("api_unggun")}`] : []),
+    ];
+    return { selesai: false, tingkat: "Kampung menetap", target: `${labelBangunan("lumbung")}, ${labelBangunan("ladang")}, ${labelBangunan("sumur_batu")}`, kurang };
+  }
+  // Tingkat 2 — Pertukangan.
+  if (!ada("lumbung") || pop < 8) {
+    return { selesai: false, tingkat: "Pertukangan", target: `${labelBangunan("bengkel_kayu")}, ${labelBangunan("bengkel_batu")}`, kurang: [...(!ada("lumbung") ? [`1 ${labelBangunan("lumbung")}`] : []), ...kurangPop(8)] };
+  }
+  // Tingkat 3 — Kampung besar.
+  if (!ada("bengkel_kayu") && !ada("bengkel_batu")) {
+    return { selesai: false, tingkat: "Kampung besar", target: `${labelBangunan("balai")}, ${labelBangunan("dapur_umum")}`, kurang: ["1 bengkel (kayu/batu)", ...kurangPop(12)] };
+  }
+  if (pop < 12) {
+    return { selesai: false, tingkat: "Kampung besar", target: `${labelBangunan("balai")}, ${labelBangunan("dapur_umum")}`, kurang: kurangPop(12) };
+  }
+  // Tingkat 4 — Pangan skala besar.
+  if (!ada("balai") || !ada("dapur_umum")) {
+    const kurang = [
+      ...(!ada("balai") ? [`1 ${labelBangunan("balai")}`] : []),
+      ...(!ada("dapur_umum") ? [`1 ${labelBangunan("dapur_umum")}`] : []),
+    ];
+    return { selesai: false, tingkat: "Pangan skala besar", target: `${labelBangunan("paviliun_makan")}, ${labelBangunan("sawah_luas")}`, kurang };
+  }
+  // Tingkat 5 — Zaman besi & monumen (bangunan tingkat 5 masih proposal,
+  // belum ada di katalog — panel menampilkannya sebagai rencana).
+  if (!adaPenambang || !ada("paviliun_makan") || pop < 20) {
+    const kurang = [
+      ...(!adaPenambang ? ["penambang aktif"] : []),
+      ...(!ada("paviliun_makan") ? [`1 ${labelBangunan("paviliun_makan")}`] : []),
+      ...kurangPop(20),
+    ];
+    return { selesai: false, tingkat: "Zaman besi & monumen", target: "Bengkel Besi, Tugu Leluhur Agung (rencana)", kurang };
+  }
+  return { selesai: true, tingkat: "Zaman besi & monumen", target: "Tugu Leluhur Agung", kurang: [] };
+}
+
 // Kekurangan stok untuk satu biaya: {resource: jumlah_kurang}.
 export function kurangDariBiaya(stok: Partial<Record<ResourceId, number>>, biaya: Partial<Record<ResourceId, number>>): Partial<Record<ResourceId, number>> {
   const kurang: Partial<Record<ResourceId, number>> = {};

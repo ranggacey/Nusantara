@@ -35,7 +35,7 @@ import { ensureAudio, setSuaraAktif } from "@/lib/audio";
 const Map3D = dynamic(() => import("@/components/Map3D"), { ssr: false });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya } from "@/lib/batu/sumberdaya";
 
 type J = Record<string, any>;
 
@@ -526,6 +526,28 @@ export default function Page() {
                 );
               })}
             </div>
+            {/* Papan kebutuhan kampung (2026-11-04, Ide 6): display-only,
+                1 tingkat berikutnya dari tangga DESAIN-EKONOMI §2. TIDAK
+                mengunci bangunan apa pun — hanya memberi tahu target. */}
+            {(() => {
+              const kb = kebutuhanKampungBerikutnya(
+                world?.populasi ?? 0,
+                (map?.placements ?? []).map((p: J) => String(p.kind)),
+                (map?.warga ?? []).some((w: J) => String(w.peran) === "penambang")
+              );
+              return (
+                <div className="menu-kebutuhan">
+                  <div className="menu-kebutuhan-title">🎯 Kampung menginginkan</div>
+                  {kb.selesai ? (
+                    <div className="menu-kebutuhan-isi">Kampung sudah sampai ujung tangga — {kb.target} menanti sebagai bukti kampung besar.</div>
+                  ) : (
+                    <div className="menu-kebutuhan-isi">
+                      <b>{kb.tingkat}: {kb.target}.</b> Masih kurang: {kb.kurang.join(", ")}.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             <div className="menu-list">
               <button className="menu-item" title="Masuk ke Interior Restoran Nirwana 3D" onClick={() => { setMenuOpen(false); router.push("/restoransichuan"); }}>
                 <span className="menu-item-icon">🏮</span>

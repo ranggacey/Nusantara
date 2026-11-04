@@ -1,6 +1,6 @@
 // Test logika zaman batu (tsx). Jalankan: npx tsx tests/batu.test.ts
 import { PERAN, nodeHasil, labelNode, bobotFit, pengaliFit, perkakasPeran, RESEP_PERKAKAS, type NodeKind } from "../src/lib/batu/peran";
-import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong } from "../src/lib/batu/sumberdaya";
+import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, kebutuhanKampungBerikutnya } from "../src/lib/batu/sumberdaya";
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk } from "../src/lib/batu/dunia";
@@ -2096,6 +2096,45 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(pageSrc3.includes("Lihat stok resource dan perkakas kampung"), "menu: Inventori ada + ada penjelasannya");
   ok(pageSrc3.includes("Putar tampilan antara portrait dan landscape"), "menu: Orientasi ada + ada penjelasannya");
   ok(cssSrc3.includes(".menu-fab") && cssSrc3.includes(".menu-card") && cssSrc3.includes(".menu-item"), "menu: CSS tombol + kartu + item ada");
+}
+
+// Papan kebutuhan kampung (2026-11-04, Ide 6): fungsi murni tangga
+// DESAIN-EKONOMI §2 — selalu mengembalikan SATU tingkat berikutnya.
+{
+  const kb0 = kebutuhanKampungBerikutnya(0, [], false);
+  eq(kb0.tingkat, "Kampung menetap", "kebutuhan: kampung kosong -> tingkat 1");
+  ok(kb0.kurang.some((k) => k.includes("Gubuk")) && kb0.kurang.some((k) => k.includes("Api Unggun")), "kebutuhan: kampung kosong kurang gubuk + api unggun");
+  ok(!kb0.selesai, "kebutuhan: kampung kosong belum selesai");
+  // Tenda saja TIDAK memenuhi syarat harfiah tingkat 1 (butuh gubuk).
+  const kbTenda = kebutuhanKampungBerikutnya(3, ["tenda_kulit", "api_unggun"], false);
+  eq(kbTenda.tingkat, "Kampung menetap", "kebutuhan: tenda saja belum membuka tingkat 1");
+  const kb1 = kebutuhanKampungBerikutnya(5, ["gubuk", "api_unggun"], false);
+  eq(kb1.tingkat, "Pertukangan", "kebutuhan: gubuk+api -> tingkat 2");
+  ok(kb1.kurang.some((k) => k.includes("Lumbung")) && kb1.kurang.some((k) => k.includes("populasi 8")), "kebutuhan: tingkat 2 kurang lumbung + populasi");
+  const kb2 = kebutuhanKampungBerikutnya(8, ["gubuk", "api_unggun", "lumbung"], false);
+  eq(kb2.tingkat, "Kampung besar", "kebutuhan: lumbung+pop 8 -> tingkat 3");
+  ok(kb2.kurang.some((k) => k.includes("bengkel")), "kebutuhan: tingkat 3 kurang bengkel");
+  const kb3 = kebutuhanKampungBerikutnya(12, ["gubuk", "api_unggun", "lumbung", "bengkel_kayu"], false);
+  eq(kb3.tingkat, "Pangan skala besar", "kebutuhan: bengkel+pop 12 -> tingkat 4");
+  ok(kb3.kurang.some((k) => k.includes("Balai")) && kb3.kurang.some((k) => k.includes("Dapur Umum")), "kebutuhan: tingkat 4 kurang balai + dapur umum");
+  const kb4 = kebutuhanKampungBerikutnya(15, ["gubuk", "api_unggun", "lumbung", "bengkel_kayu", "balai", "dapur_umum"], false);
+  eq(kb4.tingkat, "Zaman besi & monumen", "kebutuhan: balai+dapur -> tingkat 5");
+  ok(kb4.kurang.some((k) => k.includes("penambang")) && kb4.kurang.some((k) => k.includes("Paviliun Makan")) && kb4.kurang.some((k) => k.includes("populasi 20")), "kebutuhan: tingkat 5 kurang penambang + paviliun + populasi");
+  const kb5 = kebutuhanKampungBerikutnya(20, ["gubuk", "api_unggun", "lumbung", "bengkel_kayu", "balai", "dapur_umum", "paviliun_makan"], true);
+  ok(kb5.selesai && kb5.kurang.length === 0, "kebutuhan: semua syarat -> selesai");
+  // Panel terpasang di kartu menu (penjaga statis, bukan sim).
+  const pageSrcKb = readFileSync("src/app/page.tsx", "utf8");
+  ok(pageSrcKb.includes("kebutuhanKampungBerikutnya") && pageSrcKb.includes("Kampung menginginkan"), "kebutuhan: panel terpasang di kartu menu page");
+  const cssSrcKb = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcKb.includes(".menu-kebutuhan"), "kebutuhan: CSS panel ada");
+  // CSS topbar mati sudah dibersihkan (2026-11-04): kelas topbar lama
+  // tidak boleh muncul lagi, tapi strip resource di kartu menu tetap ada.
+  for (const mati of [".game-topbar", ".topbar-scroll", ".hud-btn", ".hud-era-pill", ".hud-info-chip", ".hud-resource-dock", ".nav-topbar-fold-tab", ".nav-handle", ".nav-gear-float"]) {
+    ok(!cssSrcKb.includes(mati), `css-bersih: ${mati} tidak ada lagi`);
+  }
+  for (const hidup of [".hud-res-chip", ".hud-res-icon", ".hud-res-num", ".hud-full-dot", ".menu-fab", ".menu-card"]) {
+    ok(cssSrcKb.includes(hidup), `css-bersih: ${hidup} tetap ada`);
+  }
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
