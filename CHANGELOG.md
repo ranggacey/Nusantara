@@ -92,6 +92,40 @@ kanvas 3D tidak disentuh sama sekali.
   direkomendasikan: migrasi WebGPU, cap pixel ratio membabi buta
   tanpa baseline, dan hapus bayangan/efek sekaligus tanpa ukur.
 
+### Verifikasi pasca-deploy (22:44-22:46 WIB)
+- Vercel: deploy production READY dpl_2Nn6Kp1N3HhArBZWBt4aikZtBqPy
+  dari commit 404704a (auto-deploy dari main). /api/version = r31.
+- Homepage termuat (judul "Negara Emas — Zaman Batu", teks
+  "Memuat peta 3D…" lalu desa 3D penuh) + satu ikon termuat
+  (/batu/icons/kayu.png 128x128). Catatan jujur: desa dirender
+  kanvas, bukan <img>, jadi pemeriksaan gambar HTML di halaman
+  melaporkan 0 gambar — ikon terverifikasi lewat URL-nya
+  langsung, bukan lewat halaman.
+- /api/world ok (isi, bukan hanya status): Suka Maju, populasi 8,
+  hari 302, 19.23 Sore, Berawan; stok kayu 943/160, batu 22/130,
+  pangan 650/200, kulit 110/95, emas 1/40, besi 46/55.
+- /api/map ok (isi): ok:true, grid 600x600, 8 warga (Figo, Nera,
+  Praboti, Evos dyroth, Siti, Budi, ribran gakabuming, Miners).
+- /api/bangunan ok (isi): katalog 26 jenis + 10 antrean, semua
+  status selesai progres 100 (2 Bengkel Kayu, 1 Ladang, 4 Gubuk,
+  1 Pondok Tabib, 1 Lumbung, 1 Jembatan).
+- TIDAK ADA regresi API setelah deploy ini (semua route yang
+  tadinya ok tetap ok, isinya konsisten dengan desa H-301/302).
+  Perubahan run ini display-only CSS, jadi tidak menyentuh
+  sim/API sama sekali.
+- YANG DIKONFIRMASI API, bukan lagi sekadar menu: stok di atas
+  kapasitas yang ditampilkan memang nyata di /api/world (kayu
+  943/160, pangan 650/200, kulit 110/95). Ini BUKAN akibat deploy
+  ini dan BUKAN klaim bug dari satu bacaan — tapi temuan ini
+  naik status dari "perlu dicek" menjadi "perlu diselidiki run
+  berikutnya": dari mana angka di atas kapasitas itu berasal
+  padahal clamp gudang sudah diklaim berlaku, dan apakah angka
+  kapasitas di API ini kap yang sama dengan kap clamp.
+- Yang TETAP belum terverifikasi visual: efek reduced-motion itu
+  sendiri (butuh perangkat/browser dengan preferensi kurangi
+  gerakan aktif + membuka panel — tidak bisa dibuktikan dari
+  sesi observasi biasa); CSS + tes membuktikan aturannya ada.
+
 ## 2026-11-04 20:29 WIB — Tanda "tanpa tugas" di Papan Warga (sebagian Ide 5) + brief riset aksesibilitas
 
 Perubahan dalam 2 kalimat: Papan Warga kini menandai warga yang
