@@ -96,6 +96,20 @@ tumpang tindih di tengah yang ramai.
   lanjutan di rilis pertama.
 
 
+### Verifikasi pasca-deploy (16:15-16:21 WIB, hanya melihat)
+- Homepage termuat normal (judul "Negara Emas — Zaman Batu", layar
+  "Memuat peta 3D…" lalu desa 3D penuh, tanpa blank/error).
+- /api/map ok: 27 warga (0001-0027; pertama Joel 0001 penebang).
+- /api/bangunan ok: katalog ada (Gubuk, tenda_kulit, api_unggun,
+  lumbung, bengkel_batu, dst.) + antrean tidak kosong (entri selesai
+  100% di depan). Tidak ada regresi API setelah deploy ini.
+- VISUAL TERKONFIRMASI SEBAGIAN: entri "Papan Warga" kini ADA di kartu
+  menu ☰ (menu dibuka, dilihat, ditutup lagi). Isi daftar di dalam
+  modalnya sendiri belum diketuk/dilihat — entri itu sengaja tidak
+  diketuk pada verifikasi ini — jadi penampakan daftarnya tetap jadi
+  tugas observasi run berikutnya, tapi keberadaan entrinya sudah
+  bukan lagi klaim tanpa bukti.
+
 ## 2026-11-04 12:29 WIB — Jeda poll data saat tab disembunyikan (Ide 17)
 
 Pasangan dari jeda loop render (Ide 9): poll data `/api/world`,
