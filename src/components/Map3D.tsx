@@ -1083,6 +1083,11 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
   onTapWargaRef.current = onTapWarga;
   const onLepasKunciRef = useRef(onLepasKunci);
   onLepasKunciRef.current = onLepasKunci;
+  // D-pad kamera (permintaan user 2026-11-04: "pergerakan kamera susah"):
+  // tombol arah di dalam wrap menggeser target kamera. Kamera + kontrol
+  // disimpan di ref saat dibuat di effect, supaya handler JSX bisa pakai.
+  const panRef = useRef<{ kamera: any; kontrol: any; batalAnimasi: () => void } | null>(null);
+  const panIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onTapBangunanRef = useRef(onTapBangunan);
   onTapBangunanRef.current = onTapBangunan;
   const faseRef = useRef(gameFase);
@@ -1289,6 +1294,10 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     let framedOnce = false;
     let userTouched = false;
     let frameAnim: { t: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromP: THREE.Vector3; toP: THREE.Vector3 } | null = null;
+    // D-pad: pegangan kamera + kontrol + pembatal animasi bingkai awal
+    // (closure menangkap binding frameAnim, jadi batalAnimasi() yang
+    // dipanggil belakangan tetap membatalkan animasi yang sedang jalan).
+    panRef.current = { kamera: camera, kontrol: controls, batalAnimasi: () => { frameAnim = null; } };
     // RONDE 11: dunia berpusat di PUSAT grid (min + w/2 = 100, SAMA
     // seperti era 200x200) — koordinat dunia ubin lama TIDAK BERGESER.
     const toWorld = (gx: number, gy: number, gw: number, gh: number, gmin = 0) => ({ x: gx - (gmin + gw / 2) + 0.5, z: gy - (gmin + gh / 2) + 0.5 });
@@ -2846,6 +2855,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     document.addEventListener("visibilitychange", onVis);
 
     return () => {
+      if (panIntervalRef.current) clearInterval(panIntervalRef.current);
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVis);
       ro.disconnect();
@@ -2869,9 +2879,72 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // D-pad kamera: geser target ke arah LAYAR (bukan arah dunia mentah).
+  // Kanan = sumbu X kamera di bidang tanah; atas = arah pandang kamera
+  // di bidang tanah. Target digeser saja — update() OrbitControls tiap
+  // frame menerjemahkan kamera ikut (sama seperti PAN bawaan). Tekan
+  // D-pad juga melepas kunci follow, sama seperti mulai menggeser.
+  const geserKamera = (arah: "kiri" | "kanan" | "atas" | "bawah", langkah: number) => {
+    const p = panRef.current;
+    if (!p) return;
+    if (followRef.current) onLepasKunciRef.current?.();
+    p.batalAnimasi();
+    const target = p.kontrol.target as { x: number; z: number };
+    const px = p.kamera.position.x - target.x;
+    const pz = p.kamera.position.z - target.z;
+    if (px * px + pz * pz < 1e-6) return;
+    // hadap = arah pandang kamera di bidang tanah (target - posisi).
+    let hx = -px;
+    let hz = -pz;
+    const hl = Math.hypot(hx, hz);
+    hx /= hl;
+    hz /= hl;
+    // kanan layar = hadap × atas (0,1,0) = (-hz, hx) di bidang XZ.
+    const kx = -hz;
+    const kz = hx;
+    let dx = 0;
+    let dz = 0;
+    if (arah === "kanan") { dx = kx; dz = kz; }
+    else if (arah === "kiri") { dx = -kx; dz = -kz; }
+    else if (arah === "atas") { dx = hx; dz = hz; }
+    else { dx = -hx; dz = -hz; }
+    target.x += dx * langkah;
+    target.z += dz * langkah;
+  };
+  // Tahan = geser terus (tiap 50 ms, 20 unit/detik); lepas = berhenti.
+  // Ketuk = 1 langkah (2 unit). Capture pointer supaya pointerup di
+  // luar tombol tetap menghentikan geseran.
+  const mulaiGeser = (arah: "kiri" | "kanan" | "atas" | "bawah") => (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    geserKamera(arah, 2);
+    if (panIntervalRef.current) clearInterval(panIntervalRef.current);
+    panIntervalRef.current = setInterval(() => geserKamera(arah, 1), 50);
+  };
+  const berhentiGeser = () => {
+    if (panIntervalRef.current) {
+      clearInterval(panIntervalRef.current);
+      panIntervalRef.current = null;
+    }
+  };
+
   return (
     <div ref={wrapRef} className="map3d-wrap">
       <div ref={labelsRef} className="map3d-labels" />
+      {/* D-pad kamera (permintaan user 2026-11-04): tombol arah pojok
+          kanan-bawah peta — alternatif geser jari. z 10: di atas
+          kanvas + label (z 5), di bawah modal (z 50+). */}
+      <div className="dpad-kamera">
+        <span />
+        <button type="button" title="Geser kamera ke atas" aria-label="Geser kamera ke atas" className="dpad-btn" onPointerDown={mulaiGeser("atas")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>▲</button>
+        <span />
+        <button type="button" title="Geser kamera ke kiri" aria-label="Geser kamera ke kiri" className="dpad-btn" onPointerDown={mulaiGeser("kiri")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>◀</button>
+        <span className="dpad-tengah">●</span>
+        <button type="button" title="Geser kamera ke kanan" aria-label="Geser kamera ke kanan" className="dpad-btn" onPointerDown={mulaiGeser("kanan")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>▶</button>
+        <span />
+        <button type="button" title="Geser kamera ke bawah" aria-label="Geser kamera ke bawah" className="dpad-btn" onPointerDown={mulaiGeser("bawah")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>▼</button>
+        <span />
+      </div>
       {!map && <div className="map3d-loading">Memuat peta 3D…</div>}
     </div>
   );

@@ -696,7 +696,10 @@ export default function Page() {
 
       {/* Papan Warga (2026-11-04, Ide 18): display-only, daftar dari
           map.warga yang SUDAH diambil poll — tanpa fetch baru, tanpa
-          ubah sim. Baris diketuk -> detail warga yang sudah ada.
+          ubah sim. Baris diketuk -> kamera menuju + mengikuti warga
+          itu + kartu profil (sama seperti ketuk karakter di peta,
+          permintaan user 2026-11-04: ketuk papan karakter, kamera
+          otomatis di atas/dekat karakter).
           Tutup lewat ✕, ketuk latar, ATAU tombol Tutup di bawah
           daftar (jangkauan jempol, bukan hanya pojok atas). */}
       {showPapanWarga && (
@@ -706,7 +709,7 @@ export default function Page() {
               <div>
                 <div className="menu-card-title">👥 Papan Warga</div>
                 <div className="menu-card-sub">
-                  {(map?.warga ?? []).length} warga • dari data peta yang sudah diambil • ketuk baris untuk detail
+                  {(map?.warga ?? []).length} warga • dari data peta yang sudah diambil • ketuk baris untuk menuju karakter
                 </div>
               </div>
               <button className="menu-close" title="Tutup papan warga" onClick={() => setShowPapanWarga(false)} aria-label="Tutup papan warga">
@@ -722,7 +725,7 @@ export default function Page() {
                     key={w.id}
                     className="papan-warga-row"
                     title={`${w.nama} (${w.nomor})`}
-                    onClick={() => { setShowPapanWarga(false); void detailWarga(String(w.id)); }}
+                    onClick={() => { setShowPapanWarga(false); tapWarga(String(w.id)); }}
                   >
                     <span className="papan-warga-nama">{w.nama} ({w.nomor})</span>
                     <span className="papan-warga-status">{formatLabel(String(w.peran ?? ""))} • {w.status_teks ?? "—"}</span>

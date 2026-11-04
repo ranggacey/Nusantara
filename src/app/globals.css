@@ -516,6 +516,47 @@ canvas.game-canvas {
 .map3d-wrap canvas {
   touch-action: none;
 }
+/* D-pad kamera (permintaan user 2026-11-04: "pergerakan kamera susah"):
+   tombol arah pojok kanan-bawah peta, alternatif geser jari. Tahan =
+   geser terus, lepas = berhenti. Tombol 48px (≥44px, jangkauan jempol). */
+.dpad-kamera {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 48px);
+  gap: 4px;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.dpad-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 204, 21, 0.55);
+  background: rgba(11, 30, 58, 0.72);
+  color: #fde68a;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  padding: 0;
+}
+.dpad-btn:active {
+  background: rgba(250, 204, 21, 0.35);
+}
+.dpad-tengah {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(253, 230, 138, 0.5);
+  font-size: 12px;
+}
 .map3d-labels {
   position: absolute;
   inset: 0;

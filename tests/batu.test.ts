@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r24"'), "version: BUILD_ID r24 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r25"'), "version: BUILD_ID r25 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r24"'), "versi: BUILD_ID r24");
+  ok(ver.includes('"r25"'), "versi: BUILD_ID r25");
 }
 
 {
@@ -2210,7 +2210,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r24"'), "vis: BUILD_ID naik ke r24 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r25"'), "vis: BUILD_ID naik ke r25 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2234,10 +2234,11 @@ function wargaFigo(over: Partial<Warga>): Warga {
 // Papan Warga satu layar (2026-11-04, Ide 18, riset UX 14:29):
 // penjaga statis — entri menu ada, daftar dirender dari map.warga
 // yang sudah diambil (tanpa fetch baru di blok papan), ketuk baris
-// menutup papan lalu membuka detail warga yang sudah ada, dan ada
-// tombol Tutup di bawah daftar (jangkauan jempol) + baris setinggi
-// target sentuh 48px. Panel Warga lama tidak diganti: papan ini
-// hanya pintu masuknya.
+// menutup papan lalu kamera menuju + mengikuti warga itu (tapWarga,
+// sama seperti ketuk karakter di peta; perubahan perilaku permintaan
+// user 2026-11-04), dan ada tombol Tutup di bawah daftar (jangkauan
+// jempol) + baris setinggi target sentuh 48px. Jalur detail panel
+// samping tetap ada lewat ketuk tile / pencarian.
 {
   const pageSrcPapan = readFileSync("src/app/page.tsx", "utf8");
   ok(pageSrcPapan.includes("showPapanWarga") && pageSrcPapan.includes("Papan Warga"), "papan: state + entri menu ada");
@@ -2246,12 +2247,38 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const papanBlock = pageSrcPapan.slice(Math.max(0, papanIdx - 600), papanIdx + 1600);
   ok(papanBlock.includes("(map?.warga ?? [])"), "papan: daftar dari map.warga yang sudah diambil");
   ok(!papanBlock.includes("fetch(") && !papanBlock.includes("/api/map"), "papan: tanpa fetch baru di blok papan");
-  ok(papanBlock.includes("setShowPapanWarga(false); void detailWarga"), "papan: ketuk baris menutup papan + membuka detail warga");
+  ok(papanBlock.includes("setShowPapanWarga(false); tapWarga("), "papan: ketuk baris menutup papan + kamera menuju warga (tapWarga)");
   ok(pageSrcPapan.includes("papan-warga-tutup"), "papan: tombol Tutup di bawah daftar ada");
   ok(pageSrcPapan.includes("formatLabel(String(w.peran"), "papan: peran diformat (api map tidak mengirim label_peran)");
   const cssSrcPapan = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcPapan.includes(".papan-warga-row") && cssSrcPapan.includes("min-height: 48px"), "papan: CSS baris + tinggi sentuh 48px");
   ok(cssSrcPapan.includes(".papan-warga-tutup"), "papan: CSS tombol Tutup ada");
+}
+
+// D-pad kamera (permintaan user 2026-11-04: "pergerakan kamera susah"):
+// penjaga statis — 4 tombol arah di dalam wrap peta (pojok kanan-bawah,
+// di atas kanvas tapi di bawah modal), arah dihitung dari kamera (kanan
+// = sumbu X kamera di bidang tanah, atas = arah pandang kamera di bidang
+// tanah), ketuk = 1 langkah, tahan = geser terus sampai lepas (termasuk
+// lepas di luar tombol via pointer capture), tekan melepas kunci follow
+// + membatalkan animasi bingkai awal, dan interval dibersihkan saat
+// unmount. Tombol 48px (≥44px, jangkauan jempol).
+{
+  const map3dSrc = readFileSync("src/components/Map3D.tsx", "utf8");
+  const wrapIdx = map3dSrc.indexOf('className="map3d-wrap"');
+  const dpadIdx = map3dSrc.indexOf("dpad-kamera");
+  ok(wrapIdx > 0 && dpadIdx > wrapIdx, "dpad: tombol arah di dalam wrap peta");
+  for (const arah of ["atas", "kiri", "kanan", "bawah"]) {
+    ok(map3dSrc.includes(`aria-label="Geser kamera ke ${arah}"`), `dpad: tombol ${arah} ada`);
+  }
+  ok(map3dSrc.includes("geserKamera") && map3dSrc.includes("onLepasKunciRef.current?.()"), "dpad: tekan melepas kunci follow");
+  ok(map3dSrc.includes("batalAnimasi()"), "dpad: tekan membatalkan animasi bingkai awal");
+  ok(map3dSrc.includes("setPointerCapture") && map3dSrc.includes("setInterval(() => geserKamera(arah, 1), 50)"), "dpad: tahan = geser terus + pointer capture");
+  ok(map3dSrc.includes("onPointerUp={berhentiGeser}") && map3dSrc.includes("onPointerCancel={berhentiGeser}"), "dpad: lepas = berhenti");
+  ok(map3dSrc.includes("if (panIntervalRef.current) clearInterval(panIntervalRef.current);"), "dpad: interval dibersihkan saat unmount");
+  const cssSrcDpad = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcDpad.includes(".dpad-kamera") && cssSrcDpad.includes("position: absolute"), "dpad: CSS wadah absolute ada");
+  ok(cssSrcDpad.includes(".dpad-btn") && cssSrcDpad.includes("width: 48px"), "dpad: CSS tombol 48px ada");
 }
 
 // Fallback muat jujur untuk chunk 3D (Ide 7, irisan kecil): dynamic import
@@ -2274,7 +2301,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r24"'), "muat3d: BUILD_ID naik ke r24");
+  ok(verMuat.includes('BUILD_ID = "r25"'), "muat3d: BUILD_ID naik ke r25");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

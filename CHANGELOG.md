@@ -1,5 +1,49 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 16:58 WIB — Kamera: ketuk Papan Warga menuju karakter + tombol arah D-pad (permintaan user)
+
+Selama ini ketuk karakter di peta SUDAH mengunci kamera (follow-lerp
+di Map3D: target kamera meluncur ke posisi tampil karakter lalu
+mengikutinya) + kartu profil MMORPG. Tapi ketuk baris Papan Warga
+hanya membuka panel detail — kamera tidak bergerak, jadi user harus
+mencari sendiri warga itu di peta. Update ini menyamakan keduanya.
+
+- `src/app/page.tsx`: onClick baris Papan Warga kini memanggil
+  `tapWarga(id)` (set followId + selectedId, sama persis dengan
+  ketuk karakter di peta) setelah menutup papan — bukan lagi
+  `detailWarga` (panel samping). Efeknya: papan tertutup, kamera
+  meluncur halus ke atas/dekat karakter lalu mengikutinya, dan
+  kartu profil (3D preview, stat, stamina, lapar, HP, bakat,
+  renungan) tampil. Kunci dilepas lewat tombol "Batal kunci" di
+  kartu, atau ketuk tanah kosong, seperti perilaku kunci yang
+  sudah ada. Subjudul papan + komentar kode diperbarui sesuai
+  perilaku baru. Jalur detail panel samping tetap ada lewat
+  ketuk tile / pencarian, tidak dihapus.
+- D-pad kamera (`src/components/Map3D.tsx` + `src/app/globals.css`,
+  keluhan susulan user di tengah pengerjaan: "pergerakan kamera
+  susah"): 4 tombol arah (◀ ▲ ▼ ▶) pojok kanan-bawah peta, di atas
+  kanvas (z 10) tapi di bawah modal. Arah dihitung dari kamera
+  (kanan = sumbu X kamera di bidang tanah, atas = arah pandang
+  kamera di bidang tanah), jadi tombol selalu sesuai arah layar
+  walau kamera sudah di-orbit. Target digeser saja — update()
+  OrbitControls tiap frame menerjemahkan kamera ikut, sama
+  seperti PAN bawaan. Ketuk = 1 langkah (2 unit), tahan = geser
+  terus 20 unit/detik; lepas (termasuk lepas di luar tombol,
+  pointer capture) = berhenti. Tekan D-pad juga melepas kunci
+  follow + membatalkan animasi bingkai awal, sama seperti mulai
+  menggeser — jadi tidak pernah dilawan follow-lerp. Geser jari
+  tetap jalan seperti biasa; D-pad hanya alternatif. Tombol 48px
+  (≥44px, jangkauan jempol), label aria + title Indonesia.
+- `src/lib/version.ts`: BUILD_ID r24 -> r25.
+- Tes: 4 penjaga versi diperbarui r24 -> r25 (mekanisme bump yang
+  disengaja, seperti rilis sebelumnya), 1 penjaga papan diperbarui
+  ke perilaku baru (tapWarga, bukan detailWarga), 11 penjaga statis
+  baru untuk D-pad. Total: 7755 lolos / 656 gagal — baseline
+  7743/656, jadi +12 lolos, himpunan gagal kembali identik baseline
+  (nol regresi baru, dicek nama gagal: tidak ada dpad/papan/r25).
+  Build Next.js hijau (termasuk perbaikan komentar JSX papan yang
+  sempat membuat build merah di tengah pengerjaan).
+
 ## 2026-11-04 16:29 WIB — Fallback muat jujur untuk chunk 3D (Ide 7, irisan kecil)
 
 Selama ini `Map3D` diimpor lewat `dynamic(..., { ssr: false })` TANPA
