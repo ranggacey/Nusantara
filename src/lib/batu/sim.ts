@@ -314,13 +314,19 @@ export function jumlahKumpul(statFokus: number): number {
 // Cap harian TETAP: 3 biasa, 2 langka. Pengali lama (STR, perkakas,
 // bakat) TIDAK lagi menambah jumlah — keunggulan hanya menggeser
 // peluang di dalam cap, supaya stok tidak meluber.
+// DIAMENDEMEN LAGI 2026-11-04 atas perintah user "sehari 1 orang bisa
+// dpt minimal 1 maksimal 3": NOL DIHAPUS untuk sumber BIASA saja —
+// roll biasa kini 1/2/3 (bobot 64/27/9 = renormalisasi 35:15:5 r23,
+// rata-rata ~1,45); cap harian tetap 3. Besi/emas TIDAK berubah
+// (tetap boleh nol, cap 2) — kelangkaannya desain terpisah yang
+// tidak dicabut perintah ini.
 export const CAP_KUMPUL_HARIAN_BIASA = 3;
 export const CAP_KUMPUL_HARIAN_LANGKA = 2;
 
 function peluangKumpul(resource: string, berbakat: boolean): number[] {
   if (resource === "besi") return berbakat ? [0.7, 0.25, 0.05] : [0.8, 0.17, 0.03];
   if (resource === "emas") return [0.75, 0.2, 0.05];
-  return [0.45, 0.35, 0.15, 0.05];
+  return [0, 0.64, 0.27, 0.09];
 }
 
 export function rollHasilKumpul(resource: string, w: Warga): number {

@@ -1,5 +1,28 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 17:23 WIB — Kumpul biasa minimal 1 maksimal 3, nol dihapus (permintaan user)
+
+Perintah user: "sehari 1 orang bisa dpt minimal 1 maksimal 3".
+Diterapkan ke sumber BIASA (pangan/kayu/batu/kulit) — satu-satunya
+bacaan yang konsisten dengan desain langka yang masih berlaku
+(besi/emas cap-nya 2, bukan 3, dan kelangkaannya tidak dicabut).
+
+- `src/lib/batu/sim.ts`: `peluangKumpul` biasa 0/1/2/3 =
+  45/35/15/5% -> 1/2/3 = 64/27/9% (renormalisasi 35:15:5 r23,
+  rata-rata ~1,45; NOL tidak mungkin lagi karena peluang 0 = 0).
+  Bump berbakat (+1, 50%, maks 3) tidak berubah — min tetap 1,
+  maks tetap 3. Cap harian tetap 3 biasa / 2 langka; juru masak
+  x1,5 pangan tetap dijepit cap 3. Besi/emas TIDAK diubah
+  (tetap boleh nol, cap 2). Komentar aturan + DESAIN-EKONOMI.md
+  diperbarui sesuai.
+- `src/lib/version.ts`: BUILD_ID r27 -> r28.
+- Tes: asersi roll kayu biasa diperbarui (min 1, maks 3,
+  rata-rata 1,3..1,6, nol = 0 atas 20000 roll) + asersi baru
+  berbakat biasa (tetap 1..3, rata-rata 1,7..2,1); tes besi/emas
+  tidak diubah (tetap boleh nol) + 4 penjaga versi r27 -> r28.
+  Total: 7760 lolos / 656 gagal — baseline 656 gagal, nol regresi
+  baru (asersi roll baru semua lolos). Build Next.js hijau.
+
 ## 2026-11-04 17:16 WIB — Analog kiri ganti D-pad + tombol naik/turun + bisa disembunyikan (permintaan user)
 
 Umpan balik user atas D-pad r25/r26: "aneh, harusnya di sebelah

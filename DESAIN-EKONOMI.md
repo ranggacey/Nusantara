@@ -234,8 +234,11 @@ Temuan akar (bukan sekadar "angka kurang kecil"):
 
 Aturan baru (cap harian 3/2 dan aturan lapar/makan TIDAK berubah):
 
-- Roll biasa (pangan/kayu/batu/kulit): 0 = 45%, 1 = 35%, 2 = 15%,
-  3 = 5% (rata-rata 0,8/hari, dulu 1,7). Hari tanpa hasil itu NORMAL.
+- Roll biasa (pangan/kayu/batu/kulit): 1 = 64%, 2 = 27%, 3 = 9%
+  (rata-rata ~1,45/hari). NOL DIHAPUS atas perintah user 2026-11-04
+  ("sehari 1 orang bisa dpt minimal 1 maksimal 3") — setiap trip
+  biasa pasti membawa pulang minimal 1; cap harian tetap 3.
+  Besi/emas TIDAK berubah (tetap boleh nol, cap 2).
 - Besi: biasa 0 = 80%, 1 = 17%, 2 = 3% (rata-rata 0,23, dulu 0,55);
   berbakat 0 = 70%, 1 = 25%, 2 = 5% (rata-rata 0,35, dulu 0,75).
 - Emas: 0 = 75%, 1 = 20%, 2 = 5% (rata-rata 0,30).

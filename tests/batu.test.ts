@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r27"'), "version: BUILD_ID r27 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r28"'), "version: BUILD_ID r28 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r27"'), "versi: BUILD_ID r27");
+  ok(ver.includes('"r28"'), "versi: BUILD_ID r28");
 }
 
 {
@@ -1912,10 +1912,25 @@ function wargaFigo(over: Partial<Warga>): Warga {
     total += r;
     if (r === 0) nol++;
   }
-  ok(min === 0 && maks <= 3, "kumpul biasa: roll kayu 0..3 (boleh tangan kosong)");
+  // 2026-11-04 (perintah user "minimal 1 maksimal 3"): NOL dihapus
+  // untuk sumber biasa — roll kayu 1..3, bobot 64/27/9, rata-rata ~1,45.
+  ok(min === 1 && maks === 3, "kumpul biasa: roll kayu 1..3 (tanpa tangan kosong)");
   const meanKayu = total / N;
-  ok(meanKayu > 0.6 && meanKayu < 1.0, `kumpul biasa: rata-rata kayu ${meanKayu.toFixed(2)} di 0,6..1,0`);
-  ok(nol / N > 0.35, `kumpul biasa: hari tanpa hasil >35% (dapat ${(nol / N * 100).toFixed(1)}%)`);
+  ok(meanKayu > 1.3 && meanKayu < 1.6, `kumpul biasa: rata-rata kayu ${meanKayu.toFixed(2)} di 1,3..1,6`);
+  ok(nol === 0, `kumpul biasa: tidak ada hari tanpa hasil (dapat ${nol})`);
+  // Berbakat biasa: bump +1 (50%, maks 3) menggeser rata-rata naik,
+  // tapi min tetap 1 dan maks tetap 3 (tidak pernah melampaui cap).
+  const wBakatBiasa = { ...wBiasa, bakat: "STR" } as unknown as Warga;
+  let minBB = 99; let maksBB = -1; let totalBB2 = 0;
+  for (let i = 0; i < N; i++) {
+    const r = rollHasilKumpul("kayu", wBakatBiasa);
+    if (r < minBB) minBB = r;
+    if (r > maksBB) maksBB = r;
+    totalBB2 += r;
+  }
+  const meanKayuBakat = totalBB2 / N;
+  ok(minBB === 1 && maksBB === 3, "kumpul biasa berbakat: roll kayu tetap 1..3");
+  ok(meanKayuBakat > 1.7 && meanKayuBakat < 2.1, `kumpul biasa berbakat: rata-rata kayu ${meanKayuBakat.toFixed(2)} di 1,7..2,1`);
   let minB = 99; let maksB = -1; let totalB = 0; let nolB = 0;
   for (let i = 0; i < N; i++) {
     const r = rollHasilKumpul("besi", wBiasa);
@@ -2210,7 +2225,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r27"'), "vis: BUILD_ID naik ke r27 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r28"'), "vis: BUILD_ID naik ke r28 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2307,7 +2322,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r27"'), "muat3d: BUILD_ID naik ke r27");
+  ok(verMuat.includes('BUILD_ID = "r28"'), "muat3d: BUILD_ID naik ke r28");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
