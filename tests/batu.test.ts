@@ -5,7 +5,7 @@ import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolB
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk } from "../src/lib/batu/dunia";
 import { pintarUntukJalan, rencanaJalan, jalurJalan, jalurSegmen, SEGMEN_JALAN, TIM_JALAN_INT_MIN } from "../src/lib/batu/jalan";
-import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, capHarianUntuk, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
+import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, terapkanPembusukan, capHarianUntuk, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
 import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "../src/lib/batu/tampil";
 import { gainJarak, panKamera, SFX_JARAK, SFX_PERKAKAS, SFX_HEWAN } from "../src/lib/audio";
 import { HEWAN, hewanById } from "../src/lib/batu/hewan";
@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r22"'), "version: BUILD_ID r22 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r23"'), "version: BUILD_ID r23 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r22"'), "versi: BUILD_ID r22");
+  ok(ver.includes('"r23"'), "versi: BUILD_ID r23");
 }
 
 {
@@ -1904,16 +1904,18 @@ function wargaFigo(over: Partial<Warga>): Warga {
     peran: "penebang", bakat: "", perkakas: [], stat: { int: 5, str: 5, agi: 5, sta: 5 },
   } as unknown as Warga;
   const N = 20000;
-  let min = 99; let maks = -1; let total = 0;
+  let min = 99; let maks = -1; let total = 0; let nol = 0;
   for (let i = 0; i < N; i++) {
     const r = rollHasilKumpul("kayu", wBiasa);
     if (r < min) min = r;
     if (r > maks) maks = r;
     total += r;
+    if (r === 0) nol++;
   }
-  ok(min >= 1 && maks <= 3, "kumpul biasa: roll kayu 1..3");
+  ok(min === 0 && maks <= 3, "kumpul biasa: roll kayu 0..3 (boleh tangan kosong)");
   const meanKayu = total / N;
-  ok(meanKayu > 1.4 && meanKayu < 2.0, `kumpul biasa: rata-rata kayu ${meanKayu.toFixed(2)} di 1,4..2,0`);
+  ok(meanKayu > 0.6 && meanKayu < 1.0, `kumpul biasa: rata-rata kayu ${meanKayu.toFixed(2)} di 0,6..1,0`);
+  ok(nol / N > 0.35, `kumpul biasa: hari tanpa hasil >35% (dapat ${(nol / N * 100).toFixed(1)}%)`);
   let minB = 99; let maksB = -1; let totalB = 0; let nolB = 0;
   for (let i = 0; i < N; i++) {
     const r = rollHasilKumpul("besi", wBiasa);
@@ -1924,8 +1926,8 @@ function wargaFigo(over: Partial<Warga>): Warga {
   }
   ok(minB === 0 && maksB <= 2, "kumpul besi: roll 0..2");
   const meanBesi = totalB / N;
-  ok(meanBesi > 0.4 && meanBesi < 0.7, `kumpul besi: rata-rata ${meanBesi.toFixed(2)} di 0,4..0,7`);
-  ok(nolB / N > 0.4, `kumpul besi: hari tanpa besi >40% (dapat ${(nolB / N * 100).toFixed(1)}%)`);
+  ok(meanBesi > 0.15 && meanBesi < 0.35, `kumpul besi: rata-rata ${meanBesi.toFixed(2)} di 0,15..0,35`);
+  ok(nolB / N > 0.7, `kumpul besi: hari tanpa besi >70% (dapat ${(nolB / N * 100).toFixed(1)}%)`);
   const wBakat = { ...wBiasa, bakat: "STR" } as unknown as Warga;
   let totalBB = 0; let nolBB = 0;
   for (let i = 0; i < N; i++) {
@@ -1934,8 +1936,17 @@ function wargaFigo(over: Partial<Warga>): Warga {
     if (r === 0) nolBB++;
   }
   const meanBesiBakat = totalBB / N;
-  ok(meanBesiBakat > 0.6 && meanBesiBakat < 0.95, `kumpul besi berbakat: rata-rata ${meanBesiBakat.toFixed(2)} di 0,6..0,95`);
-  ok(nolBB / N < 0.5, `kumpul besi berbakat: hari tanpa besi <50% (dapat ${(nolBB / N * 100).toFixed(1)}%)`);
+  ok(meanBesiBakat > 0.25 && meanBesiBakat < 0.5, `kumpul besi berbakat: rata-rata ${meanBesiBakat.toFixed(2)} di 0,25..0,5`);
+  ok(nolBB / N > 0.6, `kumpul besi berbakat: hari tanpa besi >60% (dapat ${(nolBB / N * 100).toFixed(1)}%)`);
+  let totalE = 0; let nolE = 0;
+  for (let i = 0; i < N; i++) {
+    const r = rollHasilKumpul("emas", wBiasa);
+    totalE += r;
+    if (r === 0) nolE++;
+  }
+  const meanEmas = totalE / N;
+  ok(meanEmas > 0.2 && meanEmas < 0.45, `kumpul emas: rata-rata ${meanEmas.toFixed(2)} di 0,2..0,45`);
+  ok(nolE / N > 0.65, `kumpul emas: hari tanpa emas >65% (dapat ${(nolE / N * 100).toFixed(1)}%)`);
   ok(capHarianUntuk("kayu") === 3 && capHarianUntuk("besi") === 2, "cap harian: 3 biasa, 2 langka");
   const wCap = { kumpul_hari: undefined, kumpul_harian: undefined } as unknown as Warga;
   ok(sisaCapHarian(wCap, "kayu", 10) === 3, "cap harian: kayu segar = 3");
@@ -1973,6 +1984,33 @@ function wargaFigo(over: Partial<Warga>): Warga {
     kapasitasMaks: { kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60 },
   } as unknown as SimCtx;
   ok(!terapkanRehatStokPenuh(wLega, ctxLega), "stok lega: tidak dialihkan");
+}
+
+// KELANGKAAN REALISTIS (2026-11-04, permintaan user: sangat susah,
+// mengikuti dunia nyata): pembusukan kelebihan stok + ledger kumpul
+// harian tersimpan di bulkWrite (cap tidak reset tiap poll).
+{
+  const ctxBusuk = {
+    stok: { kayu: 1000, batu: 500, pangan: 10000, kulit: 600, emas: 500, besi: 500 },
+    kapasitasMaks: { kayu: 740, batu: 630, pangan: 850, kulit: 425, emas: 210, besi: 265 },
+  } as unknown as SimCtx;
+  const busuk = terapkanPembusukan(ctxBusuk);
+  const sBusuk = ctxBusuk.stok as unknown as Record<string, number>;
+  ok(busuk.pangan === Math.floor((10000 - 850) * 0.5), "busuk: laporan pangan 50% dari kelebihan");
+  ok(sBusuk.pangan === 850 + Math.floor((10000 - 850) * 0.5), "busuk: pangan susut 50% dari kelebihan");
+  ok(sBusuk.kayu === 740 + Math.floor((1000 - 740) * 0.9), "busuk: kayu susut 10% dari kelebihan");
+  ok(sBusuk.kulit === 600 - Math.floor((600 - 425) * 0.1), "busuk: kulit susut 10% dari kelebihan");
+  ok(sBusuk.batu === 500, "busuk: batu dalam kapasitas tidak susut");
+  ok(sBusuk.emas === 500 && sBusuk.besi === 500, "busuk: emas/besi awet, tidak susut");
+  const ctxAman = {
+    stok: { pangan: 100, kayu: 100 },
+    kapasitasMaks: { pangan: 850, kayu: 740 },
+  } as unknown as SimCtx;
+  const busukAman = terapkanPembusukan(ctxAman);
+  ok(busukAman.pangan === undefined && (ctxAman.stok as unknown as Record<string, number>).pangan === 100, "busuk: stok dalam kapasitas tidak susut");
+  const simSrcBusuk = readFileSync("src/lib/batu/sim.ts", "utf8");
+  ok(simSrcBusuk.includes("kumpul_hari: w.kumpul_hari") && simSrcBusuk.includes("kumpul_harian: w.kumpul_harian"), "cap-harian: bulkWrite menyimpan ledger kumpul (cap tidak reset tiap poll)");
+  ok(simSrcBusuk.includes("terapkanPembusukan(ctx)"), "busuk: advanceWorld memanggil pembusukan tiap ganti hari");
 }
 
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
@@ -2172,7 +2210,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r22"'), "vis: BUILD_ID naik ke r22 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r23"'), "vis: BUILD_ID naik ke r23 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):

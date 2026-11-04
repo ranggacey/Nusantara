@@ -209,3 +209,44 @@ Status: MENUNGGU konfirmasi dan mekanisme aman, karena:
 
 Jangan dieksekusi cron sebelum user mengonfirmasi ulang
 dengan sadar dampak dunia bersama di atas.
+
+## 7. Kelangkaan realistis (amendemen user 2026-11-04, MENGGANTIKAN persentase bagian 1)
+
+Keluhan user 2026-11-04 16:14 WIB (dengan tangkapan layar menu):
+makanan 400 ribu jam 10 jadi 600 ribu sekarang, "terlalu gampang
+nyarinya", minta dibuat "sangat susah mengikuti dunia nyata" —
+padahal semua stok sudah ratusan ribu (cek live: kayu 13.648/740,
+batu 21.337/630, emas 2.096/210, besi 2.522/265, pangan 632.260/850,
+kulit 12.265/425).
+
+Temuan akar (bukan sekadar "angka kurang kecil"):
+
+- Ledger kumpul harian (`kumpul_hari`/`kumpul_harian`) TIDAK PERNAH
+  tersimpan di bulkWrite `advanceWorld` — jadi cap harian reset tiap
+  poll (3 detik) dan tiap poll memberi jatah penuh lagi. Itulah yang
+  dulu menumpuk stok sampai ratusan ribu walau clamp gudang sudah ada.
+  Perbaikan: ledger WAJIB ikut `$set` bulkWrite (tes penjaga sumber).
+- Clamp gudang sendiri benar (tidak ada jalur tambah yang lolos —
+  semua lewat `tambahStokClamp` atau route yang ikut clamp), jadi
+  gunung stok yang ada sekarang adalah WARISAN pra-clamp, bukan
+  pertumbuhan baru. Tapi tanpa pembusukan, gunung itu tidak akan
+  habis dimakan warga (27 warga makan ~1 pangan per makan).
+
+Aturan baru (cap harian 3/2 dan aturan lapar/makan TIDAK berubah):
+
+- Roll biasa (pangan/kayu/batu/kulit): 0 = 45%, 1 = 35%, 2 = 15%,
+  3 = 5% (rata-rata 0,8/hari, dulu 1,7). Hari tanpa hasil itu NORMAL.
+- Besi: biasa 0 = 80%, 1 = 17%, 2 = 3% (rata-rata 0,23, dulu 0,55);
+  berbakat 0 = 70%, 1 = 25%, 2 = 5% (rata-rata 0,35, dulu 0,75).
+- Emas: 0 = 75%, 1 = 20%, 2 = 5% (rata-rata 0,30).
+- Keunggulan (bakat/perkakas) tetap hanya menggeser peluang di
+  dalam cap untuk sumber biasa; besi/emas tidak dapat bump.
+- Pembusukan tiap ganti hari game, hanya untuk kelebihan di atas
+  kapasitas: pangan 50%/hari (tanpa kulkas, di zaman batu makanan
+  terbuka cepat busuk), kayu/batu/kulit 10%/hari (melapuk),
+  emas/besi 0% (awet). Yang muat di dalam kapasitas aman. Kabar
+  hanya bila pangan busuk >= 100 supaya tidak membanjiri kabar.
+- Efek ke gunung warisan: pangan 632 ribu dengan busuk 50%/hari
+  susut ke sekitar kapasitas dalam ~3 minggu game; kayu/batu/kulit
+  menyusul lebih pelan. Setelah itu ekonomi berjalan pada angka
+  baru yang jauh lebih kecil — dan itulah yang user minta.

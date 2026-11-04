@@ -1,5 +1,43 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 16:45 WIB — Kelangkaan realistis: kumpul sangat susah + pembusukan stok (perintah user)
+
+Keluhan user 16:14 WIB: makanan 400 ribu jam 10 jadi 600 ribu,
+"terlalu gampang nyarinya", minta dibuat sangat susah mengikuti
+dunia nyata — padahal semua stok sudah ratusan ribu. Cek live
+16:18 WIB membenarkan: kayu 13.648/740, batu 21.337/630, emas
+2.096/210, besi 2.522/265, pangan 632.260/850, kulit 12.265/425.
+
+Temuan akar: ledger kumpul harian (`kumpul_hari`/`kumpul_harian`)
+TIDAK PERNAH tersimpan di bulkWrite `advanceWorld`, jadi cap harian
+reset tiap poll (3 detik) dan tiap poll memberi jatah penuh lagi —
+itulah yang dulu menumpuk stok sampai ratusan ribu walau clamp
+gudang sudah ada. Semua jalur tambah sudah diperiksa: tidak ada
+yang lolos clamp, jadi gunung stok sekarang adalah warisan
+pra-clamp, bukan pertumbuhan baru — tapi tanpa pembusukan ia tidak
+akan habis dimakan 27 warga.
+
+- `src/lib/batu/sim.ts`: roll baru — biasa 0/1/2/3 = 45/35/15/5%
+  (rata-rata 0,8, dulu 1,7; hari tanpa hasil kini normal); besi
+  biasa 80/17/3% (rata-rata 0,23) dan berbakat 70/25/5% (0,35);
+  emas 75/20/5% (0,30). Bump bakat hanya untuk sumber biasa, tetap
+  di dalam cap. Fungsi baru `terapkanPembusukan`: tiap ganti hari
+  game, kelebihan di atas kapasitas susut — pangan 50%/hari,
+  kayu/batu/kulit 10%/hari, emas/besi 0% — plus kabar bila pangan
+  busuk >= 100. BulkWrite kini menyimpan `kumpul_hari` +
+  `kumpul_harian` (perbaikan akar). Cap harian 3/2 dan aturan
+  lapar/makan tidak diubah.
+- `src/lib/version.ts`: BUILD_ID r22 -> r23.
+- Tes: 12 penjaga baru (distribusi roll baru + hari-nol, pembusukan
+  per sumber + stok dalam kapasitas aman, bulkWrite menyimpan ledger,
+  advanceWorld memanggil pembusukan). Hasil: 7737 lolos / 656 gagal
+  — himpunan gagal IDENTIK dengan baseline (stash comparison), nol
+  regresi.
+- Observasi: menu live 16:14 WIB (tangkapan layar user) normal,
+  desa hidup, panel "Kampung menginginkan" menampilkan ujung tangga
+  (Tugu Leluhur Agung menanti). Verifikasi pasca-deploy menyusul
+  di entri berikut.
+
 ## 2026-11-04 14:29 WIB — Papan Warga satu layar di kartu menu (Ide 18)
 
 Satu entri baru "👥 Papan Warga" di kartu menu (☰) yang membuka daftar

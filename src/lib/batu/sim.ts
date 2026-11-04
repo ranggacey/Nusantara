@@ -307,18 +307,20 @@ export function jumlahKumpul(statFokus: number): number {
   return 1;
 }
 
-// ATURAN KUMPUL HARIAN (spesifikasi user 2026-11-03, DESAIN-EKONOMI.md):
-// pangan/kayu/batu/kulit: roll 1-3 (50/30/20), cap 3/hari/orang.
-// besi/emas: roll langka 0-2, cap 2/hari/orang. Pengali lama (STR,
-// perkakas, bakat) TIDAK lagi menambah jumlah — keunggulan hanya
-// menggeser peluang di dalam cap, supaya stok tidak meluber.
+// ATURAN KUMPUL HARIAN (spesifikasi user 2026-11-03, DESAIN-EKONOMI.md,
+// DIAMENDEMEN 2026-11-04 atas perintah user "sangat susah, mengikuti
+// dunia nyata": hasil boleh NOL untuk semua sumber — di dunia nyata
+// meramu, menebang, dan menambang sering pulang dengan tangan kosong.
+// Cap harian TETAP: 3 biasa, 2 langka. Pengali lama (STR, perkakas,
+// bakat) TIDAK lagi menambah jumlah — keunggulan hanya menggeser
+// peluang di dalam cap, supaya stok tidak meluber.
 export const CAP_KUMPUL_HARIAN_BIASA = 3;
 export const CAP_KUMPUL_HARIAN_LANGKA = 2;
 
 function peluangKumpul(resource: string, berbakat: boolean): number[] {
-  if (resource === "besi") return berbakat ? [0.4, 0.45, 0.15] : [0.55, 0.35, 0.1];
-  if (resource === "emas") return [0.45, 0.4, 0.15];
-  return [0.5, 0.3, 0.2];
+  if (resource === "besi") return berbakat ? [0.7, 0.25, 0.05] : [0.8, 0.17, 0.03];
+  if (resource === "emas") return [0.75, 0.2, 0.05];
+  return [0.45, 0.35, 0.15, 0.05];
 }
 
 export function rollHasilKumpul(resource: string, w: Warga): number {
@@ -326,15 +328,53 @@ export function rollHasilKumpul(resource: string, w: Warga): number {
     bonusJumlahBakat(w.bakat) > 0 || levelPerkakas(w, perkakasPeran(w.peran)) >= 1;
   const p = peluangKumpul(resource, berbakat);
   const r = Math.random();
-  if (resource === "besi" || resource === "emas") {
-    if (r < p[0]) return 0;
-    if (r < p[0] + p[1]) return 1;
-    return 2;
+  let hasil = p.length - 1;
+  let akum = 0;
+  for (let i = 0; i < p.length; i++) {
+    akum += p[i];
+    if (r < akum) {
+      hasil = i;
+      break;
+    }
   }
-  let hasil = r < p[0] ? 1 : r < p[0] + p[1] ? 2 : 3;
-  // Keunggulan hanya menggeser peluang di dalam cap 3.
-  if (berbakat && hasil < 3 && Math.random() < 0.5) hasil += 1;
+  // Keunggulan hanya menggeser peluang di dalam cap (sumber biasa saja;
+  // besi/emas sudah punya jalurnya sendiri lewat peluangKumpul).
+  if (resource !== "besi" && resource !== "emas" && berbakat && hasil < 3 && Math.random() < 0.5) hasil += 1;
   return hasil;
+}
+
+// PEMBUSUKAN (2026-11-04, permintaan user: kelangkaan realistis).
+// Stok di ATAS kapasitas gudang tidak terlindungi: pangan membusuk
+// cepat (50% dari kelebihan per hari game), kayu/batu/kulit melapuk
+// pelan (10%/hari), emas/besi awet (0%). Yang muat di dalam kapasitas
+// aman. Mengembalikan jumlah yang busuk per sumber. Tanpa ini, gunung
+// stok warisan (ratusan ribu) tidak akan pernah habis dimakan warga.
+const LAJU_BUSUK: Record<string, number> = {
+  pangan: 0.5,
+  kayu: 0.1,
+  batu: 0.1,
+  kulit: 0.1,
+  emas: 0,
+  besi: 0,
+};
+
+export function terapkanPembusukan(ctx: SimCtx): Record<string, number> {
+  const cap = (ctx.kapasitasMaks ?? {}) as Record<string, number>;
+  const stok = ctx.stok as unknown as Record<string, number>;
+  const busuk: Record<string, number> = {};
+  for (const [res, laju] of Object.entries(LAJU_BUSUK)) {
+    if (!laju) continue;
+    const current = stok[res] ?? 0;
+    const limit = cap[res] ?? current;
+    if (current > limit) {
+      const hilang = Math.floor((current - limit) * laju);
+      if (hilang > 0) {
+        stok[res] = current - hilang;
+        busuk[res] = hilang;
+      }
+    }
+  }
+  return busuk;
 }
 
 export function capHarianUntuk(resource: string): number {
@@ -2862,11 +2902,27 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     ctx.daging = sisaDaging;
     dagingDocs = sisaDaging;
   }
+  let hariBusukTerakhir = Math.floor(dunia.sim_jam / 24);
   for (let i = 0; i < tertinggal; i++) {
     const jam = dunia.sim_jam + i + 1;
     const hari = Math.floor(jam / 24);
     ctx.jam = jam;
     ctx.hari = hari;
+    // Pergantian hari: kelebihan stok di atas kapasitas membusuk/melapuk
+    // (terapkanPembusukan). Kabar hanya bila pangan busuk >= 100, supaya
+    // tidak membanjiri kabar saat susutnya kecil.
+    if (hari !== hariBusukTerakhir) {
+      hariBusukTerakhir = hari;
+      const busuk = terapkanPembusukan(ctx);
+      if ((busuk.pangan ?? 0) >= 100) {
+        ctx.kabar.push({
+          jenis: "kumpul",
+          teks: `Sebagian pangan membusuk karena melebihi kapasitas lumbung (${busuk.pangan} busuk).`,
+          hari,
+          dibuat_pada: new Date(),
+        });
+      }
+    }
     ctx.cuaca = cuacaGame(hari);
     // Hunian DINAMIS tiap jam (tidur komunal): warga tanpa hunian — atau
     // huniannya hilang — langsung mendapat tempat begitu ada gubuk kosong
@@ -3209,6 +3265,12 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
               daging_target: w.daging_target ?? null,
               membawa_daging: w.membawa_daging ?? null,
               hunian: w.hunian,
+              // PERBAIKAN AKAR 2026-11-04: ledger kumpul harian WAJIB
+              // tersimpan, kalau tidak cap harian reset tiap poll (3 detik)
+              // dan tiap poll memberi jatah penuh lagi — itulah yang dulu
+              // menumpuk stok sampai ratusan ribu walau ada clamp gudang.
+              kumpul_hari: w.kumpul_hari,
+              kumpul_harian: w.kumpul_harian ?? {},
             },
           },
         },
