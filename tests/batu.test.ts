@@ -1,6 +1,6 @@
 // Test logika zaman batu (tsx). Jalankan: npx tsx tests/batu.test.ts
 import { PERAN, nodeHasil, labelNode, bobotFit, pengaliFit, perkakasPeran, RESEP_PERKAKAS, type NodeKind } from "../src/lib/batu/peran";
-import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, kebutuhanKampungBerikutnya } from "../src/lib/batu/sumberdaya";
+import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya } from "../src/lib/batu/sumberdaya";
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk } from "../src/lib/batu/dunia";
@@ -2135,6 +2135,30 @@ function wargaFigo(over: Partial<Warga>): Warga {
   for (const hidup of [".hud-res-chip", ".hud-res-icon", ".hud-res-num", ".hud-full-dot", ".menu-fab", ".menu-card"]) {
     ok(cssSrcKb.includes(hidup), `css-bersih: ${hidup} tetap ada`);
   }
+}
+
+// Satu aksi pertama "Mulai dari sini" (2026-11-04, Ide 12): turunan
+// display-only dari kebutuhan — populasi kurang -> Tambah karakter
+// (satu-satunya kekurangan yang bisa diatasi pemain langsung);
+// selain itu -> Musyawarah (bangunan diputuskan NPC); selesai -> null.
+{
+  const aPop = aksiPertamaBerikutnya(kebutuhanKampungBerikutnya(5, ["gubuk", "api_unggun"], false));
+  ok(aPop !== null && aPop.aksi === "tambah" && aPop.tombol === "Tambah karakter", "mulai: populasi kurang -> Tambah karakter");
+  const aBangun = aksiPertamaBerikutnya(kebutuhanKampungBerikutnya(0, [], false));
+  ok(aBangun !== null && aBangun.aksi === "musyawarah" && aBangun.tombol === "Musyawarah", "mulai: kampung kosong (kurang bangunan) -> Musyawarah, bukan tombol bangun");
+  const aCampur = aksiPertamaBerikutnya(kebutuhanKampungBerikutnya(8, ["gubuk", "api_unggun", "lumbung"], false));
+  ok(aCampur !== null && aCampur.aksi === "tambah", "mulai: kurang bengkel + populasi didahulukan populasi (Tambah karakter)");
+  const aTambang = aksiPertamaBerikutnya(kebutuhanKampungBerikutnya(20, ["gubuk", "api_unggun", "lumbung", "bengkel_kayu", "balai", "dapur_umum", "paviliun_makan"], false));
+  ok(aTambang !== null && aTambang.aksi === "musyawarah", "mulai: kurang penambang saja -> Musyawarah");
+  const aSelesai = aksiPertamaBerikutnya(kebutuhanKampungBerikutnya(20, ["gubuk", "api_unggun", "lumbung", "bengkel_kayu", "balai", "dapur_umum", "paviliun_makan"], true));
+  ok(aSelesai === null, "mulai: ujung tangga -> baris disembunyikan");
+  // Baris terpasang di kartu menu + CSS ada + aksi Musyawarah menutup
+  // menu dulu (pola yang sama dengan tombol Musyawarah di daftar).
+  const pageSrcMulai = readFileSync("src/app/page.tsx", "utf8");
+  ok(pageSrcMulai.includes("aksiPertamaBerikutnya") && pageSrcMulai.includes("menu-mulai") && pageSrcMulai.includes("Mulai dari sini"), "mulai: baris terpasang di kartu menu page");
+  ok(pageSrcMulai.includes("setShowMusyawarah(true)") && pageSrcMulai.includes("setMenuOpen(false)"), "mulai: aksi Musyawarah menutup menu dulu");
+  const cssSrcMulai = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcMulai.includes(".menu-mulai") && cssSrcMulai.includes(".menu-mulai-label") && cssSrcMulai.includes(".menu-mulai-teks"), "mulai: CSS baris ada");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

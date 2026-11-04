@@ -327,6 +327,30 @@ canvas.game-canvas {
   line-height: 1.5;
   opacity: 0.9;
 }
+.menu-mulai {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(134, 239, 172, 0.45);
+  background: rgba(134, 239, 172, 0.10);
+  color: inherit;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.menu-mulai-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+.menu-mulai-teks {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
 .menu-list {
   display: flex;
   flex-direction: column;

@@ -163,6 +163,42 @@ export function kebutuhanKampungBerikutnya(
   return { selesai: true, tingkat: "Zaman besi & monumen", target: "Tugu Leluhur Agung", kurang: [] };
 }
 
+// Satu aksi pertama "Mulai dari sini" (Ide 12, 2026-11-04) — turunan
+// display-only dari kebutuhanKampungBerikutnya. ADAPTASI JUJUR dari
+// spesifikasi awal: pemain di game ini adalah PENGAMAT (bangunan hanya
+// diputuskan + diantrekan NPC lewat musyawarah, lihat page.tsx), jadi
+// tidak ada tombol "bangun Gubuk" yang bisa ditunjuk. Yang bisa
+// dilakukan pemain sungguhan hanya dua: (a) kalau populasi yang
+// kurang, tambah warga lewat tombol ＋ di kanan-bawah layar (di luar
+// kartu menu, jadi ketukan baris ini cukup menutup menu supaya tombol
+// itu kelihatan); (b) kalau bukan populasi, buka Musyawarah — forum
+// tempat arah kampung dan bangunan berikutnya diputuskan. Selesai
+// (ujung tangga) -> null, baris disembunyikan. Populasi didahulukan
+// karena itu satu-satunya kekurangan yang bisa diatasi pemain langsung.
+// Kekurangan bangunan/penambang saja -> Musyawarah.
+export interface AksiPertama {
+  tombol: string;
+  teks: string;
+  aksi: "musyawarah" | "tambah";
+}
+
+export function aksiPertamaBerikutnya(kb: KebutuhanKampung): AksiPertama | null {
+  if (kb.selesai) return null;
+  const kurangPop = kb.kurang.find((k) => k.startsWith("populasi"));
+  if (kurangPop) {
+    return {
+      tombol: "Tambah karakter",
+      teks: `Tambah warga dulu — masih kurang ${kurangPop}. Tombolnya ＋ di kanan-bawah layar.`,
+      aksi: "tambah",
+    };
+  }
+  return {
+    tombol: "Musyawarah",
+    teks: "Arah kampung dan bangunan berikutnya diputuskan tetua kampung di forum ini.",
+    aksi: "musyawarah",
+  };
+}
+
 // Kekurangan stok untuk satu biaya: {resource: jumlah_kurang}.
 export function kurangDariBiaya(stok: Partial<Record<ResourceId, number>>, biaya: Partial<Record<ResourceId, number>>): Partial<Record<ResourceId, number>> {
   const kurang: Partial<Record<ResourceId, number>> = {};

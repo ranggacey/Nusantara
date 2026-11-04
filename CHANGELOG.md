@@ -1,5 +1,77 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 08:29 WIB — Satu aksi pertama "Mulai dari sini" di kartu menu (Ide 12, adaptasi jujur)
+
+Baris ketuk "▶ Mulai dari sini" di kartu menu (☰), di bawah
+panel "Kampung menginginkan", menunjuk ke SATU langkah
+berikutnya yang sungguh bisa dilakukan pemain.
+
+- `src/lib/batu/sumberdaya.ts`: fungsi murni baru
+  `aksiPertamaBerikutnya(kb)` — populasi kurang -> {tombol
+  "Tambah karakter", aksi "tambah"}; selain itu -> {tombol
+  "Musyawarah", aksi "musyawarah"}; ujung tangga -> null
+  (baris hilang). Populasi didahulukan karena itu satu-satunya
+  kekurangan yang bisa diatasi pemain langsung.
+- `src/app/page.tsx`: baris jadi tombol — aksi Musyawarah
+  menutup menu dulu baru membuka panel Musyawarah (pola yang
+  sama dengan tombol Musyawarah di daftar); aksi Tambah
+  karakter cukup menutup menu supaya tombol ＋ di kanan-bawah
+  kelihatan. `src/app/globals.css`: gaya `.menu-mulai`
+  (bingkai hijau temaram, selaras kartu menu).
+- ADAPTASI dari spesifikasi Ide 12: contoh awal "Mulai: Tata
+  Kota — bangun Gubuk pertama" TIDAK dibangun, karena di game
+  ini pemain adalah pengamat — bangunan hanya diputuskan +
+  diantrekan NPC lewat musyawarah (lihat panel bangunan
+  "Otonomi Kampung") dan tidak ada tombol bangun apa pun.
+  Menunjuk Tata Kota sebagai "bangun" akan jadi janji palsu;
+  baris ini menunjuk ke langkah yang benar-benar bisa dilakukan.
+- Tes: 8 baru (populasi -> tambah; kampung kosong -> musyawarah;
+  kurang bengkel + populasi -> tambah didahulukan; kurang
+  penambang saja -> musyawarah; ujung tangga -> null; penjaga
+  statis baris + CSS + pola tutup-menu-dulu). Total: 7706 lolos
+  / 656 gagal — baseline 7698/656, jadi +8 lolos, nol regresi
+  baru (656 gagal = baseline lama yang sudah merah sebelum
+  perubahan ini). Build Next.js hijau.
+- Catatan kejujuran: baris ini belum terverifikasi visual di
+  live (menu memang terbuka saat observasi, tapi baris barunya
+  baru ada setelah deploy ini — verifikasi visualnya jadi tugas
+  observasi run berikutnya, bukan diklaim di sini).
+
+### Observasi live (browser, hanya melihat, 08:49-09:00 WIB)
+- Muat pertama: layar "Memuat peta 3D…" dengan langit cerah,
+  desa tampil dalam <30 detik (lebih cepat dari variasi 1-2
+  menit di run 04:29/06:29 — dicatat sebagai variasi sesi/cache,
+  bukan klaim perbaikan).
+- Desa hidup: jam game berjalan (14.28 -> 16.59 selama observasi),
+  dialog warga berganti ("Makan bersama!", "Aku tidak setuju!
+  Rombongan besok harus ke hutan barat, bukan ke sungai."),
+  warga + hewan terlihat (Rusa, Ayam Hutan, Serigala, Kelinci,
+  Beruang).
+- PERTAMA KALI TERVERIFIKASI VISUAL: tombol ☰ berhasil dibuka
+  (ketukan pointer; klik standar sempat "page_busy" = batas alat
+  browser, bukan bug situs) dan panel "🎯 Kampung menginginkan"
+  TERLIHAT di dalam kartu menu — isinya "Kampung sudah sampai
+  ujung tangga — Tugu Leluhur Agung menanti sebagai bukti
+  kampung besar." Jadi panel Ide 6 resmi live-terlihat, menutup
+  catatan "belum terverifikasi visual" dari run 06:29. Menu
+  ditutup kembali; tidak ada area blank/error menetap, tidak ada
+  tombol/panel terpotong atau tumpang tindih.
+
+### Riset + backlog (brief research/2026-11-04-0829.md)
+- Sudut: AUDIO (pertama kali dipakai; rotasi dari UX 06:29).
+  Sumber: devlog The Laresian Order (ambien dua lapis + empat
+  saluran volume), Homestead (trek per suasana + slider tersimpan),
+  panduan ambien (stochastic layering lawan pengulangan yang
+  ketahuan), kebijakan autoplay browser (AudioContext suspended
+  sampai gestur pertama; resume di dalam handler gestur).
+- Ide 15 (lapisan ambien siang/malam/cuaca, lazy-load, mulai
+  setelah gestur pertama) dan Ide 16 (slider volume Efek/Ambien
+  terpisah) masuk IDE-FITUR.md. Tidak direkomendasikan: ambien
+  generate AI on-device, autoplay saat load, musik panjang di
+  paket awal.
+- Irisan run ini dari backlog IDE-FITUR (Ide 12), bukan dari
+  brief audio ini — brief audio jadi antrean berikutnya.
+
 ## 2026-11-04 06:29 WIB — Deploy tertunda Ide 6 + bersih-bersih CSS (KOREKSI entri 04:29)
 
 KOREKSI CATATAN: entri 04:29 menulis "deploy Ide 6 yang tertunda",

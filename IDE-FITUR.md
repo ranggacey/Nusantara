@@ -136,6 +136,20 @@ itu saat berdekatan. Display-only. Dampak sedang, usaha
 kecil-sedang.
 
 ## Ide 12 — Satu aksi pertama "Mulai dari sini" di kartu menu (dari riset 2026-11-04 06:29 WIB, sudut UX)
+~~DIBANGUN 2026-11-04 08:29 WIB, DENGAN ADAPTASI JUJUR~~ — baris
+ketuk "▶ Mulai dari sini" di kartu menu, di bawah panel
+"Kampung menginginkan", dari fungsi murni baru
+`aksiPertamaBerikutnya` di `sumberdaya.ts` + 8 tes. ADAPTASI:
+spesifikasi awal mencontohkan "Mulai: Tata Kota — bangun Gubuk
+pertama", tapi di game ini pemain adalah PENGAMAT (bangunan
+hanya diputuskan + diantrekan NPC lewat musyawarah; tidak ada
+tombol bangun), jadi menunjuk Tata Kota sebagai "bangun" adalah
+janji palsu. Yang dibangun: populasi kurang -> baris menutup
+menu supaya tombol ＋ Tambah karakter kelihatan (satu-satunya
+kekurangan yang bisa diatasi pemain langsung, didahulukan);
+selain itu -> baris membuka Musyawarah (forum tempat arah
+kampung diputuskan); ujung tangga -> baris hilang. Display-only
+di luar itu, tanpa ubah sim.
 
 Sumber: Morphic Studio (tutorial sepotong kecil saat relevan) +
 DEV Community (satu aksi pertama yang bermakna). Masalah: pemain
@@ -173,6 +187,37 @@ usaha kecil. Tidak direkomendasikan dari riset ini: tur
 interaktif multi-langkah (rapuh di kanvas 3D, belum ada bukti
 pemain tersesat di langkah spesifik) dan memperkecil teks HUD
 (melawan aturan keterbacaan HP).
+
+## Ide 15 — Lapisan ambien kampung siang/malam/cuaca (dari riset 2026-11-04 08:29 WIB, sudut audio)
+
+Sumber: devlog The Laresian Order (ambien dua lapis: loop tempat
++ bunyi acak jarang; crossfade antar tempat; empat saluran
+volume), Homestead (trek per suasana + slider Master/Musik/Alam/
+Efek yang tersimpan), panduan ambien (lapis loop beda panjang
+supaya pola tidak ketahuan; ambien lebih pelan dari bunyi aksi),
+kebijakan autoplay browser (AudioContext suspended sampai gestur
+pertama; resume harus di dalam handler gestur). Masalah: di luar
+SFX pendek, kampung itu bisu — malam terasa sama dengan siang,
+hujan tidak terdengar, padahal fase dan cuaca sudah ada di sim.
+Cara kerja: satu loop ambien yang berganti lembut menurut fase
+(siang: burung + angin; malam: jangkrik + api jauh; hujan:
+gemerisik) + bunyi acak jarang, mengikuti toggle Suara yang
+sudah ada, mulai hanya setelah gestur pertama pemain,
+lazy-load (bukan paket awal). Dampak sedang-tinggi, usaha
+sedang; bagian tersulit adalah aset loop berlisensi yang ringan.
+Tidak direkomendasikan dari riset ini: ambien generate AI
+on-device (berat, boros baterai) dan autoplay saat load (diblokir
+browser).
+
+## Ide 16 — Slider volume terpisah: Efek / Ambien (dari riset 2026-11-04 08:29 WIB, sudut audio)
+
+Sumber: Homestead (empat slider tersimpan) + Laresian Order
+(empat saluran). Masalah: toggle Suara sekarang all-or-nothing
+— pemain yang risih SFX tapi mau ambien (atau sebaliknya) tidak
+punya pilihan. Cara kerja: di panel Pengaturan, pecah jadi dua
+switch/slider (Efek, Ambien) + simpan di localStorage seperti
+pilihan label karakter; default mengikuti toggle lama. Dampak
+sedang, usaha kecil.
 
 ## Ide-ide berikutnya
 

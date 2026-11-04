@@ -35,7 +35,7 @@ import { ensureAudio, setSuaraAktif } from "@/lib/audio";
 const Map3D = dynamic(() => import("@/components/Map3D"), { ssr: false });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya } from "@/lib/batu/sumberdaya";
 
 type J = Record<string, any>;
 
@@ -535,17 +535,40 @@ export default function Page() {
                 (map?.placements ?? []).map((p: J) => String(p.kind)),
                 (map?.warga ?? []).some((w: J) => String(w.peran) === "penambang")
               );
+              const aksi = aksiPertamaBerikutnya(kb);
               return (
-                <div className="menu-kebutuhan">
-                  <div className="menu-kebutuhan-title">🎯 Kampung menginginkan</div>
-                  {kb.selesai ? (
-                    <div className="menu-kebutuhan-isi">Kampung sudah sampai ujung tangga — {kb.target} menanti sebagai bukti kampung besar.</div>
-                  ) : (
-                    <div className="menu-kebutuhan-isi">
-                      <b>{kb.tingkat}: {kb.target}.</b> Masih kurang: {kb.kurang.join(", ")}.
-                    </div>
+                <>
+                  <div className="menu-kebutuhan">
+                    <div className="menu-kebutuhan-title">🎯 Kampung menginginkan</div>
+                    {kb.selesai ? (
+                      <div className="menu-kebutuhan-isi">Kampung sudah sampai ujung tangga — {kb.target} menanti sebagai bukti kampung besar.</div>
+                    ) : (
+                      <div className="menu-kebutuhan-isi">
+                        <b>{kb.tingkat}: {kb.target}.</b> Masih kurang: {kb.kurang.join(", ")}.
+                      </div>
+                    )}
+                  </div>
+                  {/* Satu aksi pertama "Mulai dari sini" (2026-11-04,
+                      Ide 12): baris ketuk yang menunjuk ke SATU
+                      langkah berikutnya yang sungguh bisa dilakukan
+                      pemain — Musyawarah (bangunan diputuskan NPC)
+                      atau menutup menu supaya tombol ＋ Tambah
+                      karakter kelihatan (populasi kurang). Hilang
+                      saat kampung sudah di ujung tangga. */}
+                  {aksi && (
+                    <button
+                      className="menu-mulai"
+                      title={aksi.tombol}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        if (aksi.aksi === "musyawarah") setShowMusyawarah(true);
+                      }}
+                    >
+                      <span className="menu-mulai-label">▶ Mulai dari sini: {aksi.tombol}</span>
+                      <span className="menu-mulai-teks">{aksi.teks}</span>
+                    </button>
                   )}
-                </div>
+                </>
               );
             })()}
             <div className="menu-list">
