@@ -37,6 +37,38 @@ berikutnya yang sungguh bisa dilakukan pemain.
   baru ada setelah deploy ini — verifikasi visualnya jadi tugas
   observasi run berikutnya, bukan diklaim di sini).
 
+### Verifikasi live lanjutan (09:17-09:28 WIB, setelah deploy)
+- Pengecekan menu kedua (09:17-09:26): homepage + desa tampil
+  normal, kartu menu terbuka, tapi baris "Mulai dari sini"
+  TIDAK ADA di bawah panel "Kampung menginginkan" — baris
+  pertama di bawah panel itu adalah Resto. Ini BUKAN bukti
+  deploy gagal: desa live sudah di ujung tangga (panel
+  "Kampung menginginkan" sendiri berbunyi "sampai ujung
+  tangga", dan /api/map mengonfirmasi syaratnya: populasi 27,
+  paviliun_makan + balai + dapur_umum + bengkel berdiri), dan
+  untuk keadaan selesai fungsi `aksiPertamaBerikutnya` SENGAJA
+  mengembalikan null sehingga baris disembunyikan. Baris ini
+  hanya akan tampil di kampung yang belum sampai ujung tangga
+  (mis. kampung baru) — dan itu tidak bisa dites dari sini
+  tanpa bermain, yang dilarang observasi. Jadi status baris:
+  kode live (deploy dari commit ini READY), perilaku
+  selesai-tertutup terkonfirmasi lewat data API, penampakan
+  visual barisnya sendiri tetap belum terverifikasi dan
+  menunggu kampung yang belum selesai.
+- API live terverifikasi ISI-nya (09:27-09:28, bukan hanya
+  status): /api/world ok (Suka Maju, populasi 27, H-249,
+  16.56 Sore, Berawan); /api/map ok (34 placement, 27 warga
+  cocok dengan populasi); /api/bangunan ok (katalog 26 jenis +
+  antrean 13 bangunan, semua selesai 100%). Tidak ada regresi
+  API setelah deploy ini.
+- Celah checklist yang dicatat untuk run berikutnya: string
+  BUILD_ID di `src/lib/version.ts` TIDAK dinaikkan run ini
+  (tetap r19 seperti sebelum deploy), jadi pil "Versi baru"
+  tidak akan membedakan rilis ini dari sebelumnya di tab lama
+  — tab baru tetap mendapat bundle baru, tapi run berikutnya
+  wajib menaikkan BUILD_ID di setiap rilis sesuai komentar di
+  file itu.
+
 ### Observasi live (browser, hanya melihat, 08:49-09:00 WIB)
 - Muat pertama: layar "Memuat peta 3D…" dengan langit cerah,
   desa tampil dalam <30 detik (lebih cepat dari variasi 1-2
