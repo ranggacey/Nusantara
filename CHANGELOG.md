@@ -1,5 +1,35 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 17:16 WIB — Analog kiri ganti D-pad + tombol naik/turun + bisa disembunyikan (permintaan user)
+
+Umpan balik user atas D-pad r25/r26: "aneh, harusnya di sebelah
+kiri". D-pad dihapus total, diganti kontrol gaya game HP:
+
+- `src/components/Map3D.tsx`: klaster pojok KIRI-bawah peta (z 10).
+  Tongkat analog (dasar 120px, knop 52px, jejari gerak 34px):
+  seret ke 8 arah (maju/mundur/kiri/kanan + serong) untuk menggeser
+  kamera; arah dihitung dari kamera (kanan = sumbu X kamera di
+  bidang tanah, atas = arah pandang kamera di bidang tanah) jadi
+  selalu sesuai arah layar walau kamera di-orbit. Kecepatan ikut
+  besar defleksi (penuh = 20 unit/detik, zona mati 0.15); lepas =
+  knop kembali tengah + berhenti. Seret melepas kunci follow +
+  membatalkan animasi bingkai awal (sama seperti mulai menggeser);
+  hover mouse desktop tanpa tekan tidak menggerakkan knop.
+  Di atas analog: tombol ▲ naik dan ▼ turun untuk zoom kamera
+  (naik = menjauh/lihat lebih luas, turun = mendekat/lihat dekat;
+  tahan = zoom terus; TIDAK melepas follow supaya bisa zoom sambil
+  mengikuti warga). Paling atas klaster: tombol ✕ untuk
+  menyembunyikan seluruh kontrol; saat tersembunyi hanya tampil
+  tombol 🕹️ di pojok yang sama untuk memunculkan lagi. Geser jari
+  dan cubit/scroll tetap jalan seperti biasa.
+- `src/app/globals.css`: kelas .dpad-* dihapus, diganti .analog-*.
+- `src/lib/version.ts`: BUILD_ID r26 -> r27.
+- Tes: penjaga D-pad diganti penjaga analog (dasar + knop, tombol
+  naik/turun, sembunyikan/munculkan, zona mati, interval cleanup,
+  CSS baru, D-pad lama hilang) + 4 penjaga versi r26 -> r27.
+  Total: 7758 lolos / 656 gagal — baseline 656 gagal, nol regresi
+  baru. Build Next.js hijau.
+
 ## 2026-11-04 17:10 WIB — D-pad naik supaya tombol bawah tidak tertutup pil Tambah (perbaikan verifikasi r25)
 
 Verifikasi browser r25 menemukan: 4 tombol D-pad tampil + ketuk

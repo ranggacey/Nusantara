@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r26"'), "version: BUILD_ID r26 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r27"'), "version: BUILD_ID r27 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r26"'), "versi: BUILD_ID r26");
+  ok(ver.includes('"r27"'), "versi: BUILD_ID r27");
 }
 
 {
@@ -2210,7 +2210,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r26"'), "vis: BUILD_ID naik ke r26 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r27"'), "vis: BUILD_ID naik ke r27 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2255,33 +2255,36 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(cssSrcPapan.includes(".papan-warga-tutup"), "papan: CSS tombol Tutup ada");
 }
 
-// D-pad kamera (permintaan user 2026-11-04: "pergerakan kamera susah"):
-// penjaga statis — 4 tombol arah di dalam wrap peta (pojok kanan-bawah,
-// di atas kanvas tapi di bawah modal), arah dihitung dari kamera (kanan
-// = sumbu X kamera di bidang tanah, atas = arah pandang kamera di bidang
-// tanah), ketuk = 1 langkah, tahan = geser terus sampai lepas (termasuk
-// lepas di luar tombol via pointer capture), tekan melepas kunci follow
-// + membatalkan animasi bingkai awal, dan interval dibersihkan saat
-// unmount. Tombol 48px (≥44px, jangkauan jempol).
+// Analog kamera kiri (permintaan user 2026-11-04, ganti D-pad yang
+// "aneh"): penjaga statis — tongkat analog di dalam wrap peta (pojok
+// kiri-bawah, di atas kanvas tapi di bawah modal), geser vektor layar
+// 8 arah (kanan = sumbu X kamera di bidang tanah, atas = arah pandang
+// kamera di bidang tanah), seret = geser terus sesuai defleksi (penuh
+// = 20 unit/detik, zona mati 0.15), seret melepas kunci follow +
+// membatalkan animasi bingkai awal, tombol naik/turun di atas analog
+// untuk zoom (naik = menjauh, turun = mendekat, tahan = zoom terus),
+// klaster bisa disembunyikan (tombol 🕹️ memunculkan lagi), dan
+// interval dibersihkan saat unmount. Tombol 48px (≥44px, jempol).
 {
   const map3dSrc = readFileSync("src/components/Map3D.tsx", "utf8");
   const wrapIdx = map3dSrc.indexOf('className="map3d-wrap"');
-  const dpadIdx = map3dSrc.indexOf("dpad-kamera");
-  ok(wrapIdx > 0 && dpadIdx > wrapIdx, "dpad: tombol arah di dalam wrap peta");
-  for (const arah of ["atas", "kiri", "kanan", "bawah"]) {
-    ok(map3dSrc.includes(`aria-label="Geser kamera ke ${arah}"`), `dpad: tombol ${arah} ada`);
-  }
-  ok(map3dSrc.includes("geserKamera") && map3dSrc.includes("onLepasKunciRef.current?.()"), "dpad: tekan melepas kunci follow");
-  ok(map3dSrc.includes("batalAnimasi()"), "dpad: tekan membatalkan animasi bingkai awal");
-  ok(map3dSrc.includes("setPointerCapture") && map3dSrc.includes("setInterval(() => geserKamera(arah, 1), 50)"), "dpad: tahan = geser terus + pointer capture");
-  ok(map3dSrc.includes("onPointerUp={berhentiGeser}") && map3dSrc.includes("onPointerCancel={berhentiGeser}"), "dpad: lepas = berhenti");
-  ok(map3dSrc.includes("if (panIntervalRef.current) clearInterval(panIntervalRef.current);"), "dpad: interval dibersihkan saat unmount");
-  const cssSrcDpad = readFileSync("src/app/globals.css", "utf8");
-  ok(cssSrcDpad.includes(".dpad-kamera") && cssSrcDpad.includes("position: absolute"), "dpad: CSS wadah absolute ada");
-  ok(cssSrcDpad.includes(".dpad-btn") && cssSrcDpad.includes("width: 48px"), "dpad: CSS tombol 48px ada");
-  // r26: D-pad di bottom 76px (bukan 12px) supaya tombol ▼ tidak
-  // tertutup pil ＋ Tambah karakter (fixed, bottom 24px, ~40px, z 35).
-  ok(cssSrcDpad.includes(".dpad-kamera") && cssSrcDpad.includes("bottom: 76px"), "dpad: wadah di atas tombol Tambah karakter (bottom 76px)");
+  const analogIdx = map3dSrc.indexOf("analog-kamera");
+  ok(wrapIdx > 0 && analogIdx > wrapIdx, "analog: klaster di dalam wrap peta");
+  ok(!map3dSrc.includes("dpad-kamera") && !map3dSrc.includes("dpad-btn"), "analog: D-pad lama sudah dihapus");
+  ok(map3dSrc.includes("analog-dasar") && map3dSrc.includes("analog-knop"), "analog: dasar + knop ada");
+  ok(map3dSrc.includes('aria-label="Kamera naik"') && map3dSrc.includes('aria-label="Kamera turun"'), "analog: tombol naik + turun ada");
+  ok(map3dSrc.includes("geserKameraVektor") && map3dSrc.includes("onLepasKunciRef.current?.()"), "analog: seret melepas kunci follow");
+  ok(map3dSrc.includes("batalAnimasi()"), "analog: seret/zoom membatalkan animasi bingkai awal");
+  ok(map3dSrc.includes("setPointerCapture") && map3dSrc.includes("mag > 0.15"), "analog: pointer capture + zona mati ada");
+  ok(map3dSrc.includes("onPointerUp={berhentiAnalog}") && map3dSrc.includes("onPointerCancel={berhentiAnalog}"), "analog: lepas = berhenti + knop kembali tengah");
+  ok(map3dSrc.includes("zoomKamera") && map3dSrc.includes("setInterval(() => zoomKamera(arah), 50)"), "analog: tahan tombol = zoom terus");
+  ok(map3dSrc.includes('aria-label="Sembunyikan kontrol kamera"') && map3dSrc.includes('aria-label="Tampilkan kontrol kamera"'), "analog: sembunyikan + munculkan ada");
+  ok(map3dSrc.includes("if (analogIntervalRef.current) clearInterval(analogIntervalRef.current);") && map3dSrc.includes("if (zoomIntervalRef.current) clearInterval(zoomIntervalRef.current);"), "analog: interval dibersihkan saat unmount");
+  const cssSrcAnalog = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcAnalog.includes(".analog-kamera") && cssSrcAnalog.includes("left: 12px"), "analog: CSS klaster kiri-bawah ada");
+  ok(cssSrcAnalog.includes(".analog-dasar") && cssSrcAnalog.includes("width: 120px"), "analog: CSS dasar 120px ada");
+  ok(cssSrcAnalog.includes(".analog-zoom-btn") && cssSrcAnalog.includes("width: 48px"), "analog: CSS tombol zoom 48px ada");
+  ok(!cssSrcAnalog.includes(".dpad-kamera"), "analog: CSS D-pad lama sudah dihapus");
 }
 
 // Fallback muat jujur untuk chunk 3D (Ide 7, irisan kecil): dynamic import
@@ -2304,7 +2307,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r26"'), "muat3d: BUILD_ID naik ke r26");
+  ok(verMuat.includes('BUILD_ID = "r27"'), "muat3d: BUILD_ID naik ke r27");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

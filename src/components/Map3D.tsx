@@ -18,7 +18,7 @@
 // Siang/malam: dari SISTEM (jam game server) — tidak ada setting pengguna.
 // Malam = gelap + bulan + bintang + cahaya api unggun (PointLight).
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { GUBUK_DINDING, GUBUK_ATAP, POHON_BATANG } from "@/lib/batu/skala";
@@ -1083,11 +1083,17 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
   onTapWargaRef.current = onTapWarga;
   const onLepasKunciRef = useRef(onLepasKunci);
   onLepasKunciRef.current = onLepasKunci;
-  // D-pad kamera (permintaan user 2026-11-04: "pergerakan kamera susah"):
-  // tombol arah di dalam wrap menggeser target kamera. Kamera + kontrol
+  // Analog kamera (permintaan user 2026-11-04, ganti D-pad): tongkat
+  // analog di dalam wrap menggeser target kamera. Kamera + kontrol
   // disimpan di ref saat dibuat di effect, supaya handler JSX bisa pakai.
   const panRef = useRef<{ kamera: any; kontrol: any; batalAnimasi: () => void } | null>(null);
-  const panIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const analogIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const zoomIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const analogRef = useRef<{ nx: number; ny: number }>({ nx: 0, ny: 0 });
+  const analogSeretRef = useRef(false);
+  const analogDasarRef = useRef<HTMLDivElement | null>(null);
+  const analogKnopRef = useRef<HTMLDivElement | null>(null);
+  const [analogTampil, setAnalogTampil] = useState(true);
   const onTapBangunanRef = useRef(onTapBangunan);
   onTapBangunanRef.current = onTapBangunan;
   const faseRef = useRef(gameFase);
@@ -1294,7 +1300,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     let framedOnce = false;
     let userTouched = false;
     let frameAnim: { t: number; fromT: THREE.Vector3; toT: THREE.Vector3; fromP: THREE.Vector3; toP: THREE.Vector3 } | null = null;
-    // D-pad: pegangan kamera + kontrol + pembatal animasi bingkai awal
+    // Analog: pegangan kamera + kontrol + pembatal animasi bingkai awal
     // (closure menangkap binding frameAnim, jadi batalAnimasi() yang
     // dipanggil belakangan tetap membatalkan animasi yang sedang jalan).
     panRef.current = { kamera: camera, kontrol: controls, batalAnimasi: () => { frameAnim = null; } };
@@ -2855,7 +2861,8 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     document.addEventListener("visibilitychange", onVis);
 
     return () => {
-      if (panIntervalRef.current) clearInterval(panIntervalRef.current);
+      if (analogIntervalRef.current) clearInterval(analogIntervalRef.current);
+      if (zoomIntervalRef.current) clearInterval(zoomIntervalRef.current);
       cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVis);
       ro.disconnect();
@@ -2879,16 +2886,15 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // D-pad kamera: geser target ke arah LAYAR (bukan arah dunia mentah).
-  // Kanan = sumbu X kamera di bidang tanah; atas = arah pandang kamera
-  // di bidang tanah. Target digeser saja — update() OrbitControls tiap
-  // frame menerjemahkan kamera ikut (sama seperti PAN bawaan). Tekan
-  // D-pad juga melepas kunci follow, sama seperti mulai menggeser.
-  const geserKamera = (arah: "kiri" | "kanan" | "atas" | "bawah", langkah: number) => {
+  // Analog kamera: geser target ke arah vektor LAYAR (nx = kanan,
+  // ny = atas-layar, masing-masing -1..1). Target digeser saja —
+  // update() OrbitControls tiap frame menerjemahkan kamera ikut (sama
+  // seperti PAN bawaan). Seret analog juga melepas kunci follow, sama
+  // seperti mulai menggeser.
+  const geserKameraVektor = (nx: number, ny: number, langkah: number) => {
     const p = panRef.current;
     if (!p) return;
     if (followRef.current) onLepasKunciRef.current?.();
-    p.batalAnimasi();
     const target = p.kontrol.target as { x: number; z: number };
     const px = p.kamera.position.x - target.x;
     const pz = p.kamera.position.z - target.z;
@@ -2902,49 +2908,118 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     // kanan layar = hadap × atas (0,1,0) = (-hz, hx) di bidang XZ.
     const kx = -hz;
     const kz = hx;
-    let dx = 0;
-    let dz = 0;
-    if (arah === "kanan") { dx = kx; dz = kz; }
-    else if (arah === "kiri") { dx = -kx; dz = -kz; }
-    else if (arah === "atas") { dx = hx; dz = hz; }
-    else { dx = -hx; dz = -hz; }
-    target.x += dx * langkah;
-    target.z += dz * langkah;
+    target.x += (kx * nx + hx * ny) * langkah;
+    target.z += (kz * nx + hz * ny) * langkah;
   };
-  // Tahan = geser terus (tiap 50 ms, 20 unit/detik); lepas = berhenti.
-  // Ketuk = 1 langkah (2 unit). Capture pointer supaya pointerup di
-  // luar tombol tetap menghentikan geseran.
-  const mulaiGeser = (arah: "kiri" | "kanan" | "atas" | "bawah") => (e: React.PointerEvent<HTMLButtonElement>) => {
+  // Jejari gerak knop (px): dasar 120 - knop 52, dibagi 2.
+  const MAX_ANALOG = 34;
+  const aturKnop = (dx: number, dy: number) => {
+    const el = analogKnopRef.current;
+    if (el) el.style.transform = `translate(${dx}px, ${dy}px)`;
+  };
+  const gerakAnalog = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Hanya saat diseret (pointerdown dulu) — hover mouse desktop
+    // tidak boleh menggerakkan knop.
+    if (!analogSeretRef.current) return;
+    const dasar = analogDasarRef.current;
+    if (!dasar) return;
+    const r = dasar.getBoundingClientRect();
+    let dx = e.clientX - (r.left + r.width / 2);
+    let dy = e.clientY - (r.top + r.height / 2);
+    const mag = Math.hypot(dx, dy);
+    if (mag > MAX_ANALOG) {
+      dx = (dx / mag) * MAX_ANALOG;
+      dy = (dy / mag) * MAX_ANALOG;
+    }
+    analogRef.current = { nx: dx / MAX_ANALOG, ny: -dy / MAX_ANALOG };
+    aturKnop(dx, dy);
+  };
+  const mulaiAnalog = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-    geserKamera(arah, 2);
-    if (panIntervalRef.current) clearInterval(panIntervalRef.current);
-    panIntervalRef.current = setInterval(() => geserKamera(arah, 1), 50);
+    analogSeretRef.current = true;
+    const p = panRef.current;
+    if (p) {
+      if (followRef.current) onLepasKunciRef.current?.();
+      p.batalAnimasi();
+    }
+    gerakAnalog(e);
+    if (analogIntervalRef.current) clearInterval(analogIntervalRef.current);
+    // Tiap 50 ms: geser sesuai arah + besar defleksi (penuh = 20 unit/detik).
+    analogIntervalRef.current = setInterval(() => {
+      const v = analogRef.current;
+      const mag = Math.hypot(v.nx, v.ny);
+      if (mag > 0.15) geserKameraVektor(v.nx, v.ny, mag * 1.0);
+    }, 50);
   };
-  const berhentiGeser = () => {
-    if (panIntervalRef.current) {
-      clearInterval(panIntervalRef.current);
-      panIntervalRef.current = null;
+  const berhentiAnalog = () => {
+    analogSeretRef.current = false;
+    if (analogIntervalRef.current) {
+      clearInterval(analogIntervalRef.current);
+      analogIntervalRef.current = null;
+    }
+    analogRef.current = { nx: 0, ny: 0 };
+    aturKnop(0, 0);
+  };
+  // Naik/turun kamera (zoom): geser posisi di sepanjang sumbu pandang.
+  // Naik = menjauh (lihat lebih luas), turun = mendekat (lihat dekat).
+  // update() OrbitControls menjepit jarak ke [minDistance, maxDistance].
+  // Zoom TIDAK melepas follow (target tetap mengikuti warga).
+  const zoomKamera = (arah: "naik" | "turun") => {
+    const p = panRef.current;
+    if (!p) return;
+    p.batalAnimasi();
+    const target = p.kontrol.target as { x: number; y: number; z: number };
+    const pos = p.kamera.position as { x: number; y: number; z: number };
+    let dx = pos.x - target.x;
+    let dy = pos.y - target.y;
+    let dz = pos.z - target.z;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist < 1e-6) return;
+    dx /= dist;
+    dy /= dist;
+    dz /= dist;
+    const langkah = Math.max(0.5, dist * 0.06);
+    const s = arah === "naik" ? langkah : -langkah;
+    pos.x += dx * s;
+    pos.y += dy * s;
+    pos.z += dz * s;
+  };
+  // Tahan = zoom terus; lepas = berhenti. Capture pointer supaya
+  // pointerup di luar tombol tetap menghentikan zoom.
+  const mulaiZoom = (arah: "naik" | "turun") => (e: React.PointerEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    zoomKamera(arah);
+    if (zoomIntervalRef.current) clearInterval(zoomIntervalRef.current);
+    zoomIntervalRef.current = setInterval(() => zoomKamera(arah), 50);
+  };
+  const berhentiZoom = () => {
+    if (zoomIntervalRef.current) {
+      clearInterval(zoomIntervalRef.current);
+      zoomIntervalRef.current = null;
     }
   };
 
   return (
     <div ref={wrapRef} className="map3d-wrap">
       <div ref={labelsRef} className="map3d-labels" />
-      {/* D-pad kamera (permintaan user 2026-11-04): tombol arah pojok
-          kanan-bawah peta — alternatif geser jari. z 10: di atas
-          kanvas + label (z 5), di bawah modal (z 50+). */}
-      <div className="dpad-kamera">
-        <span />
-        <button type="button" title="Geser kamera ke atas" aria-label="Geser kamera ke atas" className="dpad-btn" onPointerDown={mulaiGeser("atas")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>▲</button>
-        <span />
-        <button type="button" title="Geser kamera ke kiri" aria-label="Geser kamera ke kiri" className="dpad-btn" onPointerDown={mulaiGeser("kiri")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>◀</button>
-        <span className="dpad-tengah">●</span>
-        <button type="button" title="Geser kamera ke kanan" aria-label="Geser kamera ke kanan" className="dpad-btn" onPointerDown={mulaiGeser("kanan")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>▶</button>
-        <span />
-        <button type="button" title="Geser kamera ke bawah" aria-label="Geser kamera ke bawah" className="dpad-btn" onPointerDown={mulaiGeser("bawah")} onPointerUp={berhentiGeser} onPointerLeave={berhentiGeser} onPointerCancel={berhentiGeser} onContextMenu={(e) => e.preventDefault()}>▼</button>
-        <span />
-      </div>
+      {/* Analog kamera kiri (permintaan user 2026-11-04, ganti D-pad):
+          klaster pojok kiri-bawah peta, z 10 (di atas kanvas + label
+          z 5, di bawah modal z 50+). Sembunyikan -> tombol 🕹️ di
+          pojok yang sama untuk memunculkan lagi. */}
+      {analogTampil ? (
+        <div className="analog-kamera">
+          <button type="button" title="Sembunyikan kontrol kamera" aria-label="Sembunyikan kontrol kamera" className="analog-sembunyi" onClick={() => setAnalogTampil(false)}>✕</button>
+          <button type="button" title="Kamera naik (lihat lebih luas)" aria-label="Kamera naik" className="analog-zoom-btn" onPointerDown={mulaiZoom("naik")} onPointerUp={berhentiZoom} onPointerLeave={berhentiZoom} onPointerCancel={berhentiZoom} onContextMenu={(e) => e.preventDefault()}>▲</button>
+          <button type="button" title="Kamera turun (lihat lebih dekat)" aria-label="Kamera turun" className="analog-zoom-btn" onPointerDown={mulaiZoom("turun")} onPointerUp={berhentiZoom} onPointerLeave={berhentiZoom} onPointerCancel={berhentiZoom} onContextMenu={(e) => e.preventDefault()}>▼</button>
+          <div ref={analogDasarRef} className="analog-dasar" title="Analog kamera: seret ke 8 arah untuk menggeser peta" onPointerDown={mulaiAnalog} onPointerMove={gerakAnalog} onPointerUp={berhentiAnalog} onPointerLeave={berhentiAnalog} onPointerCancel={berhentiAnalog} onContextMenu={(e) => e.preventDefault()}>
+            <div ref={analogKnopRef} className="analog-knop" />
+          </div>
+        </div>
+      ) : (
+        <button type="button" title="Tampilkan kontrol kamera" aria-label="Tampilkan kontrol kamera" className="analog-muncul" onClick={() => setAnalogTampil(true)}>🕹️</button>
+      )}
       {!map && <div className="map3d-loading">Memuat peta 3D…</div>}
     </div>
   );
