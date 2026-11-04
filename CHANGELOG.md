@@ -27,6 +27,29 @@ satu baris posisi, tanpa memindah pil mana pun:
   popover sesaat itu. Penampakan visual perbaikan di live menjadi
   tugas verifikasi pasca-deploy, bukan klaim di sini.
 
+### Verifikasi pasca-deploy (18:45-18:47 WIB)
+- Vercel: deploy production READY dpl_27wekQ3ELs8cY5VHMTR88JoFFgQZ
+  dari commit 88378bb (auto-deploy dari main). /api/version = r29.
+- Homepage termuat (judul "Negara Emas — Zaman Batu", teks
+  "Memuat peta 3D…") + satu ikon termuat (/batu/pohon.png 64×64).
+- /api/world ok (isi, bukan hanya status): Suka Maju, populasi 6,
+  hari 286, 19.00 Sore, Cerah; stok kayu 1/40, batu 1/30, pangan
+  0/50, kulit 1/25, emas 1/10, besi 1/15 — konsisten dengan desa
+  baru + aturan susah r23/r28, bukan regresi (perubahan run ini
+  hanya CSS, tidak menyentuh sim sama sekali).
+- /api/map ok (grid + node pohon/semak/urat besi-emas) dan
+  /api/bangunan ok (katalog lengkap + antrean gubuk, kurang 29 kayu
+  / 9 kulit per gubuk). Selisih kecil yang dicatat, bukan diklaim:
+  bacaan /api/world menyebut 2 gubuk antre sementara bacaan
+  /api/bangunan sesaat sesudahnya menampilkan 1 entri antrean —
+  penyebabnya tidak terjelaskan dari bacaan saja (bisa jadi antrean
+  berubah antar bacaan) dan tidak ada kaitannya dengan perubahan
+  CSS run ini.
+- Yang TETAP belum terverifikasi visual: posisi analog yang sudah
+  dinaikkan itu sendiri (butuh sesi browser yang melihat klaster
+  pasca-deploy) — CSS + tes membuktikan nilainya, tangkapan
+  layarnya menjadi tugas observasi run berikutnya.
+
 ### Observasi live (browser, hanya melihat, 18:29-18:32 WIB)
 - Muat pertama: frame biru gelap dengan teks "Memuat peta 3D…"
   (bukan frame kosong tanpa teks seperti run-run lama) dan desa
