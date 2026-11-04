@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r21"'), "version: BUILD_ID r21 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r22"'), "version: BUILD_ID r22 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r21"'), "versi: BUILD_ID r21");
+  ok(ver.includes('"r22"'), "versi: BUILD_ID r22");
 }
 
 {
@@ -2172,7 +2172,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r21"'), "vis: BUILD_ID naik ke r21 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r22"'), "vis: BUILD_ID naik ke r22 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2191,6 +2191,29 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(pollBlock.includes("document.hidden") && pollBlock.includes("pollRef.current = null"), "poll-vis: hidden -> interval dibersihkan + ref null");
   ok(pollBlock.includes("muat();") && pollBlock.includes("mulaiPoll()"), "poll-vis: visible -> fetch segar dulu lalu interval dimulai lagi");
   ok(pollBlock.includes('document.removeEventListener("visibilitychange"'), "poll-vis: listener dilepas saat cleanup");
+}
+
+// Papan Warga satu layar (2026-11-04, Ide 18, riset UX 14:29):
+// penjaga statis — entri menu ada, daftar dirender dari map.warga
+// yang sudah diambil (tanpa fetch baru di blok papan), ketuk baris
+// menutup papan lalu membuka detail warga yang sudah ada, dan ada
+// tombol Tutup di bawah daftar (jangkauan jempol) + baris setinggi
+// target sentuh 48px. Panel Warga lama tidak diganti: papan ini
+// hanya pintu masuknya.
+{
+  const pageSrcPapan = readFileSync("src/app/page.tsx", "utf8");
+  ok(pageSrcPapan.includes("showPapanWarga") && pageSrcPapan.includes("Papan Warga"), "papan: state + entri menu ada");
+  const papanIdx = pageSrcPapan.indexOf("papan-warga-list");
+  ok(papanIdx > 0, "papan: daftar dirender di modal");
+  const papanBlock = pageSrcPapan.slice(Math.max(0, papanIdx - 600), papanIdx + 1600);
+  ok(papanBlock.includes("(map?.warga ?? [])"), "papan: daftar dari map.warga yang sudah diambil");
+  ok(!papanBlock.includes("fetch(") && !papanBlock.includes("/api/map"), "papan: tanpa fetch baru di blok papan");
+  ok(papanBlock.includes("setShowPapanWarga(false); void detailWarga"), "papan: ketuk baris menutup papan + membuka detail warga");
+  ok(pageSrcPapan.includes("papan-warga-tutup"), "papan: tombol Tutup di bawah daftar ada");
+  ok(pageSrcPapan.includes("formatLabel(String(w.peran"), "papan: peran diformat (api map tidak mengirim label_peran)");
+  const cssSrcPapan = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcPapan.includes(".papan-warga-row") && cssSrcPapan.includes("min-height: 48px"), "papan: CSS baris + tinggi sentuh 48px");
+  ok(cssSrcPapan.includes(".papan-warga-tutup"), "papan: CSS tombol Tutup ada");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

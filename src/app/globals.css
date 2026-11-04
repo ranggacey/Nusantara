@@ -396,6 +396,53 @@ canvas.game-canvas {
   margin-top: 2px;
   line-height: 1.45;
 }
+.papan-warga-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.papan-warga-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  min-height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+}
+.papan-warga-row:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(250, 204, 21, 0.5);
+}
+.papan-warga-nama {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+}
+.papan-warga-status {
+  display: block;
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+  line-height: 1.45;
+}
+.papan-warga-tutup {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  background: rgba(250, 204, 21, 0.15);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
 
 .kasta-super_kaya { color: var(--gold); }
 .kasta-kaya { color: #f0abfc; }

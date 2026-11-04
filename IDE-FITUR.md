@@ -238,6 +238,17 @@ jam game server tetap jalan, jadi saat kembali UI harus langsung
 fetch ulang, bukan menunggu interval berikutnya.
 
 ## Ide 18 — Papan Warga satu layar (dari riset 2026-11-04 12:29 WIB, sudut fitur baru)
+~~DIBANGUN 2026-11-04 14:29 WIB~~ — entri "👥 Papan Warga" di kartu menu
+yang membuka modal daftar seluruh warga dari data `map.warga` yang
+SUDAH diambil poll (nama + nomor, peran diformat, status/aktivitas
+saat ini) — tanpa fetch baru, tanpa ubah sim, display-only di luar
+ketuk baris. Ketuk baris menutup papan lalu membuka panel detail
+warga yang sudah ada (pola daftar -> detail); panel Warga lama TIDAK
+diganti, papan ini hanya pintu masuknya. Tutup lewat ✕, ketuk latar,
+ATAU tombol Tutup di bawah daftar (jangkauan jempol, Ide 21);
+baris setinggi 48px dengan jarak antar baris (Ide 20). Peran
+diformat pakai `formatLabel` karena /api/map live terverifikasi
+tidak mengirim `label_peran`. BUILD_ID r21 -> r22 + 9 tes penjaga.
 
 Sumber: ulasan Village in the Shade (peta satu layar berisi posisi +
 info setiap warga dipuji karena menghormati waktu pemain).
@@ -262,6 +273,20 @@ satu musim dulu, bukan empat sekaligus. Tidak direkomendasikan dari
 riset ini: jadwal warga diatur pemain (mengubah pengamat jadi
 manajer), aturan horor larangan keluar malam, dan event ulang tahun
 per warga (sim tidak menyimpan tanggal lahir).
+
+## Ide 20 — Baris daftar berjarak + teks tidak diperkecil (dari riset 2026-11-04 14:29 WIB, sudut UX)
+~~DITERAPKAN di Papan Warga 2026-11-04 14:29 WIB~~ — dijadikan syarat
+penerimaan Ide 18, bukan ide terpisah: baris minimal 48px (patokan
+Android) dengan jarak antar baris, teks nama tidak lebih kecil dari
+teks panel lain. Sumber: Wandr (target sentuh + jarak antar target)
++ panduan pemula Foundation (daftar ringkas -> detail).
+
+## Ide 21 — Tombol tutup panel dalam jangkauan jempol (dari riset 2026-11-04 14:29 WIB, sudut UX)
+~~DITERAPKAN di Papan Warga 2026-11-04 14:29 WIB~~ — tombol Tutup di
+bawah daftar + ketuk latar sebagai jalan keluar kedua, bukan hanya
+✕ pojok atas. Panel lama menyusul bila disentuh run berikutnya.
+Sumber: Wandr (tombol tutup di pojok atas jauh = titik tersulit
+satu tangan; sediakan ketuk di luar panel sebagai jalan keluar).
 
 ## Ide-ide berikutnya
 

@@ -1,5 +1,101 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 14:29 WIB — Papan Warga satu layar di kartu menu (Ide 18)
+
+Satu entri baru "👥 Papan Warga" di kartu menu (☰) yang membuka daftar
+seluruh warga dalam satu layar — jawaban untuk keluhan berulang di
+observasi: siapa sedang apa hanya bisa diketahui dengan mengetuk warga
+satu per satu di peta atau membaca label kecil yang berdesakan dan
+tumpang tindih di tengah yang ramai.
+
+- `src/app/page.tsx`: state `showPapanWarga` + entri menu (setelah
+  Inventori) + modal papan. Daftar dirender dari `map.warga` yang SUDAH
+  diambil poll — tanpa fetch baru, tanpa ubah sim, display-only di luar
+  ketuk baris. Tiap baris: nama (nomor), peran diformat, status/aktivitas
+  saat ini (`status_teks`); ketuk baris menutup papan lalu membuka panel
+  detail warga yang sudah ada (`detailWarga`, pola daftar -> detail dari
+  riset). Panel Warga lama TIDAK diganti: papan ini hanya pintu masuknya.
+  Tutup lewat ✕, ketuk latar, ATAU tombol Tutup di bawah daftar
+  (jangkauan jempol, Ide 21). Kosong saat peta belum termuat: satu baris
+  "Belum ada data warga — tunggu peta termuat."
+- `src/app/globals.css`: `.papan-warga-list/.papan-warga-row/.papan-warga-nama/
+  .papan-warga-status/.papan-warga-tutup` — baris minimal 48px dengan jarak
+  6px antar baris (Ide 20: patokan target sentuh Android + jarak antar
+  target, teks nama 13px sama seperti judul menu). Modal memakai
+  `overlay-full` + `modal-box` yang sudah bisa scroll, jadi daftar 27
+  warga tidak membuat halaman meluber.
+- `src/lib/version.ts`: BUILD_ID r21 -> r22.
+- Tes: 9 penjaga statis baru (state + entri menu, daftar dari map.warga,
+  tanpa fetch di blok papan, ketuk baris -> tutup + detailWarga, tombol
+  Tutup, peran diformat, CSS baris 48px + CSS Tutup). Tiga penjaga versi
+  lama diperbarui r21 -> r22 (mekanisme bump yang disengaja, seperti run
+  sebelumnya). Total: 7725 lolos / 656 gagal — baseline 7716/656, jadi +9
+  lolos, nol regresi baru (656 = baseline lama yang sudah merah sebelum
+  perubahan ini; runner tsx, karena node murni gagal di impor tanpa
+  ekstensi di tree ini). Build Next.js hijau.
+- Catatan kejujuran: penampakan visual papan di live BELUM terverifikasi
+  (observasi run ini hanya melihat, tidak mengklik entri baru karena
+  entri itu baru ada setelah deploy ini) — verifikasi visualnya jadi
+  tugas observasi run berikutnya, bukan diklaim di sini. Yang
+  terverifikasi run ini adalah datanya: /api/map live memuat warga
+  dengan field persis yang dipakai papan (nama, nomor, peran,
+  status_teks; contoh warga pertama Joel 0001 penebang
+  "Jalan-jalan…", kedua Nana 0002 penjaga_api "Makan di paviliun…")
+  dan TIDAK ada `label_peran` — karena itu peran diformat pakai
+  `formatLabel` seperti panel Warga yang sudah ada.
+
+### Observasi live (browser, hanya melihat, 14:30-14:37 WIB)
+- Muat pertama: frame gelap kosong sesaat tanpa teks, lalu langit +
+  "Memuat peta 3D…"; desa tampil dalam ~1 menit (bukan hitungan detik
+  seperti run 02:29, bukan 1-2 menit seperti run 04:29 — dicatat sebagai
+  variasi sesi/cache, bukan klaim perbaikan maupun regresi).
+- Desa hidup: posisi warga berubah antar tangkapan, bubble obrolan
+  berganti pembicara dan kalimat; hewan terlihat berlabel (Rusa,
+  Kelinci, Ayam Hutan, Serigala, Beruang). Tidak ada warga yang tampak
+  beku total atau indikator error; tapi banyak warga tampak berkeliaran
+  di padang terbuka jauh dari rumah tanpa tujuan tugas yang kelihatan —
+  tampilan diam, bukan bukti sim menganggur (sim jalan di server).
+- Tombol utuh, tidak terpotong/tumpang tindih: ☰ kanan-atas, "＋ Tambah
+  karakter" kanan-bawah, "🎮 Panduan Kontrol" kiri-bawah; menu terbuka
+  bisa di-scroll dan entri-entrinya terjangkau. Satu kejadian sesaat:
+  dua ketukan tombol tutup menu mengembalikan "page_busy" (batas alat
+  browser) dan Escape tidak menutupnya, ketukan ketiga berhasil —
+  dicatat sebagai gangguan alat, bukan bug situs yang terbukti.
+- Panel "🎯 Kampung menginginkan" TERLIHAT dan isinya KONSISTEN dengan
+  kode: "Kampung sudah sampai ujung tangga — Tugu Leluhur Agung menanti
+  sebagai bukti kampung besar." TIDAK ada baris tugas/progress
+  (makan/tombak/rumah) di dalam panel ini saat dicek — jadi temuan
+  "tugas 2/20, 0/2, 0/1" dari run 12:29 TIDAK terulang dan tetap tidak
+  terjelaskan dari observasi saja; kemungkinan run itu membaca panel
+  lain, dan hal itu dicatat, bukan diklaim bug.
+- PERINGATAN KEJUJURAN OBSERVASI: daftar entri menu yang dilaporkan
+  alat browser run ini (Gacha, Event, Beli Emas, Toko, dst.) TIDAK
+  COCOK dengan kode menu di tree maupun rilis r21 yang terverifikasi
+  lewat /api/version — daftar itu TIDAK dipakai di entri ini.
+  Yang dipakai dari observasi hanya butir-butir yang konsisten dengan
+  kode/API di atas. "Papan Warga" sendiri dipastikan belum ada lewat
+  kode (grep: tidak ada string itu di page.tsx sebelum run ini),
+  bukan lewat daftar menu laporan tersebut.
+- API live pra-deploy (bukan hanya status): /api/version = r21 (cocok
+  HEAD lokal ed82341); /api/world ok (Suka Maju, populasi 27, H-269,
+  11.53 Siang, Cerah); /api/map ok (warga + field seperti di atas).
+  Stok live masih meluber dari data lama (mis. pangan 590.000 vs kap
+  850) — sudah diketahui, clamp kode hanya mencegah penambah baru,
+  dan cron dilarang menulis DB, jadi dicatat saja.
+
+### Riset + backlog (brief research/2026-11-04-1429.md)
+- Sudut: UX (rotasi dari FITUR BARU 12:29). Sumber: Wandr (aksi utama
+  di sepertiga bawah, target sentuh + jarak antar target, umpan balik
+  jangan di bawah jari, pengurangan bukan pemadatan, jalan keluar panel
+  jangan hanya pojok atas) + panduan pemula Foundation di Steam
+  (daftar warga satu tempat: pekerjaan + status, klik warga -> detail).
+- Ide 18 dibangun run ini; Ide 20 (baris berjarak) dan Ide 21 (tombol
+  tutup terjangkau) diterapkan di dalamnya + dicatat sebagai pola untuk
+  panel berikutnya. Tidak direkomendasikan: kolom statistik padat ala
+  desktop di daftar, mengganti panel Warga yang ada, filter/sortir
+  lanjutan di rilis pertama.
+
+
 ## 2026-11-04 12:29 WIB — Jeda poll data saat tab disembunyikan (Ide 17)
 
 Pasangan dari jeda loop render (Ide 9): poll data `/api/world`,

@@ -184,6 +184,9 @@ export default function Page() {
   // 1 tombol kanan-atas (menu-fab) yang membuka kartu modal menu.
   // TIDAK ADA tombol gacha (keputusan user masih menunggu — ronde 2).
   const [menuOpen, setMenuOpen] = useState(false);
+  // Papan Warga (2026-11-04, Ide 18): daftar seluruh warga dari data
+  // peta yang sudah diambil — tanpa fetch baru, tanpa ubah sim.
+  const [showPapanWarga, setShowPapanWarga] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [roadLevel, setRoadLevel] = useState<number>(1);
   // Setting label karakter (2026-11-04): default tampil; "0" di
@@ -667,6 +670,13 @@ export default function Page() {
                   <span className="menu-item-desc">Lihat stok resource dan perkakas kampung.</span>
                 </span>
               </button>
+              <button className="menu-item" title="Papan Warga" onClick={() => { setMenuOpen(false); setShowPapanWarga(true); }}>
+                <span className="menu-item-icon">👥</span>
+                <span>
+                  <span className="menu-item-title">Papan Warga</span>
+                  <span className="menu-item-desc">Daftar semua warga dari data peta: nama, peran, dan aktivitas saat ini. Ketuk baris untuk detail.</span>
+                </span>
+              </button>
               <button className="menu-item" title="Ganti orientasi (mobile)" onClick={() => { setMenuOpen(false); void toggleOrientasi(); }}>
                 <span className="menu-item-icon">🔄</span>
                 <span>
@@ -675,6 +685,49 @@ export default function Page() {
                 </span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Papan Warga (2026-11-04, Ide 18): display-only, daftar dari
+          map.warga yang SUDAH diambil poll — tanpa fetch baru, tanpa
+          ubah sim. Baris diketuk -> detail warga yang sudah ada.
+          Tutup lewat ✕, ketuk latar, ATAU tombol Tutup di bawah
+          daftar (jangkauan jempol, bukan hanya pojok atas). */}
+      {showPapanWarga && (
+        <div className="overlay-full" onClick={() => setShowPapanWarga(false)}>
+          <div className="modal-box menu-card" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-card-head">
+              <div>
+                <div className="menu-card-title">👥 Papan Warga</div>
+                <div className="menu-card-sub">
+                  {(map?.warga ?? []).length} warga • dari data peta yang sudah diambil • ketuk baris untuk detail
+                </div>
+              </div>
+              <button className="menu-close" title="Tutup papan warga" onClick={() => setShowPapanWarga(false)} aria-label="Tutup papan warga">
+                ✕
+              </button>
+            </div>
+            <div className="papan-warga-list">
+              {(map?.warga ?? []).length === 0 ? (
+                <p style={{ fontSize: 12, opacity: 0.85 }}>Belum ada data warga — tunggu peta termuat.</p>
+              ) : (
+                (map?.warga ?? []).map((w: J) => (
+                  <button
+                    key={w.id}
+                    className="papan-warga-row"
+                    title={`${w.nama} (${w.nomor})`}
+                    onClick={() => { setShowPapanWarga(false); void detailWarga(String(w.id)); }}
+                  >
+                    <span className="papan-warga-nama">{w.nama} ({w.nomor})</span>
+                    <span className="papan-warga-status">{formatLabel(String(w.peran ?? ""))} • {w.status_teks ?? "—"}</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <button className="papan-warga-tutup" onClick={() => setShowPapanWarga(false)}>
+              Tutup
+            </button>
           </div>
         </div>
       )}
