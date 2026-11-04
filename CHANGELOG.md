@@ -1,5 +1,23 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 17:10 WIB — D-pad naik supaya tombol bawah tidak tertutup pil Tambah (perbaikan verifikasi r25)
+
+Verifikasi browser r25 menemukan: 4 tombol D-pad tampil + ketuk
+Papan Warga sudah benar (papan tertutup, kartu profil Figo tampil,
+kamera mengikuti), TAPI tombol ▼ tertutup sebagian oleh pil kuning
+＋ Tambah karakter (fixed, right 18px, bottom 24px, tinggi ~40px,
+z 35) yang menumpuk pojok kanan-bawah viewport — tepat di atas
+baris bawah D-pad yang tadinya di bottom 12px.
+
+- `src/app/globals.css`: `.dpad-kamera` bottom 12px -> 76px
+  (di atas pil Tambah + jeda 12px). Posisi kanan-bawah tetap
+  (jempol kanan), tidak dipindah ke kiri karena kiri-bawah sudah
+  ditempati tombol "Lepas Kunci Kamera" saat follow aktif.
+- `src/lib/version.ts`: BUILD_ID r25 -> r26.
+- Tes: 4 penjaga versi diperbarui r25 -> r26 + 1 penjaga baru
+  (wadah D-pad bottom 76px). Total: 7756 lolos / 656 gagal —
+  baseline 656 gagal, nol regresi baru. Build Next.js hijau.
+
 ## 2026-11-04 16:58 WIB — Kamera: ketuk Papan Warga menuju karakter + tombol arah D-pad (permintaan user)
 
 Selama ini ketuk karakter di peta SUDAH mengunci kamera (follow-lerp

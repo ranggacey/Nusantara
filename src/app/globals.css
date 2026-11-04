@@ -522,7 +522,11 @@ canvas.game-canvas {
 .dpad-kamera {
   position: absolute;
   right: 12px;
-  bottom: 12px;
+  /* bottom 76px (bukan 12px): tombol ＋ Tambah karakter itu fixed di
+     pojok kanan-bawah viewport (bottom 24px, tinggi ~40px, z 35) —
+     D-pad di 12px membuat tombol ▼ tertutup pil kuning itu (temuan
+     verifikasi browser r25). 76px = di atas pil + jeda 12px. */
+  bottom: 76px;
   z-index: 10;
   display: grid;
   grid-template-columns: repeat(3, 48px);
