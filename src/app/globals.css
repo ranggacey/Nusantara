@@ -431,6 +431,12 @@ canvas.game-canvas {
   margin-top: 2px;
   line-height: 1.45;
 }
+.papan-warga-tanpatugas {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 4px;
+  line-height: 1.45;
+}
 .papan-warga-tutup {
   display: block;
   width: 100%;

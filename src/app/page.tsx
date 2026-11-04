@@ -41,6 +41,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
 import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya } from "@/lib/batu/sumberdaya";
+import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
 
@@ -711,6 +712,11 @@ export default function Page() {
                 <div className="menu-card-sub">
                   {(map?.warga ?? []).length} warga • dari data peta yang sudah diambil • ketuk baris untuk menuju karakter
                 </div>
+              {(map?.warga ?? []).filter((w: J) => wargaTanpaTugas(w)).length > 0 && (
+                <div className="papan-warga-tanpatugas">
+                  💤 {(map?.warga ?? []).filter((w: J) => wargaTanpaTugas(w)).length} warga tanpa tugas — tidak ada target kerja saat ini
+                </div>
+              )}
               </div>
               <button className="menu-close" title="Tutup papan warga" onClick={() => setShowPapanWarga(false)} aria-label="Tutup papan warga">
                 ✕
@@ -728,7 +734,7 @@ export default function Page() {
                     onClick={() => { setShowPapanWarga(false); tapWarga(String(w.id)); }}
                   >
                     <span className="papan-warga-nama">{w.nama} ({w.nomor})</span>
-                    <span className="papan-warga-status">{formatLabel(String(w.peran ?? ""))} • {w.status_teks ?? "—"}</span>
+                    <span className="papan-warga-status">{formatLabel(String(w.peran ?? ""))} • {w.status_teks ?? "—"}{wargaTanpaTugas(w) ? " • 💤 tanpa tugas" : ""}</span>
                   </button>
                 ))
               )}

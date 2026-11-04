@@ -6,7 +6,7 @@ import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } 
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk } from "../src/lib/batu/dunia";
 import { pintarUntukJalan, rencanaJalan, jalurJalan, jalurSegmen, SEGMEN_JALAN, TIM_JALAN_INT_MIN } from "../src/lib/batu/jalan";
 import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, terapkanPembusukan, capHarianUntuk, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "../src/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, wargaTanpaTugas } from "../src/lib/batu/tampil";
 import { gainJarak, panKamera, SFX_JARAK, SFX_PERKAKAS, SFX_HEWAN } from "../src/lib/audio";
 import { HEWAN, hewanById } from "../src/lib/batu/hewan";
 import { gameTime, migrasiJam, migrasiJamV4, durasiJamMs, jamAdalahMalam, realMsUntukJam } from "../src/lib/clock";
@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r29"'), "version: BUILD_ID r29 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r30"'), "version: BUILD_ID r30 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r29"'), "versi: BUILD_ID r29");
+  ok(ver.includes('"r30"'), "versi: BUILD_ID r30");
 }
 
 {
@@ -2225,7 +2225,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r29"'), "vis: BUILD_ID naik ke r29 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r30"'), "vis: BUILD_ID naik ke r30 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2332,7 +2332,30 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r29"'), "muat3d: BUILD_ID naik ke r29");
+  ok(verMuat.includes('BUILD_ID = "r30"'), "muat3d: BUILD_ID naik ke r30");
+}
+
+// Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
+// definisi dari data sim sendiri — node null + istirahat + aksi
+// beristirahat/rehat stok penuh. Santai (alihan aktif) dan istirahat
+// dengan node masih terpasang sengaja TIDAK dihitung, supaya tidak
+// ada positif palsu. Penanda memakai ikon + teks (bukan warna saja,
+// sesuai riset aksesibilitas run ini).
+ok(wargaTanpaTugas({ node: null, fase_siklus: "istirahat", aksi_sekarang: "beristirahat" }) === true, "tanpatugas: istirahat tanpa node = tanpa tugas");
+ok(wargaTanpaTugas({ node: null, fase_siklus: "istirahat", aksi_sekarang: "rehat_stok_penuh" }) === true, "tanpatugas: rehat stok penuh = tanpa tugas");
+ok(wargaTanpaTugas({ node: undefined, fase_siklus: "istirahat", aksi_sekarang: "beristirahat" }) === true, "tanpatugas: node undefined diperlakukan seperti null");
+ok(wargaTanpaTugas({ node: { pseudo: "santai" }, fase_siklus: "jalan", aksi_sekarang: "membantu" }) === false, "tanpatugas: santai/membantu BUKAN tanpa tugas");
+ok(wargaTanpaTugas({ node: { pseudo: undefined }, fase_siklus: "kumpul", aksi_sekarang: "berjalan" }) === false, "tanpatugas: sedang kumpul = bertugas");
+ok(wargaTanpaTugas({ node: { pseudo: undefined }, fase_siklus: "istirahat", aksi_sekarang: "beristirahat" }) === false, "tanpatugas: istirahat dengan node terpasang = jeda, bukan tanpa tugas");
+ok(wargaTanpaTugas(null) === false, "tanpatugas: null aman");
+ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
+{
+  const pageSrcTanpa = readFileSync("src/app/page.tsx", "utf8");
+  ok(pageSrcTanpa.includes("wargaTanpaTugas"), "tanpatugas: page memakai wargaTanpaTugas");
+  ok(pageSrcTanpa.includes("💤") && pageSrcTanpa.includes("tanpa tugas"), "tanpatugas: tag ikon + teks di Papan Warga (bukan warna saja)");
+  ok(pageSrcTanpa.includes("papan-warga-tanpatugas"), "tanpatugas: baris ringkasan di kepala Papan Warga");
+  const cssSrcTanpa = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcTanpa.includes(".papan-warga-tanpatugas"), "tanpatugas: CSS ringkasan ada");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

@@ -366,3 +366,28 @@ export function sudutKakiHewan(siklus: number, kaki: "depanKiri" | "depanKanan" 
   const s = Math.sin(siklus) * amplitudo;
   return kaki === "depanKiri" || kaki === "belakangKanan" ? s : -s;
 }
+
+// Warga tanpa tugas (Ide 5, irisan Papan Warga, 2026-11-04): definisi
+// dari data sim sendiri, bukan tebakan status_teks. Warga dihitung
+// tanpa tugas HANYA bila tidak punya target kerja sama sekali
+// (node null) DAN sedang istirahat DAN aksinya memang beristirahat
+// atau rehat karena stok perannya penuh. Sengaja TIDAK menghitung:
+// - santai (node.pseudo "santai"): itu alihan AKTIF (jalan santai /
+//   membantu warga lain), bukan diam — warga itu terlihat hidup;
+// - istirahat karena stamina/lapar/malam dengan node masih terpasang:
+//   itu jeda sementara di tengah tugas, bukan tanpa tugas.
+// Display-only: fungsi ini tidak mengubah sim apa pun.
+export interface WargaTampilRingkas {
+  node?: { pseudo?: string } | null;
+  fase_siklus?: string;
+  aksi_sekarang?: string;
+}
+
+export function wargaTanpaTugas(w: WargaTampilRingkas | null | undefined): boolean {
+  if (!w) return false;
+  return (
+    w.node == null &&
+    w.fase_siklus === "istirahat" &&
+    (w.aksi_sekarang === "beristirahat" || w.aksi_sekarang === "rehat_stok_penuh")
+  );
+}

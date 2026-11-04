@@ -57,7 +57,15 @@ fitur jalan. Kalau satu perbaikan bikin tampilan lebih ribet,
 itu bukan perbaikan.
 
 ## Ide 5 — Penanda warga tanpa pos + kabar ringkas (dari riset 2026-11-04 00:29 WIB, sudut sosial/QoL)
-
+~~SEBAGIAN DIBANGUN 2026-11-04 20:29 WIB~~ — irisan Papan Warga:
+fungsi murni `wargaTanpaTugas` di `tampil.ts` (warga dihitung tanpa
+tugas bila node null + fase istirahat + aksi beristirahat/rehat
+stok penuh; santai sebagai alihan aktif dan istirahat dengan node
+masih terpasang sengaja TIDAK dihitung) + tag "💤 tanpa tugas"
+(ikon + teks, bukan warna saja, sesuai riset aksesibilitas run ini)
+di tiap baris Papan Warga + baris ringkasan di kepala daftar bila
+ada yang tanpa tugas. Display-only, tanpa ubah sim. SISA: ikon di
+atas warga di peta 3D + satu baris ringkas di kabar kampung.
 Sumber: devlog Cradle of Mankind ("no post, no work" + gossip feed)
 dan ulasan Animal Valley (pemain minta sinyal "semua pekerja
 menganggur"). Masalah: warga diam terlihat sama saja, entah stok
@@ -338,6 +346,26 @@ kerja mereka diambil alih otomatis — jadi Ide 5 tetap display-only,
 tanpa otomasi sim. Tidak direkomendasikan dari riset ini: warga
 menganggur otomatis cari kerja terdekat, bunyi peringatan tiap jumlah
 menganggur bertambah, dan memindah pil Panduan Kontrol ke atas layar.
+
+## Ide 25 — Hormati prefers-reduced-motion di panel/modal (dari riset 2026-11-04 20:29 WIB, sudut aksesibilitas)
+
+Sumber: RunMob (alternatif tenang, bukan hapus umpan balik) +
+Game Accessibility Guidelines (kontras, teks jelas). Masalah:
+animasi buka/tutup panel dan reveal yang bergerak bisa mengganggu
+pemain yang sensitif gerak. Cara kerja: media query
+`prefers-reduced-motion: reduce` di `globals.css` yang mengubah
+animasi panel/modal menjadi fade singkat/statis. Dampak
+kecil-sedang, usaha kecil. Mulai dari panel saja, bukan kanvas 3D.
+
+## Ide 26 — Cincin fokus terlihat di menu dan modal (dari riset 2026-11-04 20:29 WIB, sudut aksesibilitas)
+
+Sumber: RunMob (indikator fokus harus tetap terlihat di atas
+gambar game, urutan Tab mengikuti layar). Masalah: pemain
+keyboard/tab tidak tahu tombol mana yang sedang aktif karena
+fokus tenggelam di atas gambar peta. Cara kerja: aturan
+`:focus-visible` dengan outline kontras untuk tombol menu/modal
+(bukan menghilangkan outline global). Dampak kecil, usaha kecil.
+Uji dengan Tab/Shift+Tab/Escape.
 
 ## Ide-ide berikutnya
 

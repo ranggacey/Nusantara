@@ -1,5 +1,93 @@
 # CHANGELOG Nusantara
 
+## 2026-11-04 20:29 WIB — Tanda "tanpa tugas" di Papan Warga (sebagian Ide 5) + brief riset aksesibilitas
+
+Perubahan dalam 2 kalimat: Papan Warga kini menandai warga yang
+benar-benar tanpa target kerja dengan tag "💤 tanpa tugas" di
+barisnya plus satu baris ringkasan di kepala daftar; sisanya
+(display peta, sim, ekonomi) tidak disentuh sama sekali.
+
+- `src/lib/batu/tampil.ts`: fungsi murni baru `wargaTanpaTugas`
+  (warga dihitung tanpa tugas bila node null + fase istirahat +
+  aksi beristirahat/rehat stok penuh). Sengaja TIDAK menghitung
+  santai (node.pseudo "santai") karena itu alihan AKTIF — jalan
+  santai/membantu warga lain, bukan diam — dan tidak menghitung
+  istirahat yang nodenya masih terpasang (jeda sementara di tengah
+  tugas, bukan tanpa tugas). Definisi ini dari data sim sendiri,
+  bukan dari menebak status_teks.
+- `src/app/page.tsx`: Papan Warga memakai fungsi itu — tag
+  " • 💤 tanpa tugas" di baris warga yang bersangkutan, dan bila
+  ada yang tanpa tugas, kepala daftar menampilkan baris ringkasan
+  "💤 N warga tanpa tugas — tidak ada target kerja saat ini".
+  Penanda memakai IKON + TEKS, bukan warna saja, sesuai pelajaran
+  riset aksesibilitas run ini (warna saja hilang bagi pemain buta
+  warna / layar HP di bawah sinar matahari). Display-only, tanpa
+  fetch baru, tanpa ubah sim.
+- `src/app/globals.css`: gaya `.papan-warga-tanpatugas` (teks
+  12px tebal) untuk baris ringkasan itu.
+- `src/lib/version.ts`: BUILD_ID r29 -> r30.
+- Tes: 12 penjaga baru (8 perilaku fungsi + 4 statis: page memakai
+  fungsi, tag ikon+teks ada, kelas ringkasan ada, CSS ada) + 4
+  penjaga versi diperbarui r29 -> r30 (ternyata ada 4 asersi versi
+  di file tes, bukan 1 — ketiganya diperbarui, bukan hanya yang
+  pertama). Total: 7774 lolos / 656 gagal — baseline r29 7762/656,
+  jadi +12 lolos, nol regresi baru (tidak ada gagal bernama
+  tanpatugas/r30). Build Next.js hijau.
+- Backlog: Ide 5 dicatat SEBAGIAN DIBANGUN di IDE-FITUR.md; sisa
+  Ide 5 (ikon di atas warga di peta 3D + baris ringkas di kabar
+  kampung) tetap antrean run berikutnya. Riset run ini menambah
+  Ide 25 (prefers-reduced-motion di panel/modal) dan Ide 26
+  (cincin fokus terlihat di menu/modal).
+
+### Observasi live (browser, hanya melihat, 20:31-20:35 WIB)
+- Muat pertama cukup berat tapi tidak ber menit-menit: teks
+  "Memuat peta 3D…" / "Memuat dunia…" dulu, desa tampil penuh
+  dalam <30 detik pada pengecekan berikutnya (tidak diukur
+  detik persis, jadi dilaporkan sebagai <30 detik).
+- Geser/zoom tidak ngelag pada uji lembut: zoom masuk 3x dan
+  keluar 2x responsif, seret analog kiri-bawah menggeser peta
+  mulus ke area baru. Tidak ada stutter/freeze yang teramati.
+- Warga (6: Figo, Nera, Praboti, Evos dyroth, Siti, Budi) tidak
+  diam total — mulai mengumpul di tengah lalu tersebar di peta —
+  tapi di tampilan peta hanya nama + bilah kecil yang terbaca,
+  TIDAK ada teks status aktivitas yang terbaca (bekerja/makan/
+  istirahat). Inilah yang membuat irisan run ini berguna: status
+  "tanpa tugas" kini setidaknya terbaca di Papan Warga, bukan
+  hanya di peta yang tidak menampilkan status.
+- Hewan ada tapi sulit terlihat: label Rusa, Kelinci, Ayam Hutan,
+  Serigala terdaftar; satu label "Rusa" terlihat saat zoom,
+  tapi badan hewan kecil/tidak jelas di zoom default dan tidak
+  ada hewan terlihat di area lapang yang digeser — dicatat saja,
+  bukan irisan run ini.
+- Tombol/panel tidak ada yang tertutup atau tidak merespons:
+  kontrol kamera kiri-bawah, "+ Tambah karakter" kanan-bawah,
+  dan tombol panduan kiri-bawah semua merespons; kartu menu
+  terbuka di tengah dengan rapi dan tertutup bersih lewat ✕.
+  Tidak ada area blank/error; peta penuh terrain hijau, pohon,
+  batu, dan cakram emas.
+- Status dari menu kampung: Desa Suka Maju (6 orang), H-293,
+  08.17 Pagi, cuaca "Hujan Petir" — tapi pemandangan tampak
+  cerah tanpa hujan/petir yang jelas di tangkapan layar.
+  Ketidaksesuaian cuaca visual ini DICATAT sebagai observasi,
+  bukan diperbaiki run ini (butuh kepastian apakah cuaca visual
+  memang belum diimplementasi atau hanya tidak tertangkap
+  tangkapan layar). Stok semua 1 (kayu 1/40, batu 1/30, emas
+  1/10, besi 1/15, pangan 1/50, kulit 1/25) — konsisten dengan
+  desa baru pasca-reset + aturan susah r23/r28, bukan regresi.
+
+### Riset (brief research/2026-11-04-2029.md, sudut AKSESIBILITAS)
+- Sumber: Game Accessibility Guidelines ("Basic": kontras tinggi,
+  teks jelas, kontrol besar DAN berjarak, dan tidak ada info
+  penting yang hanya lewat satu warna tetap) + RunMob "Accessible
+  web game design" (2026-10-20: jangan hanya kilatan warna —
+  pasangkan dengan teks/bentuk/posisi; hormati reduced-motion
+  dengan alternatif tenang, bukan hapus umpan balik; indikator
+  fokus harus terlihat di atas gambar game).
+- Tidak direkomendasikan dari riset ini: perombakan screen-reader
+  penuh untuk kanvas 3D (terlalu besar untuk satu run), pembesaran
+  teks otomatis yang mengubah layout HUD, dan penanda status yang
+  hanya warna (persis yang dilarang kedua sumber).
+
 ## 2026-11-04 18:29 WIB — Klaster analog naik di atas pil Panduan Kontrol (temuan observasi live)
 
 Observasi run ini menemukan tumpukan: pil "🎮 Panduan Kontrol"
