@@ -1,4 +1,8 @@
-// RONDE 18 — JALAN kampung (dibangun karakter pinter) + spacing.
+// RONDE 18 — JALAN kampung (dibangun gotong royong) + spacing.
+// RONDE 21: jalan dan bangunan bisa dibuat SIAPA SAJA (aturan user) —
+// gate "karakter pinter" (kepala_suku / INT >= 9) dihapus dari
+// terapkanJalan; helper pintarUntukJalan di bawah hanya penanda lama
+// (tidak lagi dipakai sebagai gate).
 // Desain (dibuat dulu, baru kode):
 // - Data model: jalan = ubin tanah/batu di koleksi `jalan` (satu dokumen
 //   per ubin: { gx, gy, segmen }). BUKAN placement: jalan bukan
@@ -13,12 +17,13 @@
 //   bangunan, atau node (fallback: boleh lewat node bila tidak ada
 //   jalur lain — jalan tetap tersambung). Ubin jalan = tepi footprint
 //   (jalan mengarah KE pintu bangunan, bukan menembus bangunannya).
-// - Pembangun ("karakter pinter"): kepala_suku (Figo memimpin —
-//   sifat "pintar, suka membantu") + warga INT >= 9. RONDE 19: mereka
-//   membangun jalan dari titik keluar paviliun setelah makan (jeda
-//   alami) DAN tidak ada bangunan sedang antre/dibangun (prioritas
-//   sesudah hunian/pangan). Pemicu r18 ("tidak ada target kerja") DIHAPUS
-//   karena tidak pernah terjadi: node tidak pernah habis di dunia live.
+// - Pembangun (RONDE 21 — gotong royong): SIAPA SAJA yang fit dan
+//   tidak lapar boleh membangun jalan; ubin diklaim satu warga per jam
+//   (jalanTugas), jadi beberapa warga mengerjakan segmen yang sama di
+//   ubin berbeda. Dulu (r18-r20) hanya "karakter pinter" (kepala_suku /
+//   INT >= 9) — gate itu dihapus atas aturan user 2026-11-05.
+//   Pemicu r18 ("tidak ada target kerja") DIHAPUS karena tidak pernah
+//   terjadi: node tidak pernah habis di dunia live.
 //   Kecepatan jalan TIDAK berubah, ekonomi TIDAK berubah (stamina/lapar
 //   ikut model membantu: kerja -2 stamina +2 lapar/jam, jalan kaki
 //   -3/+4 seperti biasa).
@@ -51,6 +56,9 @@ export const SEGMEN_JALAN: { id: string; a: string; b: string }[] = [
 ];
 
 // Karakter pinter = kepala suku (Figo memimpin) atau INT >= 9.
+// RONDE 21: penanda lama — TIDAK lagi dipakai sebagai gate membangun
+// jalan (gotong royong: siapa saja boleh). Dipertahankan untuk
+// kompatibilitas tes/ekspor.
 export function pintarUntukJalan(w: {
   peran: string;
   stat?: { int?: number };

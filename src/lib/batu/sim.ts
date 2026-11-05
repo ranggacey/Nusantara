@@ -80,7 +80,7 @@ import { faseDariJam, seededRandom } from "../world";
 import { peranById, labelNode, nodeHasil, pengaliFit, perkakasPeran, LABEL_ALAT, RESEP_PERKAKAS, type NodeKind, type PeranId } from "./peran";
 import { stokKosong, bangunanById, cukupBiaya, kurangDariBiaya, hitungKapasitasStok, type Stok } from "./sumberdaya";
 import { generateNodes, isWater, riverX, findPlot, findHousePlotBesideRoad, findBridgePlot, findBoatSpot, rotasiKeJalan, PLACEMENT_AWAL, PUSAT, GRID_MIN, GRID_MAX, isGunung, gunungTileKeys, dedupePlacement, ukuranPetak, petakBangunan, occupiedDariPlacements, plotBebas, type Node } from "./dunia";
-import { pintarUntukJalan, rencanaJalan } from "./jalan";
+import { rencanaJalan } from "./jalan";
 import { hewanById, HEWAN_AWAL, type HewanDef } from "./hewan";
 import { debatBaris, geludBaris, ngobrolBaris } from "./dialog";
 import { statDenganSTA } from "./gacha";
@@ -150,11 +150,14 @@ export interface Warga {
   // dari tepi sungai), "ladang" (petani di placement ladang), "patroli"
   // (penjaga keliling kampung, tanpa kumpul), "santai" (RONDE 13: jalan
   // santai / membantu warga lain saat idle — tanpa kumpul, tanpa hasil
-  // ekonomi; `bantu` = nama warga yang dibantu bila ada). `kind` untuk
-  // pseudo hanya kendaraan resource (semak_beri/padang = pangan) —
+  // ekonomi; `bantu` = nama warga yang dibantu bila ada). "bangun"
+  // (RONDE 21: gotong royong — membantu membangun bangunan yang sedang
+  // dibangun; `bangunanId` = id antrean bangunan, `label` = nama
+  // bangunan; pembantu DI LOKASI mempercepat progres konstruksi).
+  // `kind` untuk pseudo hanya kendaraan resource (semak_beri/padang = pangan) —
   // kebenaran ada di pseudo.
   // `darurat` = kumpul pangan darurat saat paceklik (di luar peran).
-  node: { kind: NodeKind; gx: number; gy: number; pseudo?: "sungai" | "ladang" | "patroli" | "restoran" | "santai" | "jalan"; darurat?: boolean; bantu?: string; segmen?: string } | null;
+  node: { kind: NodeKind; gx: number; gy: number; pseudo?: "sungai" | "ladang" | "patroli" | "restoran" | "santai" | "jalan" | "bangun"; darurat?: boolean; bantu?: string; segmen?: string; bangunanId?: string; label?: string } | null;
   aksi_sekarang: string;
   status_teks: string;
   tempat_kerja: string;
@@ -551,21 +554,25 @@ export function terapkanBantu(w: Warga, ctx: SimCtx): boolean {
   return true;
 }
 
-// RONDE 18 — TERAPKAN JALAN: tim pinter (Figo memimpin + INT >= 9)
-// membangun jalan.
+// RONDE 18 — TERAPKAN JALAN: membangun jalan.
 // RONDE 20 (laporan user 2026-11-05: "kenapa gada yg bikin jalan",
 // terbukti simulasi 10 hari: rencana 12 ubin ADA, tapi dengan gate
 // bangunanAktif TERBUKA pun hanya 6 penugasan -> 2 ubin selesai):
 // (a) gate `bangunanAktif` DIHAPUS — bangunan maju lewat hitungan
-// perajin, bukan lewat waktu tim pinter, jadi gate itu hanya membuat
+// pembantu, bukan lewat waktu tim pinter, jadi gate itu hanya membuat
 // jalan kelaparan giliran selamanya (antrean NPC hampir tidak pernah
 // kosong selama kandidat ada); (b) pemicu DIPERLUAS dari "keluar
 // paviliun saja" ke SEMUA titik pilih kerja via ambilTargetKerja di
 // bawah. Guard fit + tidak lapar tetap; preemption malam/lapar/
 // stamina di atas tetap menang (cabang jalan keyed node pseudo "jalan",
 // dan semua redirect men-null-kan node — tidak pernah menahan pulang).
+// RONDE 21 — GOTONG ROYONG (aturan user 2026-11-05: jalan dan
+// bangunan bisa dibuat SIAPA SAJA): gate `pintarUntukJalan`
+// (kepala_suku / INT >= 9) DIHAPUS — siapa pun yang fit dan tidak
+// lapar boleh membangun jalan. Ubin tetap diklaim satu warga per jam
+// lewat ctx.jalanTugas, jadi beberapa warga mengerjakan segmen yang
+// sama di ubin berbeda (progres bersama).
 export function terapkanJalan(w: Warga, ctx: SimCtx): boolean {
-  if (!pintarUntukJalan(w)) return false;
   if (w.stamina < 40 || w.lapar >= 90) return false;
   const rencana = ctx.jalanRencana;
   if (!rencana || rencana.tiles.length === 0) return false;
@@ -592,7 +599,13 @@ export function terapkanJalan(w: Warga, ctx: SimCtx): boolean {
 export function ambilTargetKerja(w: Warga, ctx: SimCtx): boolean {
   if (terapkanJalan(w, ctx)) return true;
   const target = pilihTargetKerja(w, ctx);
-  if (!target) return false;
+  if (!target) {
+    // RONDE 21 — gotong royong (fallback menganggur): tidak ada target
+    // kumpul -> bantu bangun bangunan terdekat (siapa saja boleh).
+    // Di sinilah warga tanpa tugas dialihkan ke kerja berguna, bukan
+    // langsung santai/istirahat (lihat juga cabang santai di stepWarga).
+    return terapkanBantuBangun(w, ctx);
+  }
   w.node = target.node;
   w.tujuan = target.tujuan;
   w.fase_siklus = "jalan";
@@ -605,6 +618,93 @@ export function ambilTargetKerja(w: Warga, ctx: SimCtx): boolean {
   else if (target.node.darurat) { w.status_teks = "Berjalan mencari makan darurat…"; }
   w.progres_aksi_pct = 0;
   return true;
+}
+
+// RONDE 21 — GOTONG ROYONG: maks pembantu per bangunan (supaya tidak
+// semua warga menumpuk di satu gubuk sementara kerja lain terbengkalai).
+export const MAKS_PEMBANTU_BANGUN = 4;
+
+// RONDE 21 — BANTU BANGUN: tugaskan warga (peran apa pun) membantu
+// bangunan terdekat yang sedang dibangun. Warga berjalan ke ubin
+// sebelah footprint, lalu diam membantu di tempat (cabang "bangun" di
+// stepWarga) sampai bangunan selesai/dibatalkan. Guard fit + tidak
+// lapar sama seperti jalan; preemption malam/lapar/stamina di atas
+// tetap menang (node di-null-kan saat pulang).
+export function terapkanBantuBangun(w: Warga, ctx: SimCtx): boolean {
+  if (w.stamina < 40 || w.lapar >= 90) return false;
+  const sites = ctx.bangunanDibangun ?? [];
+  if (sites.length === 0) return false;
+  let best: NonNullable<SimCtx["bangunanDibangun"]>[number] | null = null;
+  let bestD = Infinity;
+  for (const s of sites) {
+    const sudah = (ctx.wargaSemua ?? []).filter(
+      (o) => o !== w && o.node?.pseudo === "bangun" && o.node.bangunanId === s.id
+    ).length;
+    if (sudah >= MAKS_PEMBANTU_BANGUN) continue;
+    const cx = s.gx + Math.floor(s.w / 2);
+    const cy = s.gy + Math.floor(s.h / 2);
+    const d = Math.abs(cx - w.lokasi.gx) + Math.abs(cy - w.lokasi.gy);
+    if (d < bestD) {
+      bestD = d;
+      best = s;
+    }
+  }
+  if (!best) return false;
+  const cx = best.gx + Math.floor(best.w / 2);
+  const cy = best.gy + Math.floor(best.h / 2);
+  const label = bangunanById(best.tipe)?.label ?? best.tipe;
+  // Tujuan = ubin sebelah footprint (bukan di dalam bangunan): pakai
+  // rintangan + footprint situs sendiri supaya helper tidak berdiri
+  // di atas bangunan yang sedang dibangun.
+  const rintangan = new Set<string>(ctx.rintangan ?? []);
+  for (const k of petakBangunan({ kind: best.tipe, gx: best.gx, gy: best.gy, w: best.w, h: best.h })) rintangan.add(k);
+  const t = tileSebelah({ gx: cx, gy: cy }, w.lokasi, { rintangan, nodeTiles: ctx.nodeTilesAll });
+  w.node = { kind: "padang_buruan", gx: cx, gy: cy, pseudo: "bangun", bangunanId: best.id, label };
+  w.tujuan = t;
+  w.fase_siklus = "jalan";
+  w.aksi_sekarang = "membantu_bangun";
+  w.status_teks = `Membantu membangun ${label}…`;
+  w.tempat_kerja = "konstruksi";
+  w.progres_aksi_pct = 0;
+  return true;
+}
+
+// RONDE 21 — hitung pembantu yang SUDAH TIBA di lokasi bangunan
+// (node pseudo "bangun" + bangunanId cocok + lokasi menempel footprint,
+// Chebyshev <= 1). Pembantu yang masih dalam perjalanan TIDAK dihitung
+// — progres hanya dari tangan yang benar-benar bekerja di lokasi.
+export function hitungPembantuBangun(
+  warga: Warga[],
+  siteId: string,
+  site: { gx: number; gy: number; w: number; h: number }
+): number {
+  let n = 0;
+  for (const o of warga) {
+    if (o.node?.pseudo !== "bangun" || o.node.bangunanId !== siteId) continue;
+    const dx =
+      o.lokasi.gx < site.gx
+        ? site.gx - o.lokasi.gx
+        : o.lokasi.gx > site.gx + site.w - 1
+          ? o.lokasi.gx - (site.gx + site.w - 1)
+          : 0;
+    const dy =
+      o.lokasi.gy < site.gy
+        ? site.gy - o.lokasi.gy
+        : o.lokasi.gy > site.gy + site.h - 1
+          ? o.lokasi.gy - (site.gy + site.h - 1)
+          : 0;
+    if (Math.max(dx, dy) <= 1) n++;
+  }
+  return n;
+}
+
+// RONDE 21 — progres konstruksi per jam game: dasar 10/jam (sama
+// seperti sebelum r41 saat tidak ada perajin) + 3/jam per pembantu di
+// lokasi (maks 4 -> 22/jam, ~5 jam per bangunan). Bonus perajin
+// DIHAPUS: peran tidak lagi menentukan siapa yang membangun —
+// gotong royong siapa saja. Biaya bangunan TIDAK berubah.
+export function progresKonstruksiPerJam(pembantu: number): number {
+  return 10 + Math.max(0, pembantu) * 3;
 }
 
 export function pengaliCuaca(cuaca: string): number {
@@ -1389,6 +1489,11 @@ export interface SimCtx {
   jalanRencana?: { segmen: string; tiles: { gx: number; gy: number }[] } | null;
   jalanBaru?: { gx: number; gy: number; segmen: string }[];
   bangunanAktif?: boolean;
+  // RONDE 21 — gotong royong: bangunan yang sedang dibangun (plot
+  // sudah ditetapkan) untuk penugasan bantu-bangun; di-refresh tiap
+  // jam game di advanceWorld (bangunan baru yang mulai dibangun jam
+  // ini baru bisa dibantu jam berikut).
+  bangunanDibangun?: { id: string; tipe: string; gx: number; gy: number; w: number; h: number }[];
   // RONDE 20 — stok ikan sungai saat ini (default IKAN_CAP bila kosong).
   ikanSungai?: number;
 }
@@ -1863,6 +1968,55 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
     w.progres_aksi_pct = 0;
     return;
   }
+  // RONDE 21 — GOTONG ROYONG (bantu bangun): jalan ke lokasi bangunan,
+  // lalu diam membantu di tempat selama bangunan belum selesai.
+  // HARUS sebelum cabang santai + jalan umum (yang akan mengubahnya
+  // jadi kumpul/santai). Redirect malam/lapar/stamina di atas sudah
+  // jalan dulu + men-null-kan node, jadi cabang ini selalu kondisi
+  // aman; 1 pembantu di lokasi = +3 progres/jam (dihitung di loop
+  // antrean via hitungPembantuBangun — bukan di sini, supaya urutan
+  // stepWarga vs antrean dalam satu jam tidak memengaruhi hitungan).
+  if (w.fase_siklus === "jalan" && w.tujuan && w.node?.pseudo === "bangun") {
+    const siteId = w.node.bangunanId;
+    const label = w.node.label ?? "bangunan";
+    const site = (ctx.bangunanDibangun ?? []).find((s) => s.id === siteId);
+    if (!site) {
+      // Bangunan selesai/dibatalkan saat perjalanan -> cari kerja lain.
+      if (ambilTargetKerja(w, ctx)) {
+        // Jalan atau kerja baru sudah diatur (termasuk bantu bangun lain).
+      } else if (!mulaiSantai(w, ctx)) {
+        w.node = null;
+        w.tujuan = null;
+        w.fase_siklus = "istirahat";
+        w.aksi_sekarang = "beristirahat";
+        w.status_teks = "Beristirahat…";
+        w.tempat_kerja = "kampung";
+      }
+      w.progres_aksi_pct = 0;
+      return;
+    }
+    if (w.lokasi.gx === w.tujuan.gx && w.lokasi.gy === w.tujuan.gy) {
+      // Tiba: bantu di tempat (visual + stamina/lapar seperti membantu).
+      w.stamina = Math.max(0, w.stamina - 2);
+      w.lapar = Math.min(100, w.lapar + 2);
+      w.aksi_sekarang = "membantu_bangun";
+      w.status_teks = `Membantu membangun ${label}…`;
+      w.tempat_kerja = "konstruksi";
+      w.progres_aksi_pct = 100;
+      return;
+    }
+    const speed = kecepatanJalan(w.stat.agi, w.stat.sta, w.bakat);
+    const r = gerak(w.lokasi, w.tujuan, speed, { jembatan: ctx.jembatan, rintangan: rintanganUntuk(w, ctx) });
+    w.lokasi = r.lokasi;
+    w.sedang_berenang = r.berenang;
+    w.stamina = Math.max(0, w.stamina - 3 - (r.berenang ? 4 : 0));
+    w.lapar = Math.min(100, w.lapar + 4);
+    w.aksi_sekarang = "membantu_bangun";
+    w.status_teks = `Menuju pembangunan ${label}…`;
+    w.tempat_kerja = "konstruksi";
+    w.progres_aksi_pct = 0;
+    return;
+  }
   // RONDE 13 — SANTAI (idle aktif): jalan santai / membantu. Cabang ini
   // HARUS sebelum cabang jalan umum (yang akan mengubah santai jadi
   // kumpul + stok gratis — dilarang). Redirect malam/lapar/stamina di
@@ -1911,6 +2065,10 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
         else if (target.node.pseudo === "ladang") { w.status_teks = "Berjalan ke ladang…"; w.tempat_kerja = "ladang"; }
         else if (target.node.pseudo === "restoran") { w.status_teks = "Berjalan ke paviliun makan…"; w.tempat_kerja = "Paviliun Makan"; }
         else if (target.node.darurat) { w.status_teks = "Berjalan mencari makan darurat…"; }
+      } else if (terapkanBantuBangun(w, ctx)) {
+        // RONDE 21 — tidak ada target kumpul tapi ada bangunan yang
+        // sedang dibangun -> bantu bangun dulu (kerja berguna), bukan
+        // langsung santai lagi atau bantu visual.
       } else if (w.node.bantu) {
         const pekerja = (ctx.wargaSemua ?? []).find(
           (o) => o.nama === w.node?.bantu && o.fase_siklus === "kumpul"
@@ -2938,7 +3096,6 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     bangunanAktif: false,
     ikanSungai: dunia.ikan_sungai ?? IKAN_CAP,
   };
-  const perajin = wargaDocs.filter((w) => w.peran === "perajin").length;
   const bangunanCol = await getCollection("bangunan");
   const antrean = (await bangunanCol.find({ status: { $in: ["antre", "dibangun"] } }).toArray()) as unknown as {
     _id: unknown;
@@ -3011,6 +3168,13 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     // antre/dibangun — lihat terapkanJalan: gate itu yang membuat jalan
     // tidak pernah dibangun).
     ctx.bangunanAktif = antrean.some((b) => b.status === "antre" || b.status === "dibangun");
+    // RONDE 21 — gotong royong: refresh daftar bangunan yang sedang
+    // dibangun tiap jam (plot sudah ditetapkan) untuk penugasan
+    // bantu-bangun; bangunan yang mulai dibangun jam ini baru bisa
+    // dibantu jam berikut, yang selesai berhenti jadi target.
+    ctx.bangunanDibangun = antrean
+      .filter((b) => b.status === "dibangun" && b.gx !== null && b.gx !== undefined && b.gy !== null && b.gy !== undefined)
+      .map((b) => ({ id: String(b._id), tipe: b.tipe, gx: b.gx as number, gy: b.gy as number, w: b.w ?? 2, h: b.h ?? 2 }));
     ctx.jalanTugas = new Set<string>();
     ctx.jalanRencana = rencanaJalan(
       // r38: ukuran petak dari helper kanonik.
@@ -3237,7 +3401,15 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
         continue;
       }
       if (b.status === "dibangun") {
-        b.progres = Math.min(100, (b.progres ?? 0) + 10 + perajin * 3);
+        // RONDE 21 — gotong royong: progres = 10 + 3 per pembantu DI
+        // LOKASI (siapa saja boleh membantu; bonus perajin dihapus —
+        // peran tidak lagi menentukan siapa yang membangun). Tanpa
+        // pembantu, kecepatan sama seperti sebelum r41 (10/jam).
+        const pembantu =
+          b.gx !== null && b.gx !== undefined && b.gy !== null && b.gy !== undefined
+            ? hitungPembantuBangun(wargaDocs, String(b._id), { gx: b.gx, gy: b.gy, w: b.w ?? def.footprint, h: b.h ?? def.footprint })
+            : 0;
+        b.progres = Math.min(100, (b.progres ?? 0) + progresKonstruksiPerJam(pembantu));
         if (b.progres >= 100) {
           // Idempotent: jangan dobel placement bila sudah ada.
           const sudah = placements.some((p) => p.bangunan_id === String(b._id));
