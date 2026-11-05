@@ -456,6 +456,11 @@ pertama), disposeGroup ikut membuang material cache bersama,
 karakter bukan kandidat instancing (butuh pose per bagian).
 Riset run ini menambah pembeda IGC: berbagi material saja tidak
 menurunkan draw call. Detail di research/2026-11-05-0629.md.
+~~CELAH DISPOSE DITUTUP 2026-11-05 10:29 WIB~~ — `disposeGroup`
+kini melewati material bersama via predikat `isVillageMaterial`
+/ `isRoadMaterial` (BUILD_ID r36, +10 tes); cleanup unmount
+tetap membuang semua. SISA celah: geometri per placement + padi
+per rumpun.
 
 Sumber: Glitchless (ukur dulu lewat renderer.info; tiap mesh minimal
 satu draw call) + Aetumi (InstancedMesh = satu geometri + satu

@@ -21,8 +21,7 @@ let villageMats: {
 } | null = null;
 
 function getVillageMats() {
-  if (villageMats) return villageMats;
-  villageMats = {
+  if (villageMats) return villageMats;  villageMats = {
     stoneBase: new THREE.MeshStandardMaterial({ color: "#808080", roughness: 0.8 }),
     stoneDark: new THREE.MeshStandardMaterial({ color: "#555555", roughness: 0.9 }),
     woodL1: new THREE.MeshStandardMaterial({ color: "#A08060", roughness: 0.9 }),
@@ -37,6 +36,16 @@ function getVillageMats() {
     leaf: new THREE.MeshStandardMaterial({ color: "#228B22", roughness: 0.9 }),
   };
   return villageMats;
+}
+
+// Predikat material bersama (r36, penutup celah audit Ide 30):
+// material di cache module-level ini dipakai ulang tiap rebuild
+// bangunan, jadi disposeGroup TIDAK boleh membuangnya — membuang
+// lalu render ulang hanya memaksa Three mengunggah ulang shader/
+// program yang sama. Cleanup unmount (traverse akhir komponen)
+// tetap membuang semua, karena di sana komponen benar-benar lepas.
+export function isVillageMaterial(mat: THREE.Material): boolean {
+  return (Object.values(getVillageMats()) as THREE.Material[]).includes(mat);
 }
 
 function enableShadows(obj: THREE.Object3D) {

@@ -13,6 +13,9 @@ import { gameTime, migrasiJam, migrasiJamV4, durasiJamMs, jamAdalahMalam, realMs
 import { faseDariJam } from "../src/lib/world";
 import { infoBakat, pengaliKumpulBakat, bonusJumlahBakat, pengaliJalanBakat, pulihStaminaBakat } from "../src/lib/batu/bakat";
 import { ORANG_TINGGI, GUBUK_TINGGI, POHON_TINGGI } from "../src/lib/batu/skala";
+import { isVillageMaterial } from "../src/lib/batu/assetVillage3D";
+import { isRoadMaterial } from "../src/lib/batu/assetRoad3D";
+import * as THREE from "three";
 import { readFileSync } from "fs";
 import { publicWarga } from "../src/lib/security";
 import { createHash } from "crypto";
@@ -872,7 +875,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r35"'), "version: BUILD_ID r34 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r36"'), "version: BUILD_ID r34 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1226,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r35"'), "versi: BUILD_ID r34");
+  ok(ver.includes('"r36"'), "versi: BUILD_ID r34");
 }
 
 {
@@ -2055,7 +2058,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const bKayu = terapkanPembusukan(ctxKayu);
   ok(bKayu.kayu === 1 && (ctxKayu.stok as unknown as Record<string, number>).kayu === 204, "busuk-kecil: kayu 205/200 susut 1 (5 x 10% = 0,5 -> 0 dulu)");
   const verKecil = readFileSync("src/lib/version.ts", "utf8");
-  ok(verKecil.includes('BUILD_ID = "r35"'), "busuk-kecil: BUILD_ID naik ke r35");
+  ok(verKecil.includes('BUILD_ID = "r36"'), "busuk-kecil: BUILD_ID naik ke r35");
 }
 
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
@@ -2255,7 +2258,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r35"'), "vis: BUILD_ID naik ke r34 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r36"'), "vis: BUILD_ID naik ke r34 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2362,7 +2365,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r35"'), "muat3d: BUILD_ID naik ke r34");
+  ok(verMuat.includes('BUILD_ID = "r36"'), "muat3d: BUILD_ID naik ke r34");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2406,7 +2409,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r35"'), "geraktenang: BUILD_ID naik ke r34");
+  ok(verGerak.includes('BUILD_ID = "r36"'), "geraktenang: BUILD_ID naik ke r34");
 }
 
 
@@ -2425,7 +2428,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r35"'), "tip: BUILD_ID naik ke r34");
+  ok(verTip.includes('BUILD_ID = "r36"'), "tip: BUILD_ID naik ke r34");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2443,7 +2446,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r35"'), "fokus: BUILD_ID naik ke r34");
+  ok(verFokus.includes('BUILD_ID = "r36"'), "fokus: BUILD_ID naik ke r34");
 }
 
 // Audit geometri/material bersama sebelum instancing (2026-11-05,
@@ -2470,7 +2473,33 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
   ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
   const verAudit = readFileSync("src/lib/version.ts", "utf8");
-  ok(verAudit.includes('BUILD_ID = "r35"'), "audit30: BUILD_ID naik ke r34");
+  ok(verAudit.includes('BUILD_ID = "r36"'), "audit30: BUILD_ID naik ke r34");
+}
+
+// Dispose lewati material bersama (2026-11-05, penutup celah audit
+// Ide 30): disposeGroup di Map3D kini melewati material cache
+// villageMats/roadMats yang dipakai ulang tiap rebuild, tapi tetap
+// membuang geometri per build; cleanup unmount tetap membuang
+// semua karena komponen benar-benar lepas. BUILD_ID naik ke r36.
+{
+  const mapSrc36 = readFileSync("src/components/Map3D.tsx", "utf8");
+  const desaSrc36 = readFileSync("src/lib/batu/assetVillage3D.ts", "utf8");
+  const jalanSrc36 = readFileSync("src/lib/batu/assetRoad3D.ts", "utf8");
+  ok(desaSrc36.includes("export function isVillageMaterial"), "dispose36: predikat isVillageMaterial diekspor dari assetVillage3D");
+  ok(jalanSrc36.includes("export function isRoadMaterial"), "dispose36: predikat isRoadMaterial diekspor dari assetRoad3D");
+  ok(desaSrc36.includes("Object.values(getVillageMats())") && jalanSrc36.includes("Object.values(getRoadMats())"), "dispose36: predikat membaca cache module-level, bukan daftar baru");
+  const idxDispose = mapSrc36.indexOf("const disposeGroup");
+  const segDispose = mapSrc36.slice(idxDispose, idxDispose + 700);
+  ok(idxDispose > 0 && segDispose.includes("!isVillageMaterial(x) && !isRoadMaterial(x)"), "dispose36: disposeGroup melewati material bersama");
+  ok(segDispose.includes("o.geometry.dispose()"), "dispose36: disposeGroup tetap membuang geometri per build");
+  const idxUnmount = mapSrc36.indexOf("scene.traverse((o) => {");
+  const segUnmount = mapSrc36.slice(idxUnmount, idxUnmount + 600);
+  ok(idxUnmount > 0 && segUnmount.includes("mat.forEach((x) => x.dispose())") && !segUnmount.includes("isVillageMaterial"), "dispose36: cleanup unmount tetap membuang semua material (tidak ikut dilewati)");
+  ok(!isVillageMaterial(new THREE.MeshStandardMaterial({ color: "#ff0000" })), "dispose36: material baru bukan material desa bersama");
+  ok(!isRoadMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: material baru bukan material jalan bersama");
+  ok(!isVillageMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: predikat desa/jalan tidak saling tertukar (jalan bukan desa)");
+  const ver36 = readFileSync("src/lib/version.ts", "utf8");
+  ok(ver36.includes('BUILD_ID = "r36"'), "dispose36: BUILD_ID naik ke r36");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

@@ -1,5 +1,79 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 10:29 WIB — Dispose lewati material bersama (penutup celah audit Ide 30) + brief riset performa
+
+Perubahan dalam 2 kalimat: `disposeGroup` di Map3D kini melewati
+material cache bersama desa dan jalan yang dipakai ulang tiap
+rebuild, sehingga rebuild bangunan/jalan tidak lagi membuang lalu
+mengunggah ulang shader/program yang sama; geometri per build
+tetap dibuang, dan cleanup unmount tetap membuang semua saat
+komponen benar-benar lepas.
+
+- `src/lib/batu/assetVillage3D.ts`: predikat baru
+  `isVillageMaterial` (membaca `Object.values(getVillageMats())`,
+  cache module-level 12 material, bukan daftar baru).
+- `src/lib/batu/assetRoad3D.ts`: predikat baru `isRoadMaterial`
+  (pasangan untuk cache 10 material jalan).
+- `src/components/Map3D.tsx`: `disposeGroup` membuang geometri
+  seperti biasa, tapi material hanya dibuang bila BUKAN
+  `isVillageMaterial` dan BUKAN `isRoadMaterial`; traverse cleanup
+  unmount di akhir komponen SENGAJA tidak diubah (di sana semua
+  material tetap dibuang, karena komponen benar-benar dilepas —
+  bukan rebuild). Sim, ekonomi, dan tampilan tidak berubah.
+- `src/lib/version.ts`: BUILD_ID r35 -> r36. Build Next.js hijau.
+- Tes: 10 penjaga baru (2 predikat diekspor, predikat membaca
+  cache, disposeGroup melewati material bersama + tetap buang
+  geometri, unmount tetap buang semua, 3 uji runtime predikat
+  dengan material baru, BUILD_ID r36) + 8 penjaga versi
+  diperbarui r35 -> r36. Total: 7820 lolos / 656 gagal —
+  baseline r35 7810/656, jadi +10 lolos, nol regresi baru
+  (656 gagal yang sama adalah baseline lama).
+- Riset: brief research/2026-11-05-1029.md (sudut PERFORMA,
+  rotasi dari ekonomi/sim 08:29) — forum three.js (jangan dispose
+  geometri bersama internal), StudyRaid (lewati yang bertanda
+  bersama saat cleanup), good.vibes.diy (dispose material bersama
+  tepat sekali saat cleanup, bukan tiap rebuild), dev.to
+  (renderer.info.memory sebagai pengukur kebocoran).
+  Tidak direkomendasikan: membiarkan dispose semua tiap rebuild,
+  menghapus dispose sama sekali, dan migrasi WebGPU/hapus bayangan
+  tanpa baseline.
+- Sisa celah audit r34 yang BELUM ditutup run ini: geometri per
+  placement belum dibagi, dan padi sawah per rumpun (kandidat
+  instancing pertama) — keduanya antrean run berikut, bukan
+  disisipkan ke run ini.
+
+### Observasi live (browser, hanya melihat, 10:29-10:32 WIB)
+- Muat pertama: layar gelap "Memuat peta 3D…" dulu, desa penuh
+  dalam <30 detik, tanpa error/blank menetap.
+- Sim hidup, bukan gambar statis: jam game 19:33 -> 19:38 lalu
+  ganti hari 06:15, label nama warga berpindah antar tampilan,
+  bubble obrolan berganti, angka stok berubah.
+- Hewan terlihat lewat label + figur kecil: Rusa, Kelinci, Ayam
+  Hutan, Beruang (identifikasi spesies berbasis label, bukan
+  close-up — dicatat jujur).
+- Tombol/panel yang dites merespons: kartu Menu Kampung buka/
+  tutup bersih, zoom ▲/▼ membesar-mengecil normal; panel menu
+  yang terbuka menutupi tengah desa (redup di belakangnya) tapi
+  menutup bersih. "Tambah karakter" dan "Panduan Kontrol" TIDAK
+  diklik (di luar batas hanya-melihat), jadi fungsinya tidak
+  terverifikasi run ini. Tidak ada area blank/error; lahan hijau
+  luas di barat adalah terrain jarang bangunan, bukan panel
+  kosong.
+- Data menu: desa "Emas" (bukan "Suka Maju" seperti bacaan API
+  run-run sebelumnya — dicatat apa adanya, bukan diklaim ganti
+  nama; bisa jadi panel yang dibaca berbeda), populasi 12
+  (Pekerja 4, Pengangguran 8), Hari ke-348 19:35 Malam -> Hari
+  ke-349 06:15 Pagi, Cerah, Musim Kemarau.
+- Stok: Kayu 159/160 -> 157/160, Batu 10/130 -> 14/130, Emas
+  1/40, Besi 47/55, Pangan 0/200, Kulit 96/95 -> 93/95.
+  Kulit yang semalam masih di atas kapasitas kini turun ke
+  bawah kapasitas — searah pembusukan minimal-1 r35, BUKAN hasil
+  run ini (run ini belum deploy saat observasi, dan hanya
+  menyentuh dispose render).
+
+### Verifikasi live r36 (menyusul setelah deploy)
+- (diisi setelah deploy READY + cek API)
+
 ## 2026-11-05 08:29 WIB — Pembusukan sisa kecil tidak lagi macet (antrean r34) + brief riset ekonomi/sim
 
 Perubahan dalam 2 kalimat: `terapkanPembusukan` kini membusukkan

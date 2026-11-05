@@ -41,6 +41,14 @@ function getRoadMats() {
   return roadMats;
 }
 
+// Predikat material bersama (r36, pasangan isVillageMaterial):
+// cache module-level ini dipakai ulang tiap rebuild jalan, jadi
+// disposeGroup TIDAK boleh membuangnya; cleanup unmount tetap
+// membuang semua saat komponen benar-benar lepas.
+export function isRoadMaterial(mat: THREE.Material): boolean {
+  return (Object.values(getRoadMats()) as THREE.Material[]).includes(mat);
+}
+
 const TILE_SIZE = 4;
 const HALF_TILE = TILE_SIZE / 2;
 

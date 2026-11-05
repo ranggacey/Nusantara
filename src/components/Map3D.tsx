@@ -28,8 +28,8 @@ import { buatTombakIblis } from "@/lib/batu/senjataIblis";
 import { updateAudioScene, SFX_PERKAKAS } from "@/lib/audio";
 import { createFantasyWarehouse } from "@/lib/batu/assetGudang3D";
 import { createPaviliunNirwana } from "@/lib/batu/assetPaviliun3D";
-import { createFantasyHouse } from "@/lib/batu/assetVillage3D";
-import { createModularRoadTile, determineRoadPiece } from "@/lib/batu/assetRoad3D";
+import { createFantasyHouse, isVillageMaterial } from "@/lib/batu/assetVillage3D";
+import { createModularRoadTile, determineRoadPiece, isRoadMaterial } from "@/lib/batu/assetRoad3D";
 
 type J = Record<string, any>;
 
@@ -1308,13 +1308,20 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     // seperti era 200x200) — koordinat dunia ubin lama TIDAK BERGESER.
     const toWorld = (gx: number, gy: number, gw: number, gh: number, gmin = 0) => ({ x: gx - (gmin + gw / 2) + 0.5, z: gy - (gmin + gh / 2) + 0.5 });
 
+    // r36: lewati material bersama (cache villageMats/roadMats) —
+    // material itu dipakai ulang rebuild berikutnya, jadi membuangnya
+    // di sini hanya memaksa unggah ulang shader/program yang sama.
+    // Geometri tetap dibuang (dibuat per build, bukan cache bersama),
+    // dan cleanup unmount di akhir komponen tetap membuang semua.
     const disposeGroup = (gr: THREE.Group) => {
       gr.traverse((o) => {
         if (o instanceof THREE.Mesh || o instanceof THREE.InstancedMesh) {
           o.geometry.dispose();
           const mat = o.material as THREE.Material | THREE.Material[];
-          if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
-          else mat.dispose();
+          const mats = Array.isArray(mat) ? mat : [mat];
+          mats.forEach((x) => {
+            if (!isVillageMaterial(x) && !isRoadMaterial(x)) x.dispose();
+          });
         }
       });
     };
