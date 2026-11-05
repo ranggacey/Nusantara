@@ -446,6 +446,16 @@ hadiah klaim offline, tur interaktif multi-langkah, dan puluhan
 achievement sekaligus (lihat brief research/2026-11-05-0029.md).
 
 ## Ide 30 — Audit geometri/material bersama sebelum instancing (dari riset 2026-11-05 02:29 WIB, sudut performa)
+~~DIBANGUN 2026-11-05 06:29 WIB~~ — audit statis + 10 tes penjaga
+(node alam sudah InstancedMesh per jenis; cache material desa
+module-level; rebuild bergerbang signature + dispose traverse)
++ laporan celah di CHANGELOG sebagai prasyarat Ide 28, tanpa
+mengubah render: geometri per placement belum dibagi, padi sawah
+per rumpun (geometri + material baru — kandidat instancing
+pertama), disposeGroup ikut membuang material cache bersama,
+karakter bukan kandidat instancing (butuh pose per bagian).
+Riset run ini menambah pembeda IGC: berbagi material saja tidak
+menurunkan draw call. Detail di research/2026-11-05-0629.md.
 
 Sumber: Glitchless (ukur dulu lewat renderer.info; tiap mesh minimal
 satu draw call) + Aetumi (InstancedMesh = satu geometri + satu

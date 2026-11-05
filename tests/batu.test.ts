@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r33"'), "version: BUILD_ID r33 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r34"'), "version: BUILD_ID r34 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r33"'), "versi: BUILD_ID r33");
+  ok(ver.includes('"r34"'), "versi: BUILD_ID r34");
 }
 
 {
@@ -2225,7 +2225,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r33"'), "vis: BUILD_ID naik ke r33 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r34"'), "vis: BUILD_ID naik ke r34 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2332,7 +2332,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r33"'), "muat3d: BUILD_ID naik ke r33");
+  ok(verMuat.includes('BUILD_ID = "r34"'), "muat3d: BUILD_ID naik ke r34");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2376,7 +2376,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r33"'), "geraktenang: BUILD_ID naik ke r33");
+  ok(verGerak.includes('BUILD_ID = "r34"'), "geraktenang: BUILD_ID naik ke r34");
 }
 
 
@@ -2395,7 +2395,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r33"'), "tip: BUILD_ID naik ke r33");
+  ok(verTip.includes('BUILD_ID = "r34"'), "tip: BUILD_ID naik ke r34");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2413,7 +2413,34 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r33"'), "fokus: BUILD_ID naik ke r33");
+  ok(verFokus.includes('BUILD_ID = "r34"'), "fokus: BUILD_ID naik ke r34");
+}
+
+// Audit geometri/material bersama sebelum instancing (2026-11-05,
+// Ide 30): penjaga statis — kunci pola baik yang ditemukan audit
+// (node alam ter-instancing per jenis, cache material desa,
+// rebuild bergerbang signature + dispose traverse) supaya refactor
+// berikutnya tidak diam-diam mengembalikannya ke mesh per objek.
+// Audit ini TIDAK mengubah render: celah yang ditemukan (geometri
+// per placement, padi per rumpun, dispose material bersama) hanya
+// dicatat di CHANGELOG + IDE-FITUR sebagai prasyarat Ide 28, dan
+// BUILD_ID naik ke r34.
+{
+  const mapSrcAudit = readFileSync("src/components/Map3D.tsx", "utf8");
+  const desaSrcAudit = readFileSync("src/lib/batu/assetVillage3D.ts", "utf8");
+  ok(mapSrcAudit.includes("function instanced("), "audit30: helper instanced() ada di Map3D");
+  ok(mapSrcAudit.includes("instanced(new THREE.CylinderGeometry(0.24, 0.34, POHON_BATANG, 6)"), "audit30: batang pohon ter-instancing (bukan mesh per pohon)");
+  ok(mapSrcAudit.includes("instanced(new THREE.ConeGeometry(1.5, 4.2, 7)"), "audit30: tajuk pohon ter-instancing");
+  ok(mapSrcAudit.includes("instanced(new THREE.SphereGeometry(0.75, 8, 6)"), "audit30: semak ter-instancing");
+  const idxBatu = mapSrcAudit.indexOf("const batu = byKind.singkapan_batu");
+  const idxEmas = mapSrcAudit.indexOf("const emas = byKind.urat_emas");
+  ok(idxBatu > 0 && mapSrcAudit.indexOf("instanced(", idxBatu) > idxBatu && mapSrcAudit.indexOf("instanced(", idxBatu) < idxEmas && mapSrcAudit.includes("DodecahedronGeometry(0.9, 0)"), "audit30: singkapan batu ter-instancing");
+  ok(idxEmas > 0 && mapSrcAudit.indexOf("instanced(", idxEmas) > idxEmas && mapSrcAudit.includes("DodecahedronGeometry(0.85, 0)"), "audit30: urat emas/besi ter-instancing");
+  ok(desaSrcAudit.includes("villageMats") && desaSrcAudit.includes("if (villageMats) return villageMats"), "audit30: material desa di-cache module-level, bukan dibuat per bangunan");
+  ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
+  ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
+  const verAudit = readFileSync("src/lib/version.ts", "utf8");
+  ok(verAudit.includes('BUILD_ID = "r34"'), "audit30: BUILD_ID naik ke r34");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

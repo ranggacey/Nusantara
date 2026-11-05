@@ -1,5 +1,121 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 06:29 WIB — Audit geometri/material bersama sebelum instancing (Ide 30) + brief riset performa
+
+Perubahan dalam 2 kalimat: audit statis kode render 3D memastikan
+pola baik yang sudah ada (node alam ter-instancing, material desa
+di-cache, rebuild bergerbang signature) terkunci tes penjaga, dan
+mencatat celah yang ditemukan sebagai prasyarat instancing
+berikutnya; render, sim, dan ekonomi tidak diubah sama sekali.
+
+- `tests/batu.test.ts`: 10 penjaga statis baru (helper
+  `instanced()` ada; batang/tajuk pohon, semak, singkapan batu,
+  urat emas/besi ter-instancing; cache `villageMats` module-level;
+  `disposeGroup` traverse InstancedMesh + buang geometri; rebuild
+  jalan bergerbang `jalanSig`) + 7 penjaga versi diperbarui
+  r33 -> r34. Total: 7805 lolos / 656 gagal — baseline r33
+  7795/656, jadi +10 lolos, nol regresi baru (656 gagal yang sama
+  adalah baseline lama: r14/r15/r18, bukan dari run ini). Build
+  Next.js hijau.
+- `src/lib/version.ts`: BUILD_ID r33 -> r34.
+- Backlog: Ide 30 dicatat DIBANGUN di IDE-FITUR.md; riset run ini
+  menambah pembeda penting dari IGC: berbagi material saja TIDAK
+  menurunkan draw call (hanya state change) — penurunan butuh
+  instancing/merging/batching; dan pola dispose Glitchless
+  ("lewati yang dibagi") sebagai syarat perbaikan dispose berikut.
+
+### Temuan audit (prasyarat Ide 28, tanpa ubah render)
+- SUDAH BENAR — node alam satu InstancedMesh per jenis: batang +
+  tajuk pohon, semak, beri, padang buruan, singkapan batu, urat
+  emas, urat besi. Ini kategori terbesar (node bisa ratusan) dan
+  sudah 1 draw call per jenis, bukan per node.
+- SUDAH BENAR — `assetVillage3D.ts` memakai cache material
+  module-level (`villageMats`, 12 material) yang dibagi semua
+  bangunan desa; dan rebuild bergerbang signature (mis. `jalanSig`)
+  + `disposeGroup` traverse, jadi tidak ada rebuild tiap poll.
+- CELAH — geometri TIDAK dibagi: tiap builder membuat geometri
+  baru per placement (tiang pagar peternakan per tiang, tiang
+  saung, dst.). Material dibagi tapi buffer geometri diduplikasi
+  — bukan draw call ekstra (tiap mesh tetap 1 call), tapi beban
+  GPU yang harus disatukan dulu sebelum instancing bangunan.
+- CELAH TERBURUK — rumpun padi sawah: tiap rumpun = geometri BARU
+  + material BARU (4 warna seharusnya 4 material bersama + 1
+  geometri bersama, atau 1 InstancedMesh per warna). Sawah 8x8 =
+  ratusan mesh; kandidat instancing pertama setelah node.
+- CELAH — `disposeGroup` membuang JUGA material cache bersama
+  (traverse memanggil `mat.dispose()` pada `villageMats`): Three
+  mengunggah ulang saat render berikutnya, jadi bukan leak, tapi
+  cache "dibuang + diunggah ulang" tiap rebuild bangunan — persis
+  yang dilarang pola dispose Glitchless. Perbaikan (tandai
+  material bersama, lewati di dispose) ditunda ke run berikut
+  karena menyentuh jalur render.
+- BUKAN KANDIDAT instancing — karakter: tiap warga ~15-25 mesh
+  dengan geometri/material baru per warga, tapi butuh animasi
+  pose per bagian; jalan keluarnya berbagi geometri per varian,
+  bukan InstancedMesh. Bangunan butuh klik/raycast per objek, jadi
+  untuk bentuk beda + satu material, BatchedMesh (IGC) lebih
+  tepat daripada instancing; untuk yang statis total, merging.
+- PENGALI BAYANGAN — aset desa mengaktifkan castShadow, jadi tiap
+  mesh bisa 2+ draw call; tanpa baseline runtime Ide 27, angka
+  total TIDAK diklaim.
+
+### Observasi live (browser, hanya melihat, 06:32-06:35 WIB)
+- Muat pertama tidak instan tapi tidak gagal: layar gelap
+  "Memuat peta 3D…" dulu, desa terlihat pada cek berikut setelah
+  jeda ~20 detik — total di bawah ~1 menit, tanpa blank/error
+  menetap. Durasi detik persis tidak diukur (cek interval).
+- Geser/zoom tidak ngelag pada sampel: 2 klik zoom + seret analog
+  merespons langsung, tanpa blank tile/freeze/error. FPS tidak
+  diukur — bukan klaim angka.
+- Warga campuran: sebagian berkerumun diam di sekitar balai/gubuk
+  (Figo, Nera, Praboti, Renata, ribran gakabuming, Siti), sebagian
+  bergerak melintasi lapangan (Evos dyroth) — gerak terbukti,
+  tujuan/tugasnya tidak terverifikasi dari tampilan (tanpa label
+  tugas yang terlihat).
+- Hewan TERLIHAT sebagai sprite (perbaikan dari run sebelumnya
+  yang tidak melihat): rusa cokelat kecil di bawah label "Rusa"
+  pada tampilan zoom, dan berpindah antar tampilan. Spesies lain
+  di zoom lebar terlalu kecil untuk diidentifikasi pasti.
+- Tombol/panel tidak ada yang tertutup/rusak: kartu menu awalnya
+  terpotong di lipatan (Suara/Pengaturan/Orientasi di bawah),
+  TAPI kartu bisa di-scroll dan ujung bawahnya utuh ("Orientasi:
+  portrait"). Tidak ada bar status atas persisten terpisah —
+  nama/waktu/cuaca/stok hanya ada di dalam kartu menu, bukan bar
+  di atas peta (koreksi atas catatan run sebelumnya yang menyebut
+  "bar status atas sempat terlihat").
+- Baris tip r32/r33 TERLIHAT di kartu menu dengan teks persis
+  (menonton bukan mengatur, arah lewat Musyawarah).
+- Data menu saat observasi: Suka Maju, populasi 9, H-333, 07.11
+  lalu 09.23 Pagi, Cerah; stok kayu 191/160 (Penuh), batu 14/130,
+  emas 1/40, besi 47/55, pangan 0/200, kulit 104/95 (Penuh).
+- TEMUAN STOK (dari data + kode, bukan tebak): kayu 266 (H-321)
+  -> 225 -> 219 -> 191 (H-333) PERSIS mengikuti pembusukan 10%
+  per hari game atas kelebihan di atas 160 (rasio ~0,53 per 6
+  hari = 0,9^6) — jadi pembusukan kayu BERJALAN. Kulit TETAP
+  104/95 di ketiga cek: mekanismenya ada di kode —
+  `terapkanPembusukan` memakai `Math.floor`, sehingga kelebihan
+  <10 tidak pernah busuk (floor(9 x 0,1) = 0; ambang yang sama
+  untuk pangan <2). Kulit 104 "mentok" bukan bug baru, melainkan
+  zona-mati floor; perbaikan (pembulatan/ambang minimal) adalah
+  pekerjaan sim run berikut, BUKAN run ini (cron dilarang menulis
+  DB dan run ini display/audit saja).
+
+### Riset (brief research/2026-11-05-0629.md, sudut PERFORMA — rotasi dari aksesibilitas 04:29)
+- Sumber: Glitchless (ukur dulu via renderer.info + frame
+  tipikal/95th/terburuk; InstancedMesh + geometri/material dibagi,
+  "never create them per object"; merge statis; dispose hanya yang
+  tidak dibagi; bayangan satu lampu + kamera rapat; cap DPR HP)
+  + Intelligent Graphic and Code (tiap mesh = 1 draw call walau
+  material dibagi; InstancedMesh vs BatchedMesh vs merging menurut
+  kendala; material per objek = pola boros eksplisit; target
+  <100 desktop / <50 HP).
+- Ide 30 dibangun run ini dari pola itu; Ide 28 tetap menunggu
+  baseline Ide 27 + perbaikan dispose + geometri bersama.
+- Tidak direkomendasikan: berbagi material saja lalu klaim draw
+  call turun, dispose material bersama, instancing sekaligus tanpa
+  baseline + cek raycast, dan migrasi WebGPU tanpa profil dulu.
+
+
 ## 2026-11-05 04:29 WIB — Cincin fokus keyboard di menu/modal (Ide 26) + brief riset aksesibilitas
 
 Perubahan dalam 2 kalimat: tombol di kartu menu dan modal kini
