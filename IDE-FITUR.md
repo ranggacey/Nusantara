@@ -575,3 +575,30 @@ pemain, cara kerja singkat, dan perkiraan dampak vs usaha.
 - Warga tidur di dalam rumah pada malam hari (sebelumnya berkerumun di luar): render menyembunyikan warga istirahat+malam (`tidurDiDalam`), sim tidak berubah.
 - Label nama bertumpuk diperbaiki: `rapikanLabelBertumpuk` menggeser label yang bertabrakan ke bawah sampai terbaca; tombol menu ☰ kontras tinggi (latar kuning solid + ikon gelap).
 - Hewan lebih banyak di dekat kampung: respawn/seed bias 80% ke sabuk 12–45 tile dari pusat, target populasi tetap ~25.
+
+## Ide 32 — Ambien prosedural siang/malam/cuaca (dari riset 2026-11-05 16:29 WIB, sudut audio)
+
+Sumber: dok desain suara 0 A.D. (lapis Environmental + Ambient:
+angin, hujan, burung siang vs malam) + MDN Web Audio best
+practices (AudioContext hanya resume di dalam gestur; kontrol
+volume/mute wajib) + ulasan Village in the Shade (siang/malam
+yang terdengar = penanda waktu) + CRYENGINE Dynamic Ambience
+(lapis dasar + blend siang/malam + crossfade) + SEASON/Animal
+Crossing (ambien lebih pelan dari SFX aksi, latar bukan sorotan).
+Masalah: di luar SFX pendek, kampung itu bisu — malam terasa sama
+dengan siang, hujan tidak terdengar, padahal fase dan cuaca sudah
+ada di sim. Halangan lama ("aset loop berlisensi") hilang bila
+prosedural: `audio.ts` sudah punya buffer noise 2 detik + loop api
++ loop sungai + gate gestur. Cara kerja: fungsi murni
+`lapisanAmbien(fase, cuaca)` -> gain {angin, hujan, malam};
+loop persisten baru dari noise yang sama (angin lowpass + LFO,
+hujan bandpass, malam sangat pelan) + crossfade di
+`updateAudioScene`; snapshot ditambah faseWaktu + cuaca dari data
+poll yang sudah ada; ikut toggle Suara + gate gestur; tanpa aset,
+tanpa fetch baru, tanpa ubah sim. Dampak sedang-tinggi, usaha
+kecil-sedang. Lanjutan: bunyi acak jarang (jangkrik/burung
+one-shot) + slider volume Efek/Ambien (Ide 16, setelah ambien
+ada). Tidak direkomendasikan dari riset ini: ambien generate AI
+on-device, autoplay saat load, loop berlisensi di paket awal,
+musik latar penuh sebagai langkah pertama. Detail di
+research/2026-11-05-1629.md.

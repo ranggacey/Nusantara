@@ -943,6 +943,7 @@ export default function Page() {
             onLepasKunci={batalKunci}
             onTapBangunan={tapBangunan}
             gameFase={String(world?.fase ?? "")}
+            cuaca={cuaca}
             jamTotal={Number(world?.jam_total ?? 0)}
             onResourceHarvested={handleResourceHarvested}
             roadLevel={roadLevel}

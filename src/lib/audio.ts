@@ -88,6 +88,39 @@ export interface AudioSnapshot {
   api: { x: number; z: number }[];
   jarakAir: number;
   hewan: { id: string; jenis: string; x: number; z: number }[];
+  // RONDE 23 — ambien prosedural (r43): fase + cuaca dari data poll yang
+  // sudah ada (Map3D menerima gameFase, page menghitung cuacaGame).
+  faseWaktu: string;
+  cuaca: string;
+}
+
+// RONDE 23 — ambien prosedural (r43): gain tiap lapis ambien dari fase +
+// cuaca game. Murni (tanpa AudioContext) supaya bisa dites offline.
+// Nilai kecil dengan sengaja: ambien adalah LATAR, bukan sorotan —
+// master 0.9, loop api maks 0.5, sungai 0.35 (SEASON: "soft sounds
+// that do not distract"). Fase: hanya "malam" yang malam (tampil.ts:
+// selain malam = siang); cuaca dari cuacaGame: cerah/berawan/hujan/petir.
+// Nilai tak dikenal -> default siang cerah (aman, tidak NaN).
+export interface LapisanAmbien {
+  angin: number;
+  hujan: number;
+  malam: number;
+}
+const jepit01 = (v: number) => Math.max(0, Math.min(1, v));
+export function lapisanAmbien(fase: string, cuaca: string): LapisanAmbien {
+  const malam = fase === "malam";
+  const sore = fase === "sore";
+  let angin = malam ? 0.06 : sore ? 0.08 : 0.1;
+  let hujan = 0;
+  if (cuaca === "berawan") angin += 0.02;
+  else if (cuaca === "hujan") {
+    angin = 0.14;
+    hujan = 0.22;
+  } else if (cuaca === "petir") {
+    angin = 0.18;
+    hujan = 0.3;
+  }
+  return { angin: jepit01(angin), hujan: jepit01(hujan), malam: jepit01(malam ? 0.08 : 0) };
 }
 
 let actx: AudioContext | null = null;
@@ -96,6 +129,12 @@ let noiseBuf: AudioBuffer | null = null;
 let apiGain: GainNode | null = null;
 let apiPan: StereoPannerNode | null = null;
 let airGain: GainNode | null = null;
+// RONDE 23 — ambien prosedural: tiga loop persisten dari noiseBuf yang
+// sama (tanpa file audio): angin (lowpass), hujan (bandpass), malam
+// (lowpass sangat pelan). Gain diatur per update dari lapisanAmbien.
+let anginGain: GainNode | null = null;
+let hujanGain: GainNode | null = null;
+let malamGain: GainNode | null = null;
 let suaraOn = true;
 const lastLangkah = new Map<string, number>();
 const lastPerkakas = new Map<string, number>();
@@ -149,6 +188,51 @@ function getCtx(): AudioContext | null {
     airSrc.connect(airFilter).connect(airGain).connect(master);
     airSrc.start();
     lfo.start();
+    // RONDE 23 — ambien prosedural: tiga loop dari noiseBuf yang sama.
+    // Angin: lowpass 300 Hz + LFO pelan (hembusan, bukan statis).
+    const anginSrc = actx.createBufferSource();
+    anginSrc.buffer = noiseBuf;
+    anginSrc.loop = true;
+    anginSrc.playbackRate.value = 0.5;
+    const anginFilter = actx.createBiquadFilter();
+    anginFilter.type = "lowpass";
+    anginFilter.frequency.value = 300;
+    anginGain = actx.createGain();
+    anginGain.gain.value = 0;
+    const anginLfo = actx.createOscillator();
+    anginLfo.frequency.value = 0.11;
+    const anginLfoGain = actx.createGain();
+    anginLfoGain.gain.value = 0.03;
+    anginLfo.connect(anginLfoGain).connect(anginGain.gain);
+    anginSrc.connect(anginFilter).connect(anginGain).connect(master);
+    anginSrc.start();
+    anginLfo.start();
+    // Hujan: bandpass 1200 Hz, playback lebih cepat (gemerisik).
+    const hujanSrc = actx.createBufferSource();
+    hujanSrc.buffer = noiseBuf;
+    hujanSrc.loop = true;
+    hujanSrc.playbackRate.value = 1.3;
+    const hujanFilter = actx.createBiquadFilter();
+    hujanFilter.type = "bandpass";
+    hujanFilter.frequency.value = 1200;
+    hujanFilter.Q.value = 0.5;
+    hujanGain = actx.createGain();
+    hujanGain.gain.value = 0;
+    hujanSrc.connect(hujanFilter).connect(hujanGain).connect(master);
+    hujanSrc.start();
+    // Malam: alas sangat pelan, lowpass 200 Hz (jangkrik/burung
+    // one-shot menyusul di run berikut; lapis dasarnya dulu).
+    const malamSrc = actx.createBufferSource();
+    malamSrc.buffer = noiseBuf;
+    malamSrc.loop = true;
+    malamSrc.playbackRate.value = 0.5;
+    const malamFilter = actx.createBiquadFilter();
+    malamFilter.type = "lowpass";
+    malamFilter.frequency.value = 200;
+    malamGain = actx.createGain();
+    malamGain.gain.value = 0;
+    malamSrc.connect(malamFilter).connect(malamGain).connect(master);
+    malamSrc.start();
   }
   return actx;
 }
@@ -262,6 +346,15 @@ export function updateAudioScene(s: AudioSnapshot): void {
   }
   // Air sungai: gain dari jarak kamera ke sungai.
   if (airGain) airGain.gain.setTargetAtTime(gainJarak(s.jarakAir, SFX_JARAK.air) * 0.35, c.currentTime, 0.3);
+  // RONDE 23 — ambien: crossfade PELAN (0,5 dtk) antar lapis supaya
+  // pergantian siang/malam/cuaca terdengar halus, bukan potong kasar
+  // (CRYENGINE: blend container, bukan ganti trek). Ikut master gain,
+  // jadi mute (Suara mati) ikut membungkam ambien; sebelum gestur
+  // pertama ctx belum running dan fungsi ini return di atas.
+  const lap = lapisanAmbien(s.faseWaktu, s.cuaca);
+  if (anginGain) anginGain.gain.setTargetAtTime(lap.angin, c.currentTime, 0.5);
+  if (hujanGain) hujanGain.gain.setTargetAtTime(lap.hujan, c.currentTime, 0.5);
+  if (malamGain) malamGain.gain.setTargetAtTime(lap.malam, c.currentTime, 0.5);
 
   // Warga: langkah kaki saat bergerak + perkakas saat kumpul.
   for (const w of s.warga) {

@@ -44,6 +44,9 @@ interface Props {
   onLepasKunci: () => void;
   onTapBangunan?: (p: { id: string; kind: string; gx: number; gy: number; level?: number }) => void;
   gameFase: string;
+  // RONDE 23 — ambien prosedural (r43): cuaca dari page (cuacaGame),
+  // diteruskan ke updateAudioScene bersama gameFase.
+  cuaca?: string;
   jamTotal: number;
   onResourceHarvested?: (resource: string, amount: number) => void;
   roadLevel?: number;
@@ -1062,7 +1065,7 @@ function buildAnimal(jenis: string): THREE.Group {
   return g;
 }
 
-export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWarga, onLepasKunci, onTapBangunan, gameFase, jamTotal, onResourceHarvested, roadLevel = 1, labelTampil = true }: Props) {
+export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWarga, onLepasKunci, onTapBangunan, gameFase, cuaca = "cerah", jamTotal, onResourceHarvested, roadLevel = 1, labelTampil = true }: Props) {
   const onResourceHarvestedRef = useRef(onResourceHarvested);
   onResourceHarvestedRef.current = onResourceHarvested;
   const roadLevelRef = useRef(roadLevel);
@@ -2856,6 +2859,10 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           camZ: camera.position.z,
           rightX: rightV.x,
           rightZ: rightV.z,
+          // RONDE 23 — ambien: fase + cuaca ikut snapshot supaya lapis
+          // angin/hujan/malam mengikuti jam dan cuaca game.
+          faseWaktu: faseRef.current,
+          cuaca,
           warga: [...wargaMap.values()].map((c) => ({
             id: String(c.data.id ?? ""),
             x: c.dx,
