@@ -1,5 +1,26 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 ~18:29 WIB — r44: jarak label bertumpuk 18/20px -> 28px (observasi live)
+
+Perubahan dalam 2 kalimat: label nama warga yang berkerumun kini benar-benar terpisah — jarak antar label dirapikan dari 18/20px menjadi 28px, karena pil label tingginya ~19px sehingga jarak lama hanya menyisakan celah 1-2px dan tumpukan terlihat seperti kolom yang bordernya bersentuhan; tidak ada yang berubah selain jarak itu (tanpa ubah sim, tanpa ubah tampilan lain).
+
+- Akar (terbukti hitungan CSS, bukan tebakan): `.map3d-label` = font 11px x 1.2 + padding 4px + border 2px = ~19px tingginya; ambang bentrok 18px + langkah geser 20px menaruh dua pil hanya 1-2px berjarak. Konstanta baru `JARAK_LABEL_BERTUMPUK = 28` di `src/lib/batu/tampil.ts` = pil ~19px + celah ~9px, dipakai sebagai ambang DAN langkah (pemisahan akhir 28-55px). Pil terpilih (`.sel`, ~27px) celahnya menipis — diterima, karena hanya satu label terpilih dalam satu waktu.
+- Tes: blok RONDE 24 baru, 11 asersi (tumpukan 5 label -> 0/28/56/84/112; ambang 24px masih bertabrakan, 30px bebas; horizontal <70px/>=70px tidak berubah; urutan input dipertahankan; audit sumber) + 2 asersi r22 diperbarui ke jarak baru (termasuk "urutan input dipertahankan": 120 -> 148 karena ambang 28). Total: 7998-7999 lolos / 642-643 gagal vs baseline 7987/643 — daftar nama gagal IDENTIK setelah nilai acak dinormalisasi; satu-satunya selisih antar run adalah tes flaky yang sudah dikenal (r15 acak + simulasi paceklik 12 jam, gagal di satu run dan lolos di run berikutnya pada tree yang sama, sebelum maupun sesudah perubahan ini — tanpa kaitan dengan label). Build Next.js hijau.
+- `src/lib/version.ts`: `BUILD_ID` r43 -> r44 (16 pin versi ikut naik).
+
+### Observasi live r44 (browser, hanya melihat, 18:29-18:32 WIB)
+- Muat pertama: layar "Memuat peta 3D…" polos (tanpa progress bar/persentase/spinner), desa penuh tampil <30 detik; tidak terasa berat, tanpa error. Geser/zoom tidak dites (instruksi observe-only, tanpa klik).
+- Warga tampak diam/berdiri di tempat selama 45-90 detik pengamatan (Figo, Nera, Praboti, Evos dyroth, Siti, Ys + klaster tengah) — tidak terlihat berjalan/menebang/bertani dari framing ini. Dicatat sebagai observasi, BUKAN vonis bug: warga bisa saja bekerja di node-nya (aksi di tempat) dan r41 sudah mengalihkan warga menganggur ke kerja berguna; verifikasi butuh pengamatan lebih lama / zoom ke node kerja.
+- Hewan: hanya 1 Kelinci terlihat berlabel di viewport; 17 label hewan lain terdaftar di halaman tapi di luar kamera. Artinya tumpukan label yang teramati BUKAN label hewan — koreksi atas dugaan awal brief ini.
+- Analog joystick kiri-bawah TIDAK terpotong run ini: lingkaran luar utuh dengan margin jelas dari tepi kiri, tombol ✕/▲/▼ semua terlihat. Laporan r43 tidak terulang — TIDAK ada angka CSS yang diubah; Ide 34 (safe-area) masuk backlog saja. Satu keanehan visual kecil: objek dunia 3D (cakram emas) menonjol dari balik tepi kanan tombol ▼ — objek scene di belakang UI, bukan tumpang tindih UI.
+- Label warga di pusat kampung MASIH rapat: 5 label (Renata, Go Younjung, Budi, reja auditore, ribran gakabuming) menumpuk vertikal, border pil bersentuhan/hampir bersentuhan; teksnya sendiri tetap terbaca, tidak ada teks-menimpa-teks. Inilah yang diperbaiki r44 (jarak 28px). Verifikasi visual jarak baru menyusul run berikut (butuh muat dingin + framing yang sama).
+- Label sempat berkedip: tumpukan 5 label hilang satu kali pengamatan lalu muncul lagi ~90 detik kemudian, tanpa warga berpindah. Dugaan: warga istirahat saat malam tiba lalu disembunyikan r42 (`tidurDiDalam`) — belum terverifikasi, dicatat saja.
+- Tidak ada HUD hari/jam/cuaca/stok di tampilan default (hanya di kartu menu) — by design sejak navbar dihapus, bukan bug. Tidak ada area blank/error. Peta sebagian besar rumput kosong dengan desa kecil di tengah — itu terrain, bukan blank.
+- Verifikasi r43 live (sebelum edit): `/api/version` = `{"ok":true,"build":"r43"}`.
+
+### Riset + backlog (brief research/2026-11-05-1829.md)
+- Sudut: UX (rotasi dari AUDIO 16:29). Sumber dibaca penuh: Wandr (jempol bukan kursor, target besar DAN berjarak, umpan balik di luar titik sentuh, kurangi isi layar) + Cursa (teks sekunder min 12-13px, scrim di atas gambar, target 44-48px + jarak 8-12px, jangan menempel tepi); plus h-idris (safe area), Supagames (safe-area-inset + cadangkan ruang kontrol), Egmatic (49% main satu tangan, lantai 48dp). Ide 33 (label hewan ikut antrean rapikan) dan Ide 34 (safe-area klaster kontrol) masuk IDE-FITUR.md sebagai backlog. Tidak direkomendasikan: perkecil font label di bawah 11px, pindah kontrol ke atas layar, tur interaktif multi-langkah, menebak penyebab analog terpotong tanpa bukti visual.
+
 ## 2026-11-05 ~16:29 WIB — r43: ambien prosedural siang/malam/cuaca (Ide 32, irisan 1)
 
 Perubahan dalam 2 kalimat: kampung kini terdengar hidup — tiga lapis ambien prosedural (angin, hujan, malam) mengikuti fase dan cuaca game, dibuat dari noise yang sudah ada tanpa satu file audio pun; lapisnya crossfade pelan saat siang berganti malam atau hujan turun, dan ikut toggle Suara + gate gestur yang sudah ada, jadi tidak pernah bunyi sendiri saat load.

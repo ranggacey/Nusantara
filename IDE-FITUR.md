@@ -602,3 +602,31 @@ ada). Tidak direkomendasikan dari riset ini: ambien generate AI
 on-device, autoplay saat load, loop berlisensi di paket awal,
 musik latar penuh sebagai langkah pertama. Detail di
 research/2026-11-05-1629.md.
+
+## Ide 33 — Label hewan ikut antrean rapikan (dari riset 2026-11-05 18:29 WIB, sudut UX)
+
+Sumber: Wandr (kurangi, bukan padatkan) + audit kode Map3D.
+Masalah: label hewan diposisikan langsung di loop hewan, tidak
+pernah lewat `rapikanLabelBertumpuk` — hanya label warga yang
+dirapikan. Di pusat kampung, tempat hewan jinak tinggal dekat
+warga, label hewan bisa menumpuk di atas label warga yang sudah
+dirapikan. BUKAN penyebab tumpukan yang teramati 18:29 (itu label
+warga dengan jarak pil 18/20px, diperbaiki r44) — jadi backlog,
+bukan dibangun sekarang. Cara kerja: satu antrean gabungan
+(warga + hewan) lewat fungsi yang sama; transform label hewan
+diterapkan setelah loop hewan. Display-only, tanpa ubah sim.
+Dampak sedang, usaha kecil. Detail di research/2026-11-05-1829.md.
+
+## Ide 34 — Safe-area inset untuk klaster kontrol bawah (dari riset 2026-11-05 18:29 WIB, sudut UX)
+
+Sumber: h-idris (safe area + sudut membulat) + Supagames
+(`env(safe-area-inset-bottom)` + wrapper `pointer-events: none`).
+Masalah: laporan observasi r43 — joystick analog kiri-bawah
+terlihat terpotong tepi kiri viewport 1919x998, padahal CSS-nya
+`left: 12px`; observasi 18:29 TIDAK mengulanginya (analog utuh
+dengan margin jelas), jadi penyebabnya belum terkonfirmasi dan
+TIDAK ada angka CSS yang diubah run ini. Cara kerja: klaster
+bawah memakai inset safe-area + audit visual ulang sebelum
+mengubah apa pun; jangan menebak penyebab dari CSS saja. Dampak
+sedang, usaha kecil-sedang (butuh bukti visual dulu). Detail di
+research/2026-11-05-1829.md.

@@ -6,7 +6,7 @@ import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } 
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, rotasiKeJalan, GRID_W, GRID_H, GRID_MIN, GRID_MAX, PUSAT, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk, petakBangunan, plotBebas } from "../src/lib/batu/dunia";
 import { pintarUntukJalan, rencanaJalan, jalurJalan, jalurSegmen, lebarkanJalan, jalurPelebaran, SEGMEN_JALAN, TIM_JALAN_INT_MIN } from "../src/lib/batu/jalan";
 import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, peluangKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, terapkanPembusukan, capHarianUntuk, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, ambilTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, lokasiRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, terapkanBantuBangun, hitungPembantuBangun, progresKonstruksiPerJam, MAKS_PEMBANTU_BANGUN, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, IKAN_CAP, IKAN_REGROW_HARIAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, wargaTanpaTugas, tidurDiDalam, rapikanLabelBertumpuk } from "../src/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, wargaTanpaTugas, tidurDiDalam, rapikanLabelBertumpuk, JARAK_LABEL_BERTUMPUK } from "../src/lib/batu/tampil";
 import { gainJarak, panKamera, lapisanAmbien, SFX_JARAK, SFX_PERKAKAS, SFX_HEWAN } from "../src/lib/audio";
 import { HEWAN, hewanById } from "../src/lib/batu/hewan";
 import { gameTime, migrasiJam, migrasiJamV4, durasiJamMs, jamAdalahMalam, realMsUntukJam } from "../src/lib/clock";
@@ -875,7 +875,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r43"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r44"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1318,7 +1318,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r43"'), "versi: BUILD_ID r43");
+  ok(ver.includes('"r44"'), "versi: BUILD_ID r44");
 }
 
 {
@@ -2161,7 +2161,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const bKayu = terapkanPembusukan(ctxKayu);
   ok(bKayu.kayu === 1 && (ctxKayu.stok as unknown as Record<string, number>).kayu === 204, "busuk-kecil: kayu 205/200 susut 1 (5 x 10% = 0,5 -> 0 dulu)");
   const verKecil = readFileSync("src/lib/version.ts", "utf8");
-  ok(verKecil.includes('BUILD_ID = "r43"'), "busuk-kecil: BUILD_ID naik ke r41");
+  ok(verKecil.includes('BUILD_ID = "r44"'), "busuk-kecil: BUILD_ID naik ke r41");
 }
 
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
@@ -2378,7 +2378,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcTg = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTg.includes(".menu-tonggak") && cssSrcTg.includes(".menu-tonggak-title") && cssSrcTg.includes(".menu-tonggak-isi"), "tonggak: CSS baris ada");
   const verSrcTg = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcTg.includes('BUILD_ID = "r43"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcTg.includes('BUILD_ID = "r44"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // "Selama kamu pergi" (2026-11-05, Ide 22): fungsi murni display-only —
@@ -2408,7 +2408,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcPergi = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcPergi.includes(".menu-pergi") && cssSrcPergi.includes(".menu-pergi-title") && cssSrcPergi.includes(".menu-pergi-tutup"), "pergi: CSS blok ada");
   const verSrcPergi = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcPergi.includes('BUILD_ID = "r43"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcPergi.includes('BUILD_ID = "r44"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda loop render saat tab disembunyikan (2026-11-04, Ide 9):
@@ -2422,7 +2422,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r43"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r44"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2529,7 +2529,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r43"'), "muat3d: BUILD_ID naik ke r41");
+  ok(verMuat.includes('BUILD_ID = "r44"'), "muat3d: BUILD_ID naik ke r41");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2573,7 +2573,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r43"'), "geraktenang: BUILD_ID naik ke r41");
+  ok(verGerak.includes('BUILD_ID = "r44"'), "geraktenang: BUILD_ID naik ke r41");
 }
 
 
@@ -2592,7 +2592,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r43"'), "tip: BUILD_ID naik ke r41");
+  ok(verTip.includes('BUILD_ID = "r44"'), "tip: BUILD_ID naik ke r41");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2610,7 +2610,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r43"'), "fokus: BUILD_ID naik ke r41");
+  ok(verFokus.includes('BUILD_ID = "r44"'), "fokus: BUILD_ID naik ke r41");
 }
 
 // Audit geometri/material bersama sebelum instancing (2026-11-05,
@@ -2637,7 +2637,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
   ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
   const verAudit = readFileSync("src/lib/version.ts", "utf8");
-  ok(verAudit.includes('BUILD_ID = "r43"'), "audit30: BUILD_ID naik ke r41");
+  ok(verAudit.includes('BUILD_ID = "r44"'), "audit30: BUILD_ID naik ke r41");
 }
 
 // Dispose lewati material bersama (2026-11-05, penutup celah audit
@@ -2663,7 +2663,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!isRoadMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: material baru bukan material jalan bersama");
   ok(!isVillageMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: predikat desa/jalan tidak saling tertukar (jalan bukan desa)");
   const ver36 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver36.includes('BUILD_ID = "r43"'), "dispose36: BUILD_ID naik ke r41");
+  ok(ver36.includes('BUILD_ID = "r44"'), "dispose36: BUILD_ID naik ke r41");
 }
 
 // RONDE 20 (2026-11-05, laporan user): "kenapa gada yg bikin jalan?" +
@@ -2785,7 +2785,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const map3d20 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(map3d20.includes("fishes") && map3d20.includes("mF?.ikan"), "r20: Map3D menggambar ikan dari stok ikan");
   const ver20 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver20.includes('BUILD_ID = "r43"'), "r20: BUILD_ID naik ke r41");
+  ok(ver20.includes('BUILD_ID = "r44"'), "r20: BUILD_ID naik ke r41");
 }
 
 {
@@ -2872,7 +2872,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(simSrc21.includes("bangunanDibangun"), "r21: sim memuat bangunanDibangun di ctx");
   ok(!simSrc21.includes("pintarUntukJalan(w)"), "r21: gate pinter tidak lagi dipakai di sim");
   const ver21 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver21.includes('BUILD_ID = "r43"'), "r21: BUILD_ID naik ke r42");
+  ok(ver21.includes('BUILD_ID = "r44"'), "r21: BUILD_ID naik ke r42");
 }
 
 {
@@ -2885,12 +2885,14 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   eq(tidurDiDalam("kembali", "malam"), false, "r22: pulang malam tetap terlihat");
   eq(tidurDiDalam("kumpul", "malam"), false, "r22: kumpul malam tetap terlihat");
   // (b) Label bertumpuk: digeser ke bawah sampai tidak menutupi.
+  // r44: jarak 18/20px lama diganti 28px (pil ~19px + celah ~9px)
+  // karena observasi live 18:29 melihat border pil saling menempel.
   eq(rapikanLabelBertumpuk([]), [], "r22: label kosong -> kosong");
   eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }]), [100], "r22: label sendiri tidak digeser");
   eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 200, y: 100 }]), [100, 100], "r22: label jauh horizontal tidak digeser");
-  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 105, y: 100 }]), [100, 120], "r22: label menumpuk -> kedua digeser 20px");
-  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 100 }]), [100, 120, 140], "r22: tiga label menumpuk -> 0/20/40");
-  eq(rapikanLabelBertumpuk([{ x: 100, y: 120 }, { x: 100, y: 100 }]), [120, 100], "r22: urutan input dipertahankan");
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 105, y: 100 }]), [100, 128], "r22: label menumpuk -> kedua digeser 28px (r44)");
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 100 }]), [100, 128, 156], "r22: tiga label menumpuk -> 0/28/56 (r44)");
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 120 }, { x: 100, y: 100 }]), [148, 100], "r22: urutan input dipertahankan (r44: 120 -> 148 karena ambang 28)");
   // (c) Hewan dekat kampung: sebaran respawn bias ke kampung.
   let seed22 = 12345;
   const rngUji = () => { seed22 = (seed22 * 1103515245 + 12345) % 2147483648; return seed22 / 2147483648; };
@@ -2912,7 +2914,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrc22 = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrc22.includes("background: #facc15") && cssSrc22.includes("border: 2px solid #0b182e"), "r22: tombol menu latar kuning solid + border gelap (kontras tinggi)");
   const ver22 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver22.includes('BUILD_ID = "r43"'), "r22: BUILD_ID naik ke r42");
+  ok(ver22.includes('BUILD_ID = "r44"'), "r22: BUILD_ID naik ke r42");
 }
 
 {
@@ -2948,7 +2950,36 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const pageSrc23 = readFileSync("src/app/page.tsx", "utf8");
   ok(pageSrc23.includes("cuaca={cuaca}"), "r23: page meneruskan cuaca ke Map3D");
   const ver23 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver23.includes('BUILD_ID = "r43"'), "r23: BUILD_ID naik ke r43");
+  ok(ver23.includes('BUILD_ID = "r44"'), "r23: BUILD_ID naik ke r43");
+}
+
+{
+  // RONDE 24 — jarak rapikan label 18/20px -> 28px (observasi live 18:29).
+  // Akar: pil .map3d-label tingginya ~19px (11px x 1.2 + padding 4px
+  // + border 2px), jadi ambang 18px menaruh pil hanya 1-2px berjarak
+  // dan langkah 20px nyaris tidak menambah celah — di layar terlihat
+  // sebagai kolom yang bordernya bersentuhan (5 label di pusat kampung).
+  eq(JARAK_LABEL_BERTUMPUK, 28, "r24: jarak label = 28px (pil ~19px + celah ~9px)");
+  // (a) Jarak baru: tumpukan 5 label berjarak 28px satu sama lain.
+  const tumpuk5 = rapikanLabelBertumpuk([
+    { x: 100, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 100 },
+  ]);
+  eq(tumpuk5, [100, 128, 156, 184, 212], "r24: 5 label menumpuk -> 0/28/56/84/112");
+  ok(tumpuk5.every((y, i) => i === 0 || y - tumpuk5[i - 1] >= 28), "r24: celah antar label >= 28px (lebih dari tinggi pil 19px)");
+  // (b) Ambang baru: 24px masih bertabrakan, 30px sudah bebas.
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 100, y: 124 }]), [100, 152], "r24: beda 24px vertikal masih digeser (ambang 28)");
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 100, y: 130 }]), [100, 130], "r24: beda 30px vertikal tidak digeser");
+  // (c) Arah horizontal tidak berubah: < 70px bertabrakan, >= 70px bebas.
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 169, y: 100 }]), [100, 128], "r24: beda 69px horizontal masih digeser");
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 100 }, { x: 171, y: 100 }]), [100, 100], "r24: beda 71px horizontal tidak digeser");
+  // (d) Urutan input dipertahankan + audit sumber.
+  eq(rapikanLabelBertumpuk([{ x: 100, y: 128 }, { x: 100, y: 100 }]), [128, 100], "r24: urutan input dipertahankan");
+  const tampilSrc24 = readFileSync("src/lib/batu/tampil.ts", "utf8");
+  ok(tampilSrc24.includes("JARAK_LABEL_BERTUMPUK = 28"), "r24: konstanta jarak 28px ada di tampil.ts");
+  const mapSrc24 = readFileSync("src/components/Map3D.tsx", "utf8");
+  ok(mapSrc24.includes("rapikanLabelBertumpuk"), "r24: Map3D masih memakai rapikanLabelBertumpuk");
+  const ver24 = readFileSync("src/lib/version.ts", "utf8");
+  ok(ver24.includes('BUILD_ID = "r44"'), "r24: BUILD_ID naik ke r44");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

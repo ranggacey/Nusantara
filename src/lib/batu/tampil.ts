@@ -401,11 +401,21 @@ export function tidurDiDalam(faseSiklus: string, faseWaktu: string): boolean {
   return faseSiklus === "istirahat" && isNight(faseWaktu);
 }
 
-// RONDE 22 — rapikan label bertumpuk (r42): label warga yang berkerumun
-// menumpuk di layar hingga nama tidak terbaca. Greedy per urutan layar:
-// urutkan menurut y lalu x; bila label bertabrakan (|dy| < 18 dan
-// |dx| < 70, kira-kira tinggi label + nama), geser ke bawah 20px sampai
-// bebas. Mengembalikan y baru per item (urutan input dipertahankan).
+// RONDE 22 — rapikan label bertumpuk (r42), JARAK diperbaiki r44:
+// label warga yang berkerumun menumpuk di layar hingga nama tidak
+// terbaca. Greedy per urutan layar: urutkan menurut y lalu x; bila
+// label bertabrakan, geser ke bawah sampai bebas. Mengembalikan y
+// baru per item (urutan input dipertahankan).
+// r44 — kenapa 28, bukan 18/20: tinggi pil .map3d-label di CSS =
+// 11px x 1.2 + padding 4px + border 2px = ~19px, jadi ambang 18px
+// dan langkah 20px menaruh pil hanya 1-2px berjarak — di layar
+// terlihat sebagai kolom yang bordernya bersentuhan (observasi
+// live 18:29: 5 label menumpuk, border menempel). 28px = tinggi
+// pil ~19px + celah ~9px, jadi tumpukan kini terbaca sebagai
+// label terpisah. Pil terpilih (.sel) ~27px tingginya, jadi
+// celahnya menipis untuk yang itu — diterima, karena hanya satu
+// label terpilih dalam satu waktu.
+export const JARAK_LABEL_BERTUMPUK = 28;
 export function rapikanLabelBertumpuk(items: { x: number; y: number }[]): number[] {
   const out = new Array<number>(items.length).fill(0);
   const order = items.map((_, i) => i).sort((a, b) => items[a].y - items[b].y || items[a].x - items[b].x);
@@ -416,8 +426,8 @@ export function rapikanLabelBertumpuk(items: { x: number; y: number }[]): number
     while (bentrok) {
       bentrok = false;
       for (const p of placed) {
-        if (Math.abs(p.y - y) < 18 && Math.abs(p.x - items[i].x) < 70) {
-          y += 20;
+        if (Math.abs(p.y - y) < JARAK_LABEL_BERTUMPUK && Math.abs(p.x - items[i].x) < 70) {
+          y += JARAK_LABEL_BERTUMPUK;
           bentrok = true;
           break;
         }

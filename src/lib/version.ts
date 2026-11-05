@@ -10,4 +10,4 @@
 // karakter + hint tanpa baris tombol ＋) — sawtooth snap-8 yang sudah
 // diperbaiki ronde 6. Tanpa penjaga versi, setiap deploy berikutnya
 // berisiko dilaporkan ulang sebagai bug baru oleh tab lama.
-export const BUILD_ID = "r43";
+export const BUILD_ID = "r44";
