@@ -1505,6 +1505,34 @@ export function jadwalRegrow(jam: number, gx: number, gy: number): number {
   return jam + 36 + ((gx * 7 + gy * 13) % 24);
 }
 
+// RONDE 22 — lokasi respawn hewan (r42): hewan lebih banyak DI DEKAT
+// kampung. 80% percobaan mengambil lokasi dalam sabuk Manhattan 12–45
+// dari PUSAT; sisanya memakai sebaran lama (seluruh area). Lokasi harus
+// darat (layak), >= 10 dari pusat, dan di dalam grid. Mengembalikan
+// null bila tidak ada lokasi layak dalam 40 percobaan.
+export function lokasiRespawnHewan(
+  r: () => number = Math.random,
+  layak: (gx: number, gy: number) => boolean = (gx, gy) => !isWater(gx, gy),
+): { gx: number; gy: number } | null {
+  for (let t = 0; t < 40; t++) {
+    let cx: number, cy: number;
+    if (r() < 0.8) {
+      cx = PUSAT.gx + Math.floor((r() * 2 - 1) * 45);
+      cy = PUSAT.gy + Math.floor((r() * 2 - 1) * 45);
+      const d = Math.abs(cx - PUSAT.gx) + Math.abs(cy - PUSAT.gy);
+      if (d < 12 || d > 45) continue;
+    } else {
+      cx = 10 + Math.floor(r() * 180);
+      cy = 10 + Math.floor(r() * 180);
+    }
+    if (cx <= GRID_MIN || cy <= GRID_MIN || cx >= GRID_MAX - 1 || cy >= GRID_MAX - 1) continue;
+    if (Math.abs(cx - PUSAT.gx) + Math.abs(cy - PUSAT.gy) < 10) continue;
+    if (!layak(cx, cy)) continue;
+    return { gx: cx, gy: cy };
+  }
+  return null;
+}
+
 // Respawn hewan: aktif bila populasi < 25; peluang per jam game (50% bila
 // sudah < 12). Populasi kembali ke ~25 ekor secara bertahap.
 export function butuhRespawnHewan(hidup: number): boolean {
@@ -3028,18 +3056,11 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     const docs: HewanDoc[] = [];
     for (const sp of HEWAN_AWAL) {
       for (let i = 0; i < sp.n; i++) {
-        let gx = 100;
-        let gy = 100;
-        for (let t = 0; t < 50; t++) {
-          s += 1;
-          const cx = 10 + Math.floor(rnd(s) * 180);
-          const cy = 10 + Math.floor(rnd(s + 1000) * 180);
-          if (!isWater(cx, cy) && Math.abs(cx - PUSAT.gx) + Math.abs(cy - PUSAT.gy) >= 10) {
-            gx = cx;
-            gy = cy;
-            break;
-          }
-        }
+        // RONDE 22: seed awal ikut bias dekat kampung (deterministik
+        // dari seed, bukan acak liar).
+        const lok = lokasiRespawnHewan(() => rnd(++s));
+        const gx = lok?.gx ?? 100;
+        const gy = lok?.gy ?? 100;
         docs.push({ _id: undefined as unknown, jenis: sp.id, gx, gy, hp: hewanById(sp.id)?.hp ?? 1 } as HewanDoc);
       }
     }
@@ -3210,21 +3231,14 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
       terapkanSpawnTertunda(ctx.nodeSpawnTertunda, jam, ctx.nodeSpawn, ctx.nodeSisa, ctx.kabar);
       for (const sp of ctx.nodeSpawn) ctx.nodeTilesAll?.add(`${sp.gx},${sp.gy}`);
     }
-    // Respawn hewan bila menipis (menuju ~25 ekor).
+    // Respawn hewan bila menipis (menuju ~25 ekor). RONDE 22: lokasi
+    // bias ke dekat kampung (lihat lokasiRespawnHewan).
     const hidup = ctx.hewan.filter((h) => !ctx.hewanHilang.has(String(h._id))).length;
     if (butuhRespawnHewan(hidup) && Math.random() < peluangRespawnHewan(hidup)) {
       const sp = HEWAN_AWAL[Math.floor(Math.random() * HEWAN_AWAL.length)];
-      let gx = 100;
-      let gy = 100;
-      for (let t = 0; t < 30; t++) {
-        const cx = 10 + Math.floor(Math.random() * 180);
-        const cy = 10 + Math.floor(Math.random() * 180);
-        if (!isWater(cx, cy) && Math.abs(cx - PUSAT.gx) + Math.abs(cy - PUSAT.gy) >= 10) {
-          gx = cx;
-          gy = cy;
-          break;
-        }
-      }
+      const lok = lokasiRespawnHewan();
+      const gx = lok?.gx ?? 100;
+      const gy = lok?.gy ?? 100;
       ctx.hewan.push({ _id: `baru-${hari}-${Math.floor(Math.random() * 1e9)}`, jenis: sp.id, gx, gy, hp: hewanById(sp.id)?.hp ?? 1 } as unknown as HewanDoc);
     }
 

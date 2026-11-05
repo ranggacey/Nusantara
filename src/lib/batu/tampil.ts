@@ -391,3 +391,40 @@ export function wargaTanpaTugas(w: WargaTampilRingkas | null | undefined): boole
     (w.aksi_sekarang === "beristirahat" || w.aksi_sekarang === "rehat_stok_penuh")
   );
 }
+
+// RONDE 22 — tidur di dalam (r42): warga yang sedang istirahat pada jam
+// malam TIDAK dirender di luar — mereka tidur di dalam huniannya.
+// Map3D menyembunyikan grup 3D + labelnya; sim tidak berubah (warga
+// tetap pulang ke ubin tidurnya, bangun pagi seperti biasa). Istirahat
+// siang, jalan pulang, dan kumpul di malam hari tetap terlihat.
+export function tidurDiDalam(faseSiklus: string, faseWaktu: string): boolean {
+  return faseSiklus === "istirahat" && isNight(faseWaktu);
+}
+
+// RONDE 22 — rapikan label bertumpuk (r42): label warga yang berkerumun
+// menumpuk di layar hingga nama tidak terbaca. Greedy per urutan layar:
+// urutkan menurut y lalu x; bila label bertabrakan (|dy| < 18 dan
+// |dx| < 70, kira-kira tinggi label + nama), geser ke bawah 20px sampai
+// bebas. Mengembalikan y baru per item (urutan input dipertahankan).
+export function rapikanLabelBertumpuk(items: { x: number; y: number }[]): number[] {
+  const out = new Array<number>(items.length).fill(0);
+  const order = items.map((_, i) => i).sort((a, b) => items[a].y - items[b].y || items[a].x - items[b].x);
+  const placed: { x: number; y: number }[] = [];
+  for (const i of order) {
+    let y = items[i].y;
+    let bentrok = true;
+    while (bentrok) {
+      bentrok = false;
+      for (const p of placed) {
+        if (Math.abs(p.y - y) < 18 && Math.abs(p.x - items[i].x) < 70) {
+          y += 20;
+          bentrok = true;
+          break;
+        }
+      }
+    }
+    placed.push({ x: items[i].x, y });
+    out[i] = y;
+  }
+  return out;
+}

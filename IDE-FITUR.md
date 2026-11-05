@@ -569,3 +569,9 @@ aman). Detail di research/2026-11-05-0829.md.
 Diisi dari riset web tiap run cron (fitur baru yang fresh,
 optimalisasi, dan lain-lain). Tiap ide ditulis dengan: masalah
 pemain, cara kerja singkat, dan perkiraan dampak vs usaha.
+
+## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
+
+- Warga tidur di dalam rumah pada malam hari (sebelumnya berkerumun di luar): render menyembunyikan warga istirahat+malam (`tidurDiDalam`), sim tidak berubah.
+- Label nama bertumpuk diperbaiki: `rapikanLabelBertumpuk` menggeser label yang bertabrakan ke bawah sampai terbaca; tombol menu ☰ kontras tinggi (latar kuning solid + ikon gelap).
+- Hewan lebih banyak di dekat kampung: respawn/seed bias 80% ke sabuk 12–45 tile dari pusat, target populasi tetap ~25.

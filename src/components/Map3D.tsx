@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { GUBUK_DINDING, GUBUK_ATAP, POHON_BATANG } from "@/lib/batu/skala";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp } from "@/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
 import { durasiJamMs } from "@/lib/clock";
 import { buatTombakIblis } from "@/lib/batu/senjataIblis";
 import { updateAudioScene, SFX_PERKAKAS } from "@/lib/audio";
@@ -2043,6 +2043,9 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
       // kontinyu, tanpa snap kecuali desync nyata > AMBANG_SNAP_DESYNC)
       // + kaki + perkakas animasi + idle hidup.
       let selFound = false;
+      // RONDE 22 — antre label warga untuk dirapikan (tumpuk) setelah
+      // loop, supaya nama tidak saling menutupi saat warga berkerumun.
+      const labelAntre: { label: HTMLDivElement; bubble: HTMLDivElement; sx: number; sy: number; bubbleText: string; isSelectedW: boolean }[] = [];
       const wRect = wrap.getBoundingClientRect();
       const camDist = camera.position.distanceTo(controls.target);
       const jamNow = jamRef.current;
@@ -2129,6 +2132,12 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           u.pose.position.z = ps.centerZ;
           u.pose.position.y = tidur ? 0.28 + Math.sin(t * 1.5) * 0.04 : 0;
         }
+        // RONDE 22 — tidur di dalam (r42): warga yang istirahat di jam
+        // malam tidak dirender di luar — mereka tidur di dalam hunian
+        // (tidak berkerumun di luar rumah). Jalan pulang (kembali) dan
+        // istirahat siang tetap terlihat seperti biasa.
+        const tidurDalam = tidurDiDalam(fase, faseRef.current);
+        cur.group.visible = !tidurDalam;
         // RONDE 10 — saat kumpul diam: hadapkan warga ke node-nya (dari
         // ubin sebelah, bukan menatap sembarang arah).
         if (!moving && fase === "kumpul" && cur.data.node && typeof cur.data.node.gx === "number") {
@@ -2592,6 +2601,9 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         if (!labelTampilRef.current) {
           cur.label.style.display = "none";
           cur.bubble.style.display = "none";
+        } else if (tidurDalam) {
+          cur.label.style.display = "none";
+          cur.bubble.style.display = "none";
         } else if (offscreen) {
           cur.label.style.display = "none";
           cur.bubble.style.display = "none";
@@ -2599,19 +2611,29 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           cur.label.style.display = "block";
           const sx = (vec.x * 0.5 + 0.5) * wRect.width;
           const sy = (-vec.y * 0.5 + 0.5) * wRect.height;
-          cur.label.style.transform = `translate(-50%, -100%) translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`;
           cur.label.classList.toggle("sel", isSelectedW);
-          if (bubbleText) {
-            cur.bubble.style.display = "block";
-            if (cur.bubble.textContent !== bubbleText) cur.bubble.textContent = bubbleText;
-            const bubbleOffsetY = isSelectedW ? 54 : 32;
-            cur.bubble.style.transform = `translate(-50%, -100%) translate(${sx.toFixed(1)}px, ${(sy - bubbleOffsetY).toFixed(1)}px)`;
-          } else {
-            cur.bubble.style.display = "none";
-          }
+          labelAntre.push({ label: cur.label, bubble: cur.bubble, sx, sy, bubbleText, isSelectedW });
         }
       }
       if (!selFound) ring.visible = false;
+      // RONDE 22 — rapikan label bertumpuk: label warga yang berkerumun
+      // digeser ke bawah supaya semua nama tetap terbaca; bubble ikut
+      // labelnya (tetap di atas label).
+      if (labelAntre.length > 0) {
+        const syBaru = rapikanLabelBertumpuk(labelAntre.map((a) => ({ x: a.sx, y: a.sy })));
+        labelAntre.forEach((a, i) => {
+          const syA = syBaru[i];
+          a.label.style.transform = `translate(-50%, -100%) translate(${a.sx.toFixed(1)}px, ${syA.toFixed(1)}px)`;
+          if (a.bubbleText) {
+            a.bubble.style.display = "block";
+            if (a.bubble.textContent !== a.bubbleText) a.bubble.textContent = a.bubbleText;
+            const bubbleOffsetY = a.isSelectedW ? 54 : 32;
+            a.bubble.style.transform = `translate(-50%, -100%) translate(${a.sx.toFixed(1)}px, ${(syA - bubbleOffsetY).toFixed(1)}px)`;
+          } else {
+            a.bubble.style.display = "none";
+          }
+        });
+      }
 
       // Hewan: dead reckoning sama + ANIMASI (ronde 3/4): kaki gaya
       // diagonal terikat jarak tempuh, kepala mengangguk/merumput saat diam,

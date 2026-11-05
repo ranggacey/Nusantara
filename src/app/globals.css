@@ -259,12 +259,15 @@ canvas.game-canvas {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(11, 24, 46, 0.92);
-  border: 1.5px solid rgba(250, 204, 21, 0.55);
-  color: #facc15;
+  /* RONDE 22 — kontras tinggi (r42): latar kuning solid + ikon gelap +
+     border gelap tebal, supaya tombol jelas di atas peta terang maupun
+     gelap (dulu navy transparan + border kuning tipis, sulit terlihat). */
+  background: #facc15;
+  border: 2px solid #0b182e;
+  color: #111827;
   font-size: 22px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
 }
 .menu-fab:active {
   transform: scale(0.95);
