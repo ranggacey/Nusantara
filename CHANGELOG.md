@@ -71,6 +71,30 @@ kapasitas tidak berubah sama sekali.
   (read-only) dan tombol zoom kamera; tidak ada profil, gacha,
   pengaturan, atau form yang diubah/dikirim.
 
+### Verifikasi live r35 (deploy READY dpl_3KakiZ3kGhEE4d5UScjbxwaiMeEo, commit e339827)
+- /api/version: {"ok":true,"build":"r35"}. Homepage 200
+  (judul "Negara Emas — Zaman Batu" + cangkang "Memuat peta
+  3D…") dan ikon /batu/gubuk.png 200 (128x128).
+- /api/world ok: kampung Suka Maju, populasi 9, hari 342
+  (hari_total 341), 09.55 Pagi, Cerah; stok kayu 176/160,
+  kulit 104/95, pangan 0/200, batu 14/130, emas 1/40, besi
+  47/55; kabar terbaru termasuk "Sebagian pangan membusuk
+  (102 busuk)" hari 303 — sim jalan, tidak ada regresi API.
+- /api/map ok (grid 600x600 + node pohon/semak/batu/urat)
+  dan /api/bangunan ok (katalog + antrean, paviliun makan
+  masih antre kurang batu 6). Tidak ada API yang tadinya ok
+  berubah jadi error.
+- Koreksi atas observasi browser: /api/world memastikan
+  dunia ini Suka Maju hari 342, jadi "Hari ke-4" yang dibaca
+  panel Menu Kampung di observasi bukan hari dunia — panel
+  itu kemungkinan menampilkan angka lain (atau salah baca);
+  API dijadikan acuan, dan selisih panel ini dicatat untuk
+  dicek lagi, bukan diklaim sebagai reset dunia.
+- Catatan jujur: kulit masih 104/95 saat verifikasi karena
+  pembusukan baru berjalan tiap ganti hari game dan deploy
+  baru saja live — penurunan 1/hari baru terlihat setelah
+  pergantian hari berikutnya, bukan seketika saat verifikasi.
+
 ## 2026-11-05 06:29 WIB — Audit geometri/material bersama sebelum instancing (Ide 30) + brief riset performa
 
 Perubahan dalam 2 kalimat: audit statis kode render 3D memastikan
