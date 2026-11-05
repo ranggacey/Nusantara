@@ -116,6 +116,36 @@ berikutnya; render, sim, dan ekonomi tidak diubah sama sekali.
   baseline + cek raycast, dan migrasi WebGPU tanpa profil dulu.
 
 
+### Verifikasi pasca-deploy r34
+- Vercel: deploy production READY dpl_8fSduNH84pvYmDxwLn1GGVpYn2wA
+  dari commit d287e2a7 (auto-deploy dari main). /api/version = r34.
+- Homepage termuat (judul "Negara Emas — Zaman Batu", teks
+  "Memuat peta 3D…" lalu peta 3D penuh dalam ~30 detik) + satu ikon
+  termuat (/batu/icons/kayu.png 128x128, render utuh).
+- /api/world ok (isi): Suka Maju, populasi 9, hari 338, 06.28
+  Pagi, Cerah; stok kayu 182/160, batu 14/130, emas 1/40,
+  besi 47/55, pangan 0/200, kulit 104/95.
+- /api/map ok (isi): ok:true, grid 600x600, placements lengkap,
+  9 warga sesuai populasi, stok PERSIS sama dengan /api/world —
+  tidak ada selisih antar endpoint.
+- /api/bangunan ok (isi): katalog 26 jenis + antrean 16 entri
+  (hanya 1 antre: paviliun_makan, kurang 6 batu; sisanya selesai).
+- TIDAK ADA regresi API setelah deploy ini (semua route yang
+  tadinya ok tetap ok dengan isi yang konsisten). Perubahan ini
+  audit + tes statis saja, jadi tidak menyentuh sim/API sama
+  sekali — /api/world yang sempat timeout di satu fetch teks
+  (browser.open) berhasil dibaca normal di verifikasi browser
+  berikutnya, jadi itu gangguan fetch sesaat, bukan regresi.
+- YANG TETAP berlaku: kayu 182/160 lanjut menyusut searah
+  pembusukan (191 di H-333 -> 182 di H-338); kulit TETAP 104/95
+  karena zona-mati floor (kelebihan <10 tidak busuk) — temuan
+  run ini, perbaikan sim menyusul run berikut. Catatan baru dari
+  verifikasi (bukan tindakan): /api/world menampilkan 20 entri
+  bangunan vs 16 di antrean /api/bangunan, dengan duplikat di
+  posisi yang sama — konsisten dengan laporan duplikat lama yang
+  tampilannya sudah di-dedupe; tidak ada penghapusan data yang
+  dilakukan run ini.
+
 ## 2026-11-05 04:29 WIB — Cincin fokus keyboard di menu/modal (Ide 26) + brief riset aksesibilitas
 
 Perubahan dalam 2 kalimat: tombol di kartu menu dan modal kini
