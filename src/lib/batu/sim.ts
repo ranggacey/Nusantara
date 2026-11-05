@@ -373,7 +373,12 @@ export function terapkanPembusukan(ctx: SimCtx): Record<string, number> {
     const current = stok[res] ?? 0;
     const limit = cap[res] ?? current;
     if (current > limit) {
-      const hilang = Math.floor((current - limit) * laju);
+      // Pembulatan ke bawah saja membuat sisa kecil macet selamanya:
+      // kelebihan 9 kulit x 10% = 0,9 -> floor 0, jadi stok 104/95
+      // tidak pernah susut (temuan live r34). Selama ada kelebihan,
+      // minimal 1 busuk per hari supaya stok SELALU konvergen ke kap
+      // (persentase untuk kelebihan besar tidak berubah).
+      const hilang = Math.max(1, Math.floor((current - limit) * laju));
       if (hilang > 0) {
         stok[res] = current - hilang;
         busuk[res] = hilang;

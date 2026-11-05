@@ -1,5 +1,76 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 08:29 WIB — Pembusukan sisa kecil tidak lagi macet (antrean r34) + brief riset ekonomi/sim
+
+Perubahan dalam 2 kalimat: `terapkanPembusukan` kini membusukkan
+minimal 1 unit per hari selama stok masih di atas kapasitas,
+sehingga kelebihan kecil yang dulu dibulatkan ke nol akhirnya
+susut sampai tepat ke kapasitas; laju persenan DESAIN-EKONOMI.md
+(50% pangan, 10% kayu/batu/kulit, 0% emas/besi) dan stok dalam
+kapasitas tidak berubah sama sekali.
+
+- `src/lib/batu/sim.ts`: `hilang = Math.max(1, Math.floor(kelebihan
+  x laju))` + komentar akar masalah. Contoh yang diperbaiki:
+  kulit 104/95 (kelebihan 9 x 10% = 0,9 -> dulu 0/hari, selamanya)
+  kini susut 1/hari dan sampai ke 95 dalam 9 hari game; begitu
+  juga pangan 851/850 dan kayu 205/200.
+- `tests/batu.test.ts`: 5 tes baru (kulit 104/95 susut 1 lalu
+  konvergen tepat ke 95 dalam 20 hari tanpa turun di bawahnya;
+  pangan 851/850 -> 850; kayu 205/200 susut 1) + penjaga versi
+  r34 -> r35. Total: 7810 lolos / 656 gagal — baseline r34
+  7805/656, jadi +5 lolos, nol regresi baru.
+- `src/lib/version.ts`: BUILD_ID r34 -> r35. Build Next.js hijau.
+- Riset: brief research/2026-11-05-0829.md (sudut ekonomi/sim,
+  rotasi dari performa 06:29) — Utopia (busuk % dari total stok,
+  tak pernah nol), FreeCol (cap keras: kelebihan langsung hilang,
+  DITOLAK karena menghapus stok warisan seketika), Medieval
+  Dynasty (busuk bertahap + dialihkan jadi pupuk), Northgard
+  (pesta sebagai saluran buang berguna). Backlog baru: Ide 31
+  (pesta kampung pemicu stok) di IDE-FITUR.md, belum dibangun.
+- Catatan: run ini dimulai dari tree kotor yang ternyata persis
+  isi commit r34 yang sudah live (d287e2a + 212445f) — tree
+  di-reset ke origin/main sebelum edit, jadi tidak ada pekerjaan
+  sesi lain yang ikut ter-push.
+
+### Observasi live (browser, hanya melihat, 08:30-08:33 WIB)
+- Muat pertama: "Memuat peta 3D…" lalu desa penuh tampil dalam
+  30 detik (angka pasti tidak diukur detik per detik — jauh lebih
+  ringan dari 60-90 detik pada observasi 2026-11-04 00:29, tapi
+  jangan diklaim sebagai hasil perbaikan run ini karena run ini
+  tidak menyentuh render).
+- Panel Menu Kampung (08:32 WIB): "Kampung Negara Emas",
+  Warga 9/17, Hari ke-4 12:44 Siang, Cerah, Kesehatan/Energi/
+  Kebahagiaan 100%, Emas 200, Produktivitas 10/jam.
+- Stok di panel: Pangan 1100/1500, Kayu 1189/1500, Batu
+  1299/2000, Kulit 1275/1500 (semua di bawah kapasitas panel;
+  angka kapasitas panel ini berbeda dari kap sim — dicatat
+  apa adanya, bukan disamakan paksa). Laju panel: Kayu +120/jam,
+  Batu +120/jam, Kulit +30/jam, Pangan -7/jam.
+- Warga bergerak (posisi Siti, Renata, dll. berubah antar
+  tampilan selama ~3 menit; adegan berganti malam -> siang),
+  bukan beku; animasi kerja spesifik tidak terkonfirmasi dari
+  tampilan diam, beberapa figur tampak berdiri dekat bangunan
+  tengah di potret sesaat.
+- Hewan terlihat jelas di tampilan zoom-out: Rusa, Kelinci,
+  Ayam Hutan, Serigala, plus pohon/batu/node sumber.
+- Panel Menu Kampung tampil penuh, buka/tutup normal; kontrol
+  kamera ▲/▼, analog, "+ Tambah karakter", "Panduan Kontrol"
+  terlihat penuh; ikon lingkaran pojok kanan-atas sangat dekat
+  tepi layar tapi tidak menutupi apa pun (tidak diklik karena
+  bisa mengubah state).
+- Zoom kamera naik/turun merespons langsung, render ulang
+  bersih tanpa stutter/ubin kosong yang terlihat; geser-drag
+  sengaja tidak dites, jadi kelancaran drag + frame rate tidak
+  terverifikasi. Tidak ada area blank/error setelah muat.
+- CATATAN SELISIH (jujur, belum dijelaskan): panel menunjukkan
+  Hari ke-4, padahal verifikasi r34 (06:29) mencatat hari 338
+  dan desa Suka Maju — apakah dunia di-reset, atau panel yang
+  dibaca adalah tampilan lain, belum bisa dipastikan dari
+  observasi ini saja; tidak diklaim sebagai reset. Klik yang
+  dilakukan browser hanya buka/tutup panel Menu Kampung
+  (read-only) dan tombol zoom kamera; tidak ada profil, gacha,
+  pengaturan, atau form yang diubah/dikirim.
+
 ## 2026-11-05 06:29 WIB — Audit geometri/material bersama sebelum instancing (Ide 30) + brief riset performa
 
 Perubahan dalam 2 kalimat: audit statis kode render 3D memastikan

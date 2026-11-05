@@ -471,6 +471,24 @@ sedang, usaha kecil. BUKAN duplikat Ide 27 (angka baseline
 runtime) maupun Ide 28 (InstancedMesh itu sendiri). Detail di
 research/2026-11-05-0229.md.
 
+## Ide 31 — Pesta kampung sebagai saluran buang pangan berlebih (dari riset 2026-11-05 08:29 WIB, sudut ekonomi/sim)
+
+Sumber: panduan Northgard (pesta = cara membuang pangan berlebih
+secara berguna, ditukar dorongan singkat) + Medieval Dynasty
+(hasil busuk dialihkan jadi pupuk, bukan sekadar lenyap).
+Masalah: pangan di atas kapasitas sekarang hanya menunggu
+membusuk 50%/hari — pasif, tidak terasa sebagai keputusan.
+Cara kerja: saat pangan melewati kapasitas, kabar mengumumkan
+pesta; versi display-only dulu (pengumuman + warga berkumpul di
+balai/paviliun di hari pesta), versi sim belakangan (kelebihan
+pangan habis ditukar dorongan mood singkat). Jembatan dari Ide 10
+(festival berkala): ini versi daruratnya, dipicu stok bukan
+kalender. Dampak sedang, usaha sedang (display-only: kecil).
+Tidak direkomendasikan dari riset ini: cap keras ala FreeCol
+(hapus semua kelebihan seketika) dan pembusukan persen dari total
+stok ala Utopia (menggerus stok dalam kapasitas yang dinyatakan
+aman). Detail di research/2026-11-05-0829.md.
+
 ## Ide-ide berikutnya
 
 Diisi dari riset web tiap run cron (fitur baru yang fresh,

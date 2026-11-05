@@ -872,7 +872,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r34"'), "version: BUILD_ID r34 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r35"'), "version: BUILD_ID r34 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1223,7 +1223,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r34"'), "versi: BUILD_ID r34");
+  ok(ver.includes('"r35"'), "versi: BUILD_ID r34");
 }
 
 {
@@ -2028,6 +2028,36 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(simSrcBusuk.includes("terapkanPembusukan(ctx)"), "busuk: advanceWorld memanggil pembusukan tiap ganti hari");
 }
 
+// PEMBUSUKAN SISA KECIL (2026-11-05, antrean r34): Math.floor saja
+// membuat kelebihan kecil macet selamanya (kulit 104/95: 9 x 10% =
+// 0,9 -> 0/hari). Selama ada kelebihan, minimal 1 busuk per hari
+// supaya stok selalu konvergen ke kapasitas, tidak pernah di bawahnya.
+{
+  const ctxKulit = {
+    stok: { kulit: 104, kayu: 0, batu: 0, pangan: 0, emas: 0, besi: 0 },
+    kapasitasMaks: { kulit: 95, kayu: 200, batu: 150, pangan: 200, emas: 50, besi: 60 },
+  } as unknown as SimCtx;
+  const bKulit = terapkanPembusukan(ctxKulit);
+  const sKulit = ctxKulit.stok as unknown as Record<string, number>;
+  ok(bKulit.kulit === 1 && sKulit.kulit === 103, "busuk-kecil: kulit 104/95 susut 1 (bukan 0)");
+  for (let i = 0; i < 20; i++) terapkanPembusukan(ctxKulit);
+  ok(sKulit.kulit === 95, "busuk-kecil: kulit konvergen tepat ke kap 95, tidak di bawahnya");
+  const ctxPangan = {
+    stok: { pangan: 851, kayu: 0, batu: 0, kulit: 0, emas: 0, besi: 0 },
+    kapasitasMaks: { pangan: 850, kayu: 200, batu: 150, kulit: 100, emas: 50, besi: 60 },
+  } as unknown as SimCtx;
+  const bPangan = terapkanPembusukan(ctxPangan);
+  ok(bPangan.pangan === 1 && (ctxPangan.stok as unknown as Record<string, number>).pangan === 850, "busuk-kecil: pangan 851/850 susut 1 ke kap");
+  const ctxKayu = {
+    stok: { kayu: 205, batu: 0, pangan: 0, kulit: 0, emas: 0, besi: 0 },
+    kapasitasMaks: { kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60 },
+  } as unknown as SimCtx;
+  const bKayu = terapkanPembusukan(ctxKayu);
+  ok(bKayu.kayu === 1 && (ctxKayu.stok as unknown as Record<string, number>).kayu === 204, "busuk-kecil: kayu 205/200 susut 1 (5 x 10% = 0,5 -> 0 dulu)");
+  const verKecil = readFileSync("src/lib/version.ts", "utf8");
+  ok(verKecil.includes('BUILD_ID = "r35"'), "busuk-kecil: BUILD_ID naik ke r35");
+}
+
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
 {
   const plJalan = [
@@ -2225,7 +2255,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r34"'), "vis: BUILD_ID naik ke r34 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r35"'), "vis: BUILD_ID naik ke r34 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2332,7 +2362,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r34"'), "muat3d: BUILD_ID naik ke r34");
+  ok(verMuat.includes('BUILD_ID = "r35"'), "muat3d: BUILD_ID naik ke r34");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2376,7 +2406,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r34"'), "geraktenang: BUILD_ID naik ke r34");
+  ok(verGerak.includes('BUILD_ID = "r35"'), "geraktenang: BUILD_ID naik ke r34");
 }
 
 
@@ -2395,7 +2425,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r34"'), "tip: BUILD_ID naik ke r34");
+  ok(verTip.includes('BUILD_ID = "r35"'), "tip: BUILD_ID naik ke r34");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2413,7 +2443,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r34"'), "fokus: BUILD_ID naik ke r34");
+  ok(verFokus.includes('BUILD_ID = "r35"'), "fokus: BUILD_ID naik ke r34");
 }
 
 // Audit geometri/material bersama sebelum instancing (2026-11-05,
@@ -2440,7 +2470,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
   ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
   const verAudit = readFileSync("src/lib/version.ts", "utf8");
-  ok(verAudit.includes('BUILD_ID = "r34"'), "audit30: BUILD_ID naik ke r34");
+  ok(verAudit.includes('BUILD_ID = "r35"'), "audit30: BUILD_ID naik ke r34");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
