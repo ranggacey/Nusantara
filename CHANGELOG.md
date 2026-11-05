@@ -1,5 +1,82 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 14:29 WIB — Blok "Selama kamu pergi" di kartu menu (Ide 22) + brief riset kembali bermain
+
+Perubahan dalam 2 kalimat: kartu menu kini menampilkan blok
+"👋 Selama kamu pergi" yang merangkum apa yang berubah sejak
+kunjungan terakhir pemain — hari game yang berlalu, perubahan
+populasi, dan jenis bangunan selesai yang baru — maksimal 3 baris
+dengan tombol ✕; cuplikannya disimpan di localStorage dan ditulis
+saat tab disembunyikan/ditutup, tanpa fetch baru, tanpa ubah sim,
+dan tanpa hadiah offline.
+
+- `src/lib/batu/sumberdaya.ts`: fungsi murni baru `selamaKamuPergi`
+  (+ tipe `CuplikanKampung`) — null bila tidak ada cuplikan
+  (kunjungan pertama) atau hari game belum maju; baris hari selalu
+  ada bila hari maju, lalu populasi bila berubah, lalu bangunan
+  selesai yang baru dengan label katalog (maks 2 nama + "dan N
+  lagi"); bangunan yang hilang diabaikan, duplikat kind dihitung
+  sekali, input tidak valid diperlakukan 0. Sengaja TANPA selisih
+  stok mentah: angka "yang didapat" akan menyesatkan karena stok
+  membusuk/ter-clamp.
+- `src/app/page.tsx`: state `cuplikanLalu` (dibaca dari
+  `ne_kunjungan_terakhir` saat mount) + `cuplikanRef` yang
+  dilacak dari tiap poll berhasil; kunjungan pertama di-seed dari
+  poll pertama tanpa blok; `beforeunload` + `visibilitychange`
+  hidden menulis cuplikan terakhir yang dilihat; ✕ (`tutupPergi`)
+  memajukan cuplikan ke keadaan sekarang supaya blok tidak muncul
+  lagi sampai ada hari baru berlalu. Blok dirender di atas panel
+  "Kampung menginginkan" di kartu menu.
+- `src/app/globals.css`: `.menu-pergi` (+ title/baris/tutup),
+  bingkai biru tenang + tombol ✕ sebaris seperti tip, tanpa
+  animasi (patuh reduced-motion r31).
+- Tes: 18 asersi baru (10 fungsi murni + 8 penjaga statis:
+  terpasang di menu, kunci localStorage, tulis saat
+  hidden/ditutup, tombol ✕, CSS, BUILD_ID). Total: 7883 lolos /
+  645 gagal — baseline 7865/645, nol regresi baru.
+  10 asersi BUILD_ID lama ikut naik r38 → r39.
+- Build Next.js hijau.
+- BUILD_ID r38 → r39.
+
+### Observasi live (browser, hanya melihat, 14:30-14:32 WIB)
+- Muat pertama ringan: desa penuh tampil <20 detik ("Memuat peta
+  3D…" sebentar), tanpa spinner macet/error.
+- Geser/zoom peta tanpa jank yang terlihat; tombol ▲/▼ kamera
+  dan menu ☰ merespons.
+- Warga kebanyakan menganggur/berkeliaran (12 warga terlihat);
+  Evos dyroth, Siti, Ys melayang jauh sendiri ke rumput/hutan
+  kosong; tidak ada yang terlihat memakai perkakas/bekerja di
+  ladang/tambang dalam frame yang diamati — obrolan (bubble)
+  yang memberi kesan tujuan, mis. janji ikut ke hutan besok.
+- Hewan terlihat tapi sedikit dan kecil: Babi Hutan (1) + Ayam
+  Hutan (2); daftar hewan di halaman lebih banyak dari yang
+  terlihat dalam satu frame.
+- Minor: label nama bertumpuk di sekitar rumah; "ribran
+  gakabuming" terpotong di tepi kiri; label "Ys" sebagian
+  tertutup analog kiri-bawah; tombol ☰ kontras rendah (lingkaran
+  gelap kecil di kanan-atas) walau berfungsi; panel menu bisa
+  di-scroll, tidak terpotong.
+- Area kosong: timur desa lapangan hijau luas hampir kosong
+  (pohon/batu/semak tersebar). Jam game cepat: siang → malam
+  sangat gelap (01:48) dalam ~1 menit, lalu siang lagi.
+- Angka live saat observasi (H-365, 01:48 Malam, Cerah):
+  populasi 12; Kayu 149/160, Batu 6/130, Emas 1/40, Besi 47/55,
+  Pangan 0/200, Kulit 92/95; tonggak 5 dari 7; inventori kosong.
+  Pangan 0 dan Batu 6 dicatat sebagai keadaan dunia, bukan
+  disentuh run ini (cron dilarang menulis DB).
+
+### Riset + backlog (brief research/2026-11-05-1429.md)
+- Sudut: kembali bermain/retensi. Sumber: Stationfolk V0.30
+  (kartu "While you were away": beberapa baris, tombol Detail ke
+  jurnal + Tutup, tidak memblokir, jujur bila >12 jam dilewati),
+  Flutter.dev Gaming UX (pesan welcome back: di mana berhenti +
+  apa berubah + apa selanjutnya), Otherreach (away log = peristiwa
+  yang selesai, bukan angka mentah), SimpleIdle (welcome back
+  dialog; catch-up murah, jangan simulasi ulang). Ide 22 DIBANGUN
+  run ini; sisa Ide 22 (baris "yang menunggu") + jurnal lengkap
+  dari kabar kampung masuk backlog. Tidak direkomendasikan:
+  hadiah offline, simulasi ulang waktu pergi, dialog pemblokir.
+
 ## 2026-11-05 — r38: perburuan yang benar-benar membunuh, semua warga bisa berburu, kumpul jalan lagi, satu sumber kebenaran petak (laporan user 2026-11-05 ~13:48 WIB, video + chat)
 
 Perubahan dalam 2 kalimat: pemburu kini aktif mencari mangsa

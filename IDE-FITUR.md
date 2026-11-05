@@ -362,6 +362,22 @@ Sumber: Wandr (tombol tutup di pojok atas jauh = titik tersulit
 satu tangan; sediakan ketuk di luar panel sebagai jalan keluar).
 
 ## Ide 22 — "Selama kamu pergi" di kartu menu (dari riset 2026-11-04 16:29 WIB, sudut kembali bermain)
+~~DIBANGUN 2026-11-05 14:29 WIB~~ — blok "👋 Selama kamu pergi" di
+kartu menu (di atas panel "Kampung menginginkan"): fungsi murni
+`selamaKamuPergi` di `sumberdaya.ts` membandingkan cuplikan
+kunjungan terakhir (localStorage `ne_kunjungan_terakhir`: hari
+game + populasi + jenis bangunan selesai) dengan data poll
+terbaru — maksimal 3 baris ("Hari 342 -> 349", "Penduduk 9 ->
+11", "Bangunan selesai: Gubuk, Lumbung") + tombol ✕ yang
+memajukan cuplikan ke keadaan sekarang. Cuplikan ditulis saat
+tab disembunyikan/ditutup + di-seed dari poll pertama bila belum
+ada; blok hanya muncul bila hari game sudah maju. Display-only,
+tanpa fetch baru, tanpa ubah sim, TANPA hadiah offline, TANPA
+selisih stok mentah (menyesatkan karena busuk/clamp). BUILD_ID
+r38 -> r39 + 18 tes penjaga.
+SISA: baris "yang menunggu" (antrean bangunan / warga tanpa
+tugas dari data poll yang sudah ada) + tautan/jurnal lengkap dari
+kabar kampung.
 
 Sumber: Knightfall Idle (waktu pergi disimulasikan saat kembali,
 cap 8 jam) + studi engagement idle game (kejar ketertinggalan

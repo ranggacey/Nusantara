@@ -241,6 +241,46 @@ export function tonggakKampung(populasi: number, jenisBerdiri: string[]): Tongga
   return { daftar, tercapai, total: daftar.length, berikutnya };
 }
 
+// ── "Selama kamu pergi" (2026-11-05, Ide 22 / riset kembali bermain)
+// Fungsi MURNI, display-only: membandingkan cuplikan kampung dari
+// kunjungan terakhir (localStorage, ditulis saat tab disembunyikan /
+// ditutup / blok ditutup) dengan keadaan poll terbaru, lalu
+// mengembalikan maksimal 3 baris ringkas — atau null bila tidak ada
+// yang berubah. TANPA hadiah offline (dunia bersama jalan terus
+// untuk semua orang) dan TANPA selisih stok mentah ("yang didapat"
+// akan menyesatkan karena stok membusuk/ter-clamp). Yang dilaporkan:
+// hari game yang berlalu, perubahan populasi, dan jenis bangunan
+// SELESAI yang baru (placements /api/map memang hanya bangunan
+// selesai, jadi "baru" di sini otomatis berarti selesai dibangun).
+export interface CuplikanKampung {
+  hari: number;
+  populasi: number;
+  bangunan: string[];
+}
+
+export function selamaKamuPergi(
+  sebelum: CuplikanKampung | null | undefined,
+  sekarang: CuplikanKampung
+): string[] | null {
+  if (!sebelum) return null;
+  const hariLalu = Number.isFinite(sebelum.hari) ? Math.max(0, Math.floor(sebelum.hari)) : 0;
+  const hariKini = Number.isFinite(sekarang.hari) ? Math.max(0, Math.floor(sekarang.hari)) : 0;
+  if (hariKini <= hariLalu) return null;
+  const baris: string[] = [`Hari ${hariLalu} → ${hariKini}`];
+  const popLalu = Number.isFinite(sebelum.populasi) ? Math.max(0, Math.floor(sebelum.populasi)) : 0;
+  const popKini = Number.isFinite(sekarang.populasi) ? Math.max(0, Math.floor(sekarang.populasi)) : 0;
+  if (popKini !== popLalu) baris.push(`Penduduk ${popLalu} → ${popKini}`);
+  const dulu = new Set((sebelum.bangunan ?? []).map(String));
+  const baru = [...new Set((sekarang.bangunan ?? []).map(String))].filter((k) => !dulu.has(k));
+  if (baru.length > 0) {
+    const nama = baru.map((k) => labelBangunan(k));
+    const tampil = nama.slice(0, 2);
+    const sisa = nama.length - tampil.length;
+    baris.push(`Bangunan selesai: ${tampil.join(", ")}${sisa > 0 ? ` dan ${sisa} lagi` : ""}`);
+  }
+  return baris.slice(0, 3);
+}
+
 // Kekurangan stok untuk satu biaya: {resource: jumlah_kurang}.
 export function kurangDariBiaya(stok: Partial<Record<ResourceId, number>>, biaya: Partial<Record<ResourceId, number>>): Partial<Record<ResourceId, number>> {
   const kurang: Partial<Record<ResourceId, number>> = {};

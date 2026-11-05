@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, type CuplikanKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -224,6 +224,69 @@ export default function Page() {
       localStorage.setItem("ne_tip_kontekstual", "1");
     } catch {}
   };
+  // "Selama kamu pergi" (2026-11-05, Ide 22): cuplikan kampung dari
+  // kunjungan terakhir + tombol ✕ yang menyingkirkan blok sampai
+  // kunjungan berikutnya. Display-only: snapshot ditulis dari data
+  // poll yang SUDAH ada (tanpa fetch baru), dibaca saat mount; blok
+  // muncul hanya bila hari game sudah maju sejak cuplikan itu.
+  // TANPA hadiah offline — dunia bersama jalan terus untuk semua orang.
+  const [cuplikanLalu, setCuplikanLalu] = useState<CuplikanKampung | null>(null);
+  const [pergiTutup, setPergiTutup] = useState(false);
+  const cuplikanRef = useRef<CuplikanKampung | null>(null);
+  const cuplikanDariData = (w: J | null, m: J | null): CuplikanKampung | null => {
+    if (!w || !m) return null;
+    return {
+      hari: Number(w.hari_total ?? 0),
+      populasi: Number(w.populasi ?? 0),
+      bangunan: (m.placements ?? []).map((p: J) => String(p.kind)),
+    };
+  };
+  const tulisCuplikan = (c: CuplikanKampung | null) => {
+    if (!c) return;
+    try {
+      localStorage.setItem("ne_kunjungan_terakhir", JSON.stringify(c));
+    } catch {}
+  };
+  const tutupPergi = () => {
+    // ✕ = "sudah dibaca": cuplikan dimajukan ke keadaan sekarang
+    // supaya blok tidak muncul lagi sampai ada hari baru berlalu.
+    const kini = cuplikanRef.current;
+    if (kini) {
+      tulisCuplikan(kini);
+      setCuplikanLalu(kini);
+    }
+    setPergiTutup(true);
+  };
+  // Lacak cuplikan terbaru dari tiap poll yang berhasil; kunjungan
+  // pertama tanpa cuplikan tersimpan langsung di-seed dari poll
+  // pertama (tanpa blok — tidak ada "pergi" yang bisa dirangkum).
+  useEffect(() => {
+    const kini = cuplikanDariData(world, map);
+    if (kini) {
+      cuplikanRef.current = kini;
+      if (cuplikanLalu === null) {
+        tulisCuplikan(kini);
+        setCuplikanLalu(kini);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [world, map]);
+  // Simpan cuplikan saat pemain pergi: tab disembunyikan atau halaman
+  // ditutup — supaya kunjungan berikut membandingkan dengan keadaan
+  // terakhir yang benar-benar dilihat, bukan dengan poll terakhir
+  // yang mungkin sudah berjam-jam lalu.
+  useEffect(() => {
+    const simpan = () => tulisCuplikan(cuplikanRef.current);
+    const onVis = () => {
+      if (document.hidden) simpan();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("beforeunload", simpan);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("beforeunload", simpan);
+    };
+  }, []);
   const [versiBaru, setVersiBaru] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Offset jam perangkat -> jam server (dari /api/world server_ms):
@@ -246,6 +309,20 @@ export default function Page() {
       if (rl) setRoadLevel(Number(rl));
       if (localStorage.getItem("ne_label_karakter") === "0") setLabelTampil(false);
       if (localStorage.getItem("ne_tip_kontekstual") === "0") setTipTampil(false);
+      // "Selama kamu pergi" (2026-11-05, Ide 22): cuplikan kunjungan
+      // terakhir — dibaca sekali saat mount; penulisan ada di efek
+      // [world, map] (seed kunjungan pertama) + beforeunload/hidden.
+      try {
+        const mentah = localStorage.getItem("ne_kunjungan_terakhir");
+        if (mentah) {
+          const c = JSON.parse(mentah) as Partial<CuplikanKampung>;
+          if (typeof c.hari === "number" && typeof c.populasi === "number" && Array.isArray(c.bangunan)) {
+            setCuplikanLalu({ hari: c.hari, populasi: c.populasi, bangunan: c.bangunan.map(String) });
+          }
+        }
+      } catch {
+        /* cuplikan rusak: perlakukan sebagai kunjungan pertama */
+      }
     } catch {
       /* abaikan */
     }
@@ -589,8 +666,31 @@ export default function Page() {
                 world?.populasi ?? 0,
                 (map?.placements ?? []).map((p: J) => String(p.kind))
               );
+              // "Selama kamu pergi" (2026-11-05, Ide 22): ringkasan
+              // kunjungan terakhir vs poll terbaru — maksimal 3 baris,
+              // hanya bila hari game sudah maju. Display-only.
+              const pergi = pergiTutup
+                ? null
+                : selamaKamuPergi(cuplikanLalu, {
+                    hari: Number(world?.hari_total ?? 0),
+                    populasi: Number(world?.populasi ?? 0),
+                    bangunan: (map?.placements ?? []).map((p: J) => String(p.kind)),
+                  });
               return (
                 <>
+                  {pergi && (
+                    <div className="menu-pergi">
+                      <div className="menu-pergi-teks">
+                        <div className="menu-pergi-title">👋 Selama kamu pergi</div>
+                        {pergi.map((b) => (
+                          <div key={b} className="menu-pergi-baris">• {b}</div>
+                        ))}
+                      </div>
+                      <button className="menu-pergi-tutup" title="Tutup ringkasan (muncul lagi bila ada hari baru berlalu)" aria-label="Tutup ringkasan Selama kamu pergi" onClick={tutupPergi}>
+                        ✕
+                      </button>
+                    </div>
+                  )}
                   <div className="menu-kebutuhan">
                     <div className="menu-kebutuhan-title">🎯 Kampung menginginkan</div>
                     {kb.selesai ? (
