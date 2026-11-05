@@ -71,8 +71,27 @@ komponen benar-benar lepas.
   run ini (run ini belum deploy saat observasi, dan hanya
   menyentuh dispose render).
 
-### Verifikasi live r36 (menyusul setelah deploy)
-- (diisi setelah deploy READY + cek API)
+### Verifikasi live r36 (deploy READY dpl_6GZzCcHQzviQ9HU3hfJ2PkpxDKiS, commit 400a324)
+- /api/version: {"ok":true,"build":"r36"}. Homepage 200
+  (judul "Negara Emas — Zaman Batu" + cangkang "Memuat peta
+  3D…") dan ikon /batu/icons/kayu.png 200 (128x128).
+- /api/world ok: kampung Suka Maju, populasi 10, hari 350,
+  11.28 Siang, Cerah; stok kayu 157/160, batu 14/130, emas 1/40,
+  besi 47/55, pangan 0/200, kulit 93/95 — cocok dengan tren
+  observasi (kayu 157, kulit 93) dan di bawah kapasitas.
+- /api/map ok (grid 600x600 + node pohon/semak/buruan/batu/
+  urat emas-besi) dan /api/bangunan ok (katalog 26 jenis +
+  antrean, paviliun makan masih antre kurang batu 6).
+- TIDAK ADA regresi API setelah deploy ini (semua route yang
+  tadinya ok tetap ok dengan isi yang konsisten). Perubahan ini
+  hanya menyentuh dispose render, jadi tidak menyentuh sim/API
+  sama sekali.
+- Catatan selisih (jujur, bukan akibat deploy): panel menu saat
+  observasi menyebut populasi 12 dan nama "Emas", sementara
+  /api/world menyebut populasi 10 dan kampung Suka Maju —
+  panel kemungkinan menampilkan nama dunia ("Negara Emas")
+  dan hitungan yang berbeda dari API; API dijadikan acuan dan
+  selisih ini dicatat untuk dicek lagi, bukan diklaim bug.
 
 ## 2026-11-05 08:29 WIB — Pembusukan sisa kecil tidak lagi macet (antrean r34) + brief riset ekonomi/sim
 
