@@ -10,7 +10,7 @@
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/db";
 import { bangunanById } from "@/lib/batu/sumberdaya";
-import { isWater, isGunung, pasanganTumpuk, dedupePlacement } from "@/lib/batu/dunia";
+import { isWater, isGunung, pasanganTumpuk, dedupePlacement, ukuranPetak, petakBangunan, occupiedDariPlacements } from "@/lib/batu/dunia";
 
 export const dynamic = "force-dynamic";
 
@@ -51,21 +51,25 @@ export async function POST() {
       return NextResponse.json({ ok: false, message: "Tidak ada bangunan yang bertumpuk saat ini." });
     }
     const { tetap, geser } = tumpuk;
-    const gw = Number(geser.w ?? 2);
-    const gh = Number(geser.h ?? 2);
+    // r38: ukuran dari helper petak kanonik — SAMA dengan yang dipakai
+    // sim saat menempatkan (w/h baris, kalau tidak ada footprint
+    // katalog). Dulu default 2 di sini vs 1 di sim: dua sumber
+    // kebenaran, jadi AI bisa berkata "tidak ada yang menumpuk"
+    // sementara bangunan lain menembus.
+    const { w: gw, h: gh } = ukuranPetak(geser);
     const labelGeser = bangunanById(geser.kind)?.label ?? geser.kind;
     const labelTetap = bangunanById(tetap.kind)?.label ?? tetap.kind;
 
-    const occupied = new Set<string>();
-    for (const p of placements) {
-      if (p === geser) continue;
-      const pw = Number(p.w ?? 2);
-      const ph = Number(p.h ?? 2);
-      for (let dy = 0; dy < ph; dy++) {
-        for (let dx = 0; dx < pw; dx++) {
-          occupied.add(`${p.gx + dx},${p.gy + dy}`);
-        }
-      }
+    const occupied = occupiedDariPlacements(placements.filter((p) => p !== geser));
+    // r38: bangunan yang sedang DIBANGUN (koleksi `bangunan` status
+    // antre/dibangun, gx/gy sudah ditetapkan) ikut menghalangi —
+    // inilah yang kemungkinan user lihat "dibangun menembus
+    // restoran": rapikan lama hanya memeriksa peta_tile.
+    const bangunanCol = await getCollection("bangunan");
+    const konstruksi = (await bangunanCol.find({ status: { $in: ["antre", "dibangun"] } }).toArray()) as any[];
+    for (const k of konstruksi) {
+      if (k.gx === null || k.gx === undefined || k.gy === null || k.gy === undefined) continue;
+      for (const key of petakBangunan({ kind: k.tipe, gx: Number(k.gx), gy: Number(k.gy), w: k.w ?? undefined, h: k.h ?? undefined })) occupied.add(key);
     }
     const roadTiles = jalanDocs.map((j: any) => ({ gx: Number(j.gx), gy: Number(j.gy) }));
 

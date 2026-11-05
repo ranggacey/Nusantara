@@ -1113,10 +1113,18 @@ export function createPaviliunNirwana(w: number = 4, h: number = 4): THREE.Group
   envGroup.add(mountArea);
   restaurantGroup.add(envGroup);
 
-  // Skala Paviliun Nirwana 10x lebih besar (MMORPG Grand Landmark)
-  // Model aslinya berdimensi ~32x28 unit.
-  // Dengan scale 0.88, luas paviliun menjadi ~28x24 unit dan tinggi 12 unit (~3x lebih tinggi dari gubuk).
-  const scale = 0.88;
+  // r38 — SKALA DISESUAIKAN KE FOOTPRINT (laporan user 2026-11-05:
+  // "rumah nembus restoran"). Model aslinya berdimensi ~32x28 unit,
+  // footprint di dunia 8x8 tile (1 tile = 1 unit). Sebelum r38 skala
+  // 0.88 membuat paviliun ~28x24 unit + tinggi 12 unit — visualnya
+  // menelan bangunan tetangga meski petak tile-nya tidak tumpang.
+  // Mulai r38: skala = min(w/32, h/28), paviliun muat di dalam
+  // petaknya sendiri seperti bangunan lain. Konsekuensi jujur:
+  // paviliun jadi jauh lebih pendek/gemuk (lebar ~8 unit, tinggi
+  // ~3) — bukan lagi landmark menjulang. Bila nanti paviliun ingin
+  // kembali menjulang, footprint-nya yang harus diperbesar di
+  // katalog (bukan skala modelnya).
+  const scale = Math.min(w / 32, h / 28);
   restaurantGroup.scale.set(scale, scale, scale);
 
   return root;

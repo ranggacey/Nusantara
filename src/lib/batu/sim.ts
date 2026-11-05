@@ -79,7 +79,7 @@ import { gameTime, cuacaGame, migrasiJam, migrasiJamV4 } from "../clock";
 import { faseDariJam, seededRandom } from "../world";
 import { peranById, labelNode, nodeHasil, pengaliFit, perkakasPeran, LABEL_ALAT, RESEP_PERKAKAS, type NodeKind, type PeranId } from "./peran";
 import { stokKosong, bangunanById, cukupBiaya, kurangDariBiaya, hitungKapasitasStok, type Stok } from "./sumberdaya";
-import { generateNodes, isWater, riverX, findPlot, findHousePlotBesideRoad, findBridgePlot, findBoatSpot, PLACEMENT_AWAL, PUSAT, GRID_MIN, GRID_MAX, isGunung, gunungTileKeys, dedupePlacement, type Node } from "./dunia";
+import { generateNodes, isWater, riverX, findPlot, findHousePlotBesideRoad, findBridgePlot, findBoatSpot, PLACEMENT_AWAL, PUSAT, GRID_MIN, GRID_MAX, isGunung, gunungTileKeys, dedupePlacement, ukuranPetak, petakBangunan, occupiedDariPlacements, plotBebas, type Node } from "./dunia";
 import { pintarUntukJalan, rencanaJalan } from "./jalan";
 import { hewanById, HEWAN_AWAL, type HewanDef } from "./hewan";
 import { debatBaris, geludBaris, ngobrolBaris } from "./dialog";
@@ -253,10 +253,15 @@ export function kecepatanJalan(agi: number, sta?: number, bakat?: string | null)
 }
 
 export function lajuKumpul(statFokus: number): number {
-  // Realistis & sangat susah (30x lebih lambat dari normal):
-  // Menambang batu besar dengan beliung batu atau menebang pohon purba
-  // dengan kapak batu butuh ketekunan berjam-jam (hanya 0.25 - 0.6% per jam game).
-  return 0.25 + statFokus * 0.05;
+  // r38 — DIKEMBALIKAN ke kontrak tes + DESAIN-EKONOMI.md (laporan
+  // user 2026-11-05: "gada yg ngumpulin buah"): versi 0.25 +
+  // 0.05*stat membuat satu ronde kumpul butuh ~150-300 jam game
+  // (5-12 hari) — warga berjalan ke semak lalu diam berhari-hari
+  // tanpa hasil, pangan kampung 0. Rumus 20 + 5*stat (stat 8 ->
+  // 60%/jam) menyelesaikan satu ronde dalam ~2 jam, sesuai cap
+  // harian 1-3/hari/orang di DESAIN-EKONOMI.md (jumlah hasil tetap
+  // dibatasi roll + cap harian, bukan laju ini).
+  return 20 + statFokus * 5;
 }
 
 // Periksa apakah stok penyimpanan lumbung desa sudah penuh untuk hasil peran warga ini
@@ -438,6 +443,24 @@ export function punyaTombakIblis(w: Warga): boolean {
 export function damageSenjata(w: Warga): number {
   return (w.perkakas ?? []).reduce((s, p) => s + (p.damage ?? 0), 0);
 }
+
+// r38 — PERBURUAN YANG BENAR-BENAR BISA MENANGKAP MANGSA (laporan
+// user 2026-11-05, video: pemburu "Ys" berdiri di samping rusa yang
+// HP-nya tetap penuh). Akar masalahnya tiga lapis: (1) hewan jinak
+// kabur 120-150 tile/jam SEBELUM giliran pemburu tiap jam game,
+// sementara pemburu jalan 90-150 tile/jam — rusa (120) praktis tak
+// terkejar, jadi HP tidak pernah berkurang; (2) pemburu hanya
+// mengincar mangsa dalam 6 tile dan tidak pernah berjalan MENDATANGI
+// mangsa yang jauh — ia menunggu mangsa lewat di depan hidung;
+// (3) serangan hanya dicoba bila mangsa SUDAH bersebelahan di awal
+// giliran — padahal mangsa baru saja kabur, jadi pemburu selamanya
+// selangkah di belakang. Perbaikannya: kabur jinak dibatasi
+// sekejap (lalu merumput), pemburu aktif mencari + berlari mengejar,
+// dan serangan dicoba lagi begitu pemburu TIBA di samping mangsa.
+export const JARAK_KABUR_JINAK = 30; // tile/jam: kabur sekejap hewan jinak (rusa 120 -> 30)
+export const JARAK_CARI_MANGSA = 40; // tile: pemburu aktif mencari mangsa sejauh ini (dulu 6)
+export const JARAK_SERANG_OPORTUNIS = 3; // tile: warga non-pemburu menyerang hewan yang dekat
+export const PENGALI_KEJAR = 1.5; // pemburu berlari saat mengejar mangsa (bukan jalan biasa)
 
 // RONDE 15 — damage berburu per hit (sistem HP hewan): tombak iblis
 // = 999 (bunuh sekali hit, sesuai raja iblis); pemburu biasa = 1 +
@@ -765,9 +788,8 @@ export function rintanganUntuk(w: Warga, ctx: SimCtx): Set<string> {
     const p = (ctx.placements ?? []).find((x) => String(x._id) === w.hunian?.id);
     if (p) {
       if (!out) out = new Set<string>(ctx.rintangan);
-      for (let dy = 0; dy < (p.h ?? 1); dy++) {
-        for (let dx = 0; dx < (p.w ?? 1); dx++) out.delete(`${p.gx + dx},${p.gy + dy}`);
-      }
+      // r38: petak hunian dari helper kanonik.
+      for (const k of petakBangunan(p)) out.delete(k);
     }
   }
   return out ?? ctx.rintangan;
@@ -868,12 +890,15 @@ export function periksaNodeHabis(w: Warga, ctx: SimCtx): boolean {
 // Ubin tidur dalam footprint hunian: tiap penghuni ubin BERBEDA (urutan
 // baris, modulo bila penghuni > ubin — gubuk_besar kap 6 di 2x2 = 4 ubin).
 export function tileHunian(
-  p: { gx: number; gy: number; w: number; h: number },
+  p: { kind?: string; gx: number; gy: number; w?: number | null; h?: number | null },
   idx: number
 ): { gx: number; gy: number } {
   const tiles: { gx: number; gy: number }[] = [];
-  for (let dy = 0; dy < (p.h ?? 1); dy++) {
-    for (let dx = 0; dx < (p.w ?? 1); dx++) {
+  // r38: petak hunian dari helper kanonik (w/h sudah dijamin angka
+  // oleh pemanggil; ukuranPetak tetap dipakai untuk konsistensi).
+  const { w: pw, h: ph } = ukuranPetak(p);
+  for (let dy = 0; dy < ph; dy++) {
+    for (let dx = 0; dx < pw; dx++) {
       tiles.push({ gx: p.gx + dx, gy: p.gy + dy });
     }
   }
@@ -894,19 +919,14 @@ export function tileTamu(
   });
   // Gubuk terdekat dari pusat (gubuk awal di pusat kampung).
   hunian.sort((a, b) => Math.abs(a.gx - PUSAT.gx) + Math.abs(a.gy - PUSAT.gy) - (Math.abs(b.gx - PUSAT.gx) + Math.abs(b.gy - PUSAT.gy)));
-  const occupied = new Set<string>();
-  for (const p of placements) {
-    for (let dy = 0; dy < (p.h ?? 1); dy++) {
-      for (let dx = 0; dx < (p.w ?? 1); dx++) {
-        occupied.add(`${p.gx + dx},${p.gy + dy}`);
-      }
-    }
-  }
+  // r38: occupied dari helper petak kanonik.
+  const occupied = occupiedDariPlacements(placements);
   for (const p of hunian) {
+    const { w: pw, h: ph } = ukuranPetak(p);
     const sekeliling: { gx: number; gy: number }[] = [];
-    for (let dy = -1; dy <= (p.h ?? 1); dy++) {
-      for (let dx = -1; dx <= (p.w ?? 1); dx++) {
-        if (dx >= 0 && dx < (p.w ?? 1) && dy >= 0 && dy < (p.h ?? 1)) continue;
+    for (let dy = -1; dy <= ph; dy++) {
+      for (let dx = -1; dx <= pw; dx++) {
+        if (dx >= 0 && dx < pw && dy >= 0 && dy < ph) continue;
         const gx = p.gx + dx;
         const gy = p.gy + dy;
         if (gx < GRID_MIN || gy < GRID_MIN || gx >= GRID_MAX || gy >= GRID_MAX) continue;
@@ -2370,7 +2390,12 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
     // Jinak kabur; buas pun KABUR bila yang terdekat adalah penjaga
     // (penjaga kampung mengusir hewan buas yang mendekati kampung).
     if (def.jinak || dekat.peran === "penjaga") {
-      const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, dekat.lokasi, def.kecepatan, ctx.rintangan);
+      // r38: hewan jinak kabur sekejap saja (JARAK_KABUR_JINAK), bukan
+      // 120-150 tile/jam tanpa henti — kalau tidak, mangsa tak pernah
+      // terkejar dan HP-nya tidak pernah berkurang. Hewan buas yang
+      // diusir penjaga tetap kabur sekencang-kencangnya.
+      const kecKabur = def.jinak ? Math.min(def.kecepatan, JARAK_KABUR_JINAK) : def.kecepatan;
+      const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, dekat.lokasi, kecKabur, ctx.rintangan);
       h.gx = p.gx;
       h.gy = p.gy;
       return;
@@ -2382,9 +2407,11 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
     const d2 = Math.abs(dekat.lokasi.gx - h.gx) + Math.abs(dekat.lokasi.gy - h.gy);
     if (d2 <= 1) {
       // RONDE 14: raja iblis bertombak ikut duel hewan buas (tanpa syarat
-      // stamina pemburu — skornya 4495 vs ambang 14/18/22, selalu menang,
-      // lalu daging seperti biasa). Warga lain tanpa tombak tetap kabur.
-      if ((dekat.peran === "pemburu" && dekat.stamina >= 20) || punyaTombakIblis(dekat)) {
+      // stamina — skornya 4495 vs ambang 14/18/22, selalu menang,
+      // lalu daging seperti biasa). r38: SEMUA warga boleh melawan
+      // hewan buas bila stamina cukup (dulu hanya pemburu) — warga
+      // yang skornya kalah tetap kabur seperti dulu.
+      if (dekat.stamina >= 20 || punyaTombakIblis(dekat)) {
         // Duel pemburu vs hewan buas.
         const skor = skorGelud(dekat) + (levelPerkakas(dekat, "tombak") >= 1 ? 5 : 0) + (levelPerkakas(dekat, "busur") >= 1 ? 4 : 0);
         const lawan = 14 + (def.id === "beruang" ? 8 : def.id === "serigala" ? 4 : 0);
@@ -2439,23 +2466,37 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
     return;
   }
   // Mengembara acak (hindari air).
+  // r38: mengembara pun dibatasi (JARAK_KABUR_JINAK) — dulu hewan
+  // jinak mengembara secepat larinya (rusa 120, kelinci 150
+  // tile/jam), jadi dalam satu jam mangsa bisa 120 tile jauhnya dan
+  // pemburu yang mencari dalam radius 40 tidak pernah menemukannya
+  // (inilah yang membuat rusa di video tak pernah tertangkap: di
+  // jarak 10 tile ia bahkan belum "kabur", ia mengembara). Kecepatan
+  // katalog (def.kecepatan) tetap 120/150 — yang dibatasi hanya
+  // gerakan tenang per jam; hewan buas yang MENDEKATI warga tetap
+  // berlari sekencang-kencangnya di cabang atas.
   const arah = Math.floor(Math.random() * 4);
   const dx = arah === 0 ? 1 : arah === 1 ? -1 : 0;
   const dy = arah === 2 ? 1 : arah === 3 ? -1 : 0;
-  const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, { gx: h.gx - dx, gy: h.gy - dy }, def.kecepatan, ctx.rintangan);
+  const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, { gx: h.gx - dx, gy: h.gy - dy }, Math.min(def.kecepatan, JARAK_KABUR_JINAK), ctx.rintangan);
   h.gx = p.gx;
   h.gy = p.gy;
 }
 
-// Pemburu aktif berburu hewan jinak terdekat (<= 6 tile): kejar lalu coba.
+// Berburu hewan (jinak maupun yang didekati): kejar lalu coba.
 // RONDE 9/10: diekspor (test); TIDAK berburu di malam hari (pemburu
 // tidur); TIDAK mulai buruan baru saat sedang mengambil/membawa daging.
+// r38: SEMUA warga boleh menyerang hewan yang dekat (dulu hanya
+// pemburu). Pemburu aktif MENCARI mangsa (radius 40 tile); warga lain
+// hanya oportunis — menyerang hewan yang kebetulan dekat (radius 3
+// tile) supaya pekerjaan peran mereka tidak ditinggal demi berburu.
 export function stepPerburuan(w: Warga, jam: number, ctx: SimCtx): void {
   const hari = Math.floor(jam / 24);
-  if (w.peran !== "pemburu" || w.stamina < 20) return;
+  if (w.stamina < 20) return;
   if (w.fase_siklus === "istirahat") return;
   if (faseDariJam(jam % 24) === "malam") return;
   if (w.daging_target || w.membawa_daging) return;
+  const jarakCari = w.peran === "pemburu" ? JARAK_CARI_MANGSA : JARAK_SERANG_OPORTUNIS;
   let target: HewanDoc | null = null;
   let td = Infinity;
   for (const h of ctx.hewan) {
@@ -2466,14 +2507,14 @@ export function stepPerburuan(w: Warga, jam: number, ctx: SimCtx): void {
       target = h;
     }
   }
-  // RONDE 15 — mangsa lolos (>6 tile / tidak ada): hapus target basi
-  // supaya Map3D tidak membidik hewan yang sudah jauh/hilang.
-  if (!target || td > 6) { w.target_hewan = null; return; }
+  // RONDE 15 — mangsa lolos (di luar jangkauan / tidak ada): hapus
+  // target basi supaya Map3D tidak membidik hewan yang sudah jauh/hilang.
+  if (!target || td > jarakCari) { w.target_hewan = null; return; }
   const def = hewanById(target.jenis);
   if (!def) return;
   w.target_hewan = String(target._id);
-  if (td <= 1) {
-    // Percobaan berburu: peluang dari STR/AGI/STA + perkakas.
+  // Satu percobaan serang per jam: peluang dari STR/AGI/STA + perkakas.
+  const cobaSerang = (): void => {
     let peluang = 0.5 + (w.stat.str - 5) * 0.05 + (w.stat.agi - 5) * 0.03 + (w.stat.sta - 5) * 0.02;
     if (levelPerkakas(w, "tombak") >= 1) peluang += 0.1;
     if (levelPerkakas(w, "busur") >= 1) peluang += 0.15;
@@ -2506,19 +2547,24 @@ export function stepPerburuan(w: Warga, jam: number, ctx: SimCtx): void {
     } else {
       w.status_teks = `Mengejar ${def.label}…`;
     }
+  };
+  if (td <= 1) {
+    cobaSerang();
     return;
   }
-  // Kejar: RONDE 15 — pakai kecepatan jalan pemburu (90-150 tile/jam,
-  // bukan lagi 60 tetap). Alasan: dengan HP multi-hit, buruan harus
-  // benar-benar BISA dikejar sampai bersebelahan berulang kali; 60
-  // tetap membuat mangsa cepat (rusa 120, kelinci 150) praktis tak
-  // terkejar sehingga HP tidak pernah berkurang. Perubahan perilaku
-  // ini dilaporkan eksplisit (bukan diam-diam).
-  const r = gerak(w.lokasi, { gx: target.gx, gy: target.gy }, kecepatanJalan(w.stat.agi, w.stat.sta, w.bakat), { jembatan: ctx.jembatan, rintangan: ctx.rintangan });
+  // Kejar: r38 — BERLARI saat mengejar (1.5x jalan biasa) supaya
+  // mangsa yang kabur 30 tile/jam benar-benar terkejar, lalu SERANG
+  // begitu tiba di samping mangsa di jam yang sama. Dulu giliran
+  // habis hanya untuk berjalan, jadi mangsa yang kabur tiap jam
+  // tidak pernah tersentuh (inilah video pemburu vs rusa HP penuh).
+  const kecKejar = Math.round(kecepatanJalan(w.stat.agi, w.stat.sta, w.bakat) * PENGALI_KEJAR);
+  const r = gerak(w.lokasi, { gx: target.gx, gy: target.gy }, kecKejar, { jembatan: ctx.jembatan, rintangan: ctx.rintangan });
   w.lokasi = r.lokasi;
   w.sedang_berenang = r.berenang;
   w.status_teks = `Mengejar ${def.label}…`;
   w.tempat_kerja = "berburu";
+  const tdAkhir = Math.abs(w.lokasi.gx - target.gx) + Math.abs(w.lokasi.gy - target.gy);
+  if (tdAkhir <= 1) cobaSerang();
 }
 
 // Debat + gelud + ngobrol antar warga berdekatan (<= 2 tile), maks 1
@@ -2728,16 +2774,13 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     // kelompok, BUKAN sendirian di api unggun yang jauh.
     return tileTamu(placements, wargaDocs.indexOf(w));
   };
-  const rintangan = new Set<string>();
+  // r38: rintangan dari helper petak kanonik (ukuranPetak) — satu
+  // sumber kebenaran dengan cek tumpang tindih + penempatan.
+  const rintangan = occupiedDariPlacements(placements);
   const jembatan = new Set<string>();
   for (const p of placements) {
-    for (let dy = 0; dy < (p.h ?? 1); dy++) {
-      for (let dx = 0; dx < (p.w ?? 1); dx++) {
-        const k = `${p.gx + dx},${p.gy + dy}`;
-        rintangan.add(k);
-        if (p.kind === "jembatan") jembatan.add(k);
-      }
-    }
+    if (p.kind !== "jembatan") continue;
+    for (const k of petakBangunan(p)) jembatan.add(k);
   }
   // RONDE 11: gunung = rintangan (pathing memutar seperti bangunan).
   for (const k of gunungTileKeys()) rintangan.add(k);
@@ -2954,7 +2997,8 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     ctx.jalanRencana = ctx.bangunanAktif
       ? null
       : rencanaJalan(
-          placements.map((p) => ({ kind: p.kind, gx: p.gx, gy: p.gy, w: p.w ?? 1, h: p.h ?? 1 })),
+          // r38: ukuran petak dari helper kanonik.
+          placements.map((p) => ({ kind: p.kind, gx: p.gx, gy: p.gy, ...ukuranPetak(p) })),
           ctx.jalanSelesai ?? new Set<string>(),
           ctx.nodeTilesAll ?? new Set<string>()
         );
@@ -3124,18 +3168,14 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
       if (!def) continue;
       if (b.status === "antre") {
         if (cukupBiaya(stok, def.biaya)) {
-          const occupied = new Set<string>();
-          for (const p of placements) {
-            for (let dy = 0; dy < (p.h ?? 1); dy++)
-              for (let dx = 0; dx < (p.w ?? 1); dx++) occupied.add(`${p.gx + dx},${p.gy + dy}`);
-          }
+          // r38: occupied dari helper petak kanonik.
+          const occupied = occupiedDariPlacements(placements);
           // ANTI-DUPLIKAT (2026-11-03): plot antrean lain yang sudah
           // ditetapkan ikut menghalangi — dua antrean tidak lagi dapat
           // plot yang sama dalam satu advance yang sama.
           for (const o of antrean) {
             if (o === b || o.gx === null || o.gx === undefined || o.gy === null || o.gy === undefined) continue;
-            for (let dy = 0; dy < (o.h ?? 1); dy++)
-              for (let dx = 0; dx < (o.w ?? 1); dx++) occupied.add(`${o.gx + dx},${o.gy + dy}`);
+            for (const k of petakBangunan({ kind: o.tipe, gx: o.gx, gy: o.gy, w: o.w ?? undefined, h: o.h ?? undefined })) occupied.add(k);
           }
           let plot: { gx: number; gy: number; w: number; h: number; rotasi?: number } | null = null;
           if (def.penempatan === "jembatan") plot = findBridgePlot(occupied);
@@ -3185,6 +3225,21 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
           const sudah = placements.some((p) => p.bangunan_id === String(b._id));
           let kabarBatal = false;
           if (!sudah && b.gx !== null && b.gy !== null) {
+            // r38 — PENJAGA AKHIR PETAK (laporan user: rumah nembus
+            // restoran): upsert lama hanya mengunci ubin ASAL (gx,gy)
+            // — bangunan besar tetap bisa menimpa ubin lain bangunan
+            // tetangga bila plot dipilih bersamaan. Bila satu ubin pun
+            // dari footprint sudah terisi, batalkan dengan kabar jujur
+            // + kembalikan biaya, jangan tulis placement yang menumpuk.
+            const wBaru = b.w ?? def.footprint;
+            const hBaru = b.h ?? def.footprint;
+            if (!plotBebas(placements, b.gx, b.gy, wBaru, hBaru)) {
+              for (const [k, v] of Object.entries(def.biaya)) {
+                stok[k as keyof Stok] += v ?? 0;
+              }
+              kabar.push({ jenis: "bangunan", teks: `${def.label} batal dibangun: petaknya sudah dipakai bangunan lain (dipilih bersamaan). Biaya dikembalikan.`, hari, dibuat_pada: new Date() });
+              kabarBatal = true;
+            } else {
             // ANTI-DUPLIKAT (2026-11-03, pesan Fina: 1 bangunan kesimpan
             // berkali-kali, ID beda posisi sama, dari proses bersamaan):
             // kunci upsert kini POSISI saja (bukan kind+posisi) — dua
@@ -3196,8 +3251,8 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
               kind: def.id,
               gx: b.gx,
               gy: b.gy,
-              w: b.w ?? def.footprint,
-              h: b.h ?? def.footprint,
+              w: wBaru,
+              h: hBaru,
               bangunan_id: String(b._id),
               // RONDE 10 (lanjutan): paviliun lahir dengan dapur kosong.
               ...(def.id === "paviliun_makan" ? { hidangan: 0 } : {}),
@@ -3229,6 +3284,7 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
             } else {
               kabarBatal = true;
             }
+            } // tutup else penjaga petak r38
           }
           b.status = "selesai";
           kabar.push({ jenis: "bangunan", teks: kabarBatal ? `${def.label} batal dibangun: posisinya sudah dipakai bangunan lain.` : `${def.label} selesai dibangun di kampung!`, hari, dibuat_pada: new Date() });

@@ -1,5 +1,89 @@
 # CHANGELOG Nusantara
 
+## 2026-11-05 — r38: perburuan yang benar-benar membunuh, semua warga bisa berburu, kumpul jalan lagi, satu sumber kebenaran petak (laporan user 2026-11-05 ~13:48 WIB, video + chat)
+
+Perubahan dalam 2 kalimat: pemburu kini aktif mencari mangsa
+(radius 40 tile), berlari mengejar (1.5x), dan menyerang begitu
+tiba di samping mangsa — sementara hewan jinak kabur dan
+mengembara paling 30 tile/jam, jadi rusa tidak lagi lolos
+selamanya dan HP-nya benar-benar berkurang sampai mati jadi
+daging; di sisi lain, laju kumpul dikembalikan ke kontrak
+(20 + 5*stat %/jam) supaya warga benar-benar mengumpulkan buah,
+semua warga boleh menyerang hewan dekat dan berduel hewan buas,
+dan penempatan + AI tata kota kini memakai satu helper petak
+kanonik (ukuran dari baris, kalau tidak ada footprint katalog)
+dengan penjaga akhir sebelum placement ditulis serta model
+paviliun yang diskalakan pas footprint 8x8.
+
+- `src/lib/batu/sim.ts`: `lajuKumpul` kembali ke `20 + stat*5`
+  (dulu 0.25 + 0.05*stat: satu ronde butuh 150-300 jam game,
+  warga diam di semak berhari-hari, pangan kampung 0).
+- `src/lib/batu/sim.ts`: konstanta baru `JARAK_KABUR_JINAK` 30,
+  `JARAK_CARI_MANGSA` 40, `JARAK_SERANG_OPORTUNIS` 3,
+  `PENGALI_KEJAR` 1.5. `stepHewan`: hewan jinak kabur paling 30
+  tile/jam (dulu 120-150) dan mengembara paling 30 tile/jam
+  (dulu secepat larinya — ini akar yang terlewat di diagnosis
+  awal: di jarak 10 tile rusa bahkan belum "kabur", ia
+  mengembara 120 tile/jam keluar dari jangkauan cari).
+  `stepPerburuan`: tanpa gate peran — pemburu mencari dalam 40
+  tile dan berlari 1.5x lalu menyerang begitu tiba di samping
+  mangsa di jam yang sama (dulu giliran habis hanya untuk
+  berjalan, jadi mangsa yang kabur tiap jam tak pernah
+  tersentuh); warga lain oportunis dalam 3 tile. Duel hewan
+  buas di `stepHewan` terbuka untuk semua warga stamina >= 20
+  (dulu hanya pemburu) — warga lemah tetap kalah lalu kabur.
+- `src/lib/batu/dunia.ts`: helper petak kanonik baru
+  `ukuranPetak` (w/h baris bila valid, kalau tidak footprint
+  katalog, kalau tidak dikenal 1x1), `petakBangunan`,
+  `occupiedDariPlacements`, `plotBebas`; `pasanganTumpuk`
+  ditulis ulang di atasnya (dulu default w/h 1 di sim, 2 di
+  rapikan/tatakota — dua sumber kebenaran, AI bisa berkata
+  "tidak ada yang menumpuk" sementara bangunan menembus).
+- `src/lib/batu/sim.ts`: semua konstruksi occupied/rintangan
+  ad-hoc diganti helper kanonik (tileTamu, rintanganUntuk,
+  tileHunian, rintangan advance, rencanaJalan, plot antrean)
+  + PENJAGA AKHIR PETAK sebelum upsert placement selesai:
+  bila satu ubin footprint sudah terisi, bangunannya batal
+  dengan kabar jujur + biaya dikembalikan (bukan menumpuk).
+- `src/app/api/gemini/rapikan/route.ts` + `tatakota/route.ts`:
+  occupied dari helper kanonik + bangunan yang sedang DIBANGUN
+  (koleksi `bangunan` status antre/dibangun, gx/gy sudah
+  ditetapkan) ikut menghalangi — rapikan lama hanya memeriksa
+  `peta_tile`, padahal yang user lihat kemungkinan bangunan
+  yang sedang dibangun menembus restoran.
+- `src/lib/batu/assetPaviliun3D.ts`: skala paviliun
+  `min(w/32, h/28)` sesuai footprint (dulu tetap 0.88 ->
+  ~28x24 unit, menelan bangunan tetangga secara visual meski
+  petak tile-nya tidak tumpang). Konsekuensi jujur: paviliun
+  jadi jauh lebih pendek/gemuk (lebar ~8 unit, tinggi ~3),
+  bukan lagi landmark menjulang — bila ingin menjulang lagi,
+  footprint katalognya yang harus diperbesar, bukan skalanya.
+- `src/lib/version.ts`: BUILD_ID r37 -> r38.
+- Tes: 20 penjaga baru r38 (pemburu kejar + bunuh rusa 10 tile
+  dalam 4 jam, kabur <= 30, pengumpul serang rusa dekat + tidak
+  mengejar yang jauh, pengumpul kuat duel serigala HP 8->7,
+  lajuKumpul(8)=60, petakBangunan paviliun 64 / gubuk 4,
+  pasanganTumpuk deteksi tanpa w/h + tanpa false-positive,
+  plotBebas tolak/terima, paviliun tanpa skala 0.88) + tes r12
+  (pengumpul vs serigala) diubah jadi warga LEMAH supaya
+  cakupan "kalah lalu kabur" tetap ada + 11 pin versi r37 ->
+  r38. Total: 7865 lolos / 645 gagal — baseline 7834/656,
+  jadi +31 lolos, -11 gagal, NOL kegagalan baru. 11 tes lama
+  yang berbalik lolos semuanya terkait lajuKumpul (laju 25-70,
+  laju 999=5015, kumpul siang +60%, kumpul selesai ->
+  kembali/tujuan hunian, paceklik progres 20->80 + kabar +
+  lapar, bakat INT 60->66, node tumbang sisa 0 + lelah ->
+  pulang, paceklik lapar). Tes model hasil lama (jumlahKumpul
+  4-9, stok +45) tetap gagal sesuai desain: DESAIN-EKONOMI.md
+  menetapkan roll 1-3/hari + cap 3, bukan model lama.
+- Perilaku yang berubah dan dilaporkan eksplisit: hewan jinak
+  bergerak paling 30 tile/jam (kabur + mengembara) sehingga
+  lebih mudah ditemui di dekat kampung; semua warga bisa
+  memburu/duel sehingga hewan buas (serigala/beruang) kini bisa
+  dikalahkan warga kuat mana pun — ancaman hewan buas jadi
+  lebih ringan; bila nanti beruang harus menakutkan lagi,
+  ambang duel (14/18/22) yang perlu dinaikkan, bukan gate peran.
+
 ## 2026-11-05 12:29 WIB — Baris "Tonggak kampung" di kartu menu (Ide 29) + brief riset onboarding/prestasi
 
 Perubahan dalam 2 kalimat: kartu menu kini menampilkan satu

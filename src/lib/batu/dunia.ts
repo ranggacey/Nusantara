@@ -4,6 +4,7 @@
 // DIHITUNG dari seed — tidak disimpan di DB.
 import { seededRandom } from "../world";
 import type { NodeKind } from "./peran";
+import { bangunanById } from "./sumberdaya";
 
 export const GRID_MIN = -200;
 export const GRID_MAX = 400; // eksklusif
@@ -291,6 +292,84 @@ export function dedupePlacement<T extends { kind: string; gx: number; gy: number
   return out;
 }
 
+// SATU SUMBER KEBENARAN PETAK (r38, laporan user 2026-11-05:
+// "rumah nembus restoran, tapi AI tata kota bilang gada yg nimpa").
+// Sebelum r38, tiap tempat memakai default w/h sendiri-sendiri bila
+// baris placement tidak punya w/h: sim pakai ?? 1, rapikan/tatakota
+// pakai ?? 2, /api/map pakai ?? 1 — jadi cek tumpang tindih bisa
+// berkata "aman" sementara penempatan menganggap petak yang sama
+// sudah terisi (atau sebaliknya). Mulai r38, SEMUA jalur (sim,
+// rapikan, tatakota, Map3D) memakai helper di bawah: w/h baris bila
+// ada dan valid, kalau tidak footprint katalog bangunan itu
+// (bangunanById), kalau tidak dikenal baru 1x1. Satu petak = satu
+// ubin grid; tiap bangunan menempati petak (gubuk 2x2 = 4 petak,
+// paviliun 8x8 = 64 petak) — ala game strategi.
+export interface PetakLike {
+  kind?: string;
+  gx: number;
+  gy: number;
+  w?: number | null;
+  h?: number | null;
+}
+
+// Ukuran petak satu placement: w/h baris bila valid, kalau tidak
+// footprint katalog. Jembatan/perahu menyimpan w/h sendiri (4x1,
+// 5x1, 2x1) — nilai baris itu dipertahankan, bukan dipaksa bujur
+// sangkar dari katalog.
+export function ukuranPetak(p: PetakLike): { w: number; h: number } {
+  const dw = Number(p.w);
+  const dh = Number(p.h);
+  if (Number.isFinite(dw) && dw > 0 && Number.isFinite(dh) && dh > 0) {
+    return { w: Math.floor(dw), h: Math.floor(dh) };
+  }
+  const fp = p.kind ? (bangunanById(p.kind)?.footprint ?? 1) : 1;
+  return { w: fp, h: fp };
+}
+
+// Semua ubin grid yang ditempati satu placement.
+export function petakBangunan(p: PetakLike): Set<string> {
+  const { w, h } = ukuranPetak(p);
+  const s = new Set<string>();
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) s.add(`${p.gx + dx},${p.gy + dy}`);
+  }
+  return s;
+}
+
+// Gabungan ubin semua placement (untuk findPlot / rintangan / jalan).
+export function occupiedDariPlacements<T extends PetakLike>(rows: T[]): Set<string> {
+  const out = new Set<string>();
+  for (const r of rows) {
+    for (const k of petakBangunan(r)) out.add(k);
+  }
+  return out;
+}
+
+// Apakah footprint calon (gx,gy,w,h) bebas dari semua placement?
+// `abaikan` = lewati satu baris (mis. bangunan yang sedang digeser
+// itu sendiri). Dipakai sebagai penjaga akhir sebelum placement
+// ditulis, supaya dua advance bersamaan tidak menumpuk bangunan.
+export function plotBebas<T extends PetakLike>(
+  rows: T[],
+  gx: number,
+  gy: number,
+  w: number,
+  h: number,
+  abaikan?: (r: T) => boolean
+): boolean {
+  const baru = new Set<string>();
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) baru.add(`${gx + dx},${gy + dy}`);
+  }
+  for (const r of rows) {
+    if (abaikan && abaikan(r)) continue;
+    for (const k of petakBangunan(r)) {
+      if (baru.has(k)) return false;
+    }
+  }
+  return true;
+}
+
 // Cari dua bangunan yang FOOTPRINT-nya saling tumpang (2026-11-04,
 // permintaan user: Gemini menggeser bangunan yang nabrak). Bukan cuma
 // posisi asal sama — bangunan besar yang menimpa bangunan kecil di
@@ -298,22 +377,14 @@ export function dedupePlacement<T extends { kind: string; gx: number; gy: number
 // dipertahankan = yang lebih dulu di daftar (sama dengan aturan dedupe
 // tampilan: pertama menang), yang digeser = yang kedua. Null bila
 // tidak ada tumpukan. Murni + dites.
-export function pasanganTumpuk<T extends { kind: string; gx: number; gy: number; w?: number; h?: number }>(
+export function pasanganTumpuk<T extends PetakLike>(
   rows: T[]
 ): { tetap: T; geser: T } | null {
-  const tiles = (p: T): Set<string> => {
-    const s = new Set<string>();
-    for (let dy = 0; dy < (p.h ?? 1); dy++) {
-      for (let dx = 0; dx < (p.w ?? 1); dx++) s.add(`${p.gx + dx},${p.gy + dy}`);
-    }
-    return s;
-  };
+  const tiles = rows.map((r) => petakBangunan(r));
   for (let i = 0; i < rows.length; i++) {
-    const ti = tiles(rows[i]);
     for (let j = i + 1; j < rows.length; j++) {
-      const tj = tiles(rows[j]);
-      for (const k of tj) {
-        if (ti.has(k)) return { tetap: rows[i], geser: rows[j] };
+      for (const k of tiles[j]) {
+        if (tiles[i].has(k)) return { tetap: rows[i], geser: rows[j] };
       }
     }
   }

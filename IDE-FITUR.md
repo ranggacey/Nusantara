@@ -4,6 +4,51 @@ Dibaca cron tiap run, bersama DESAIN-EKONOMI.md dan brief riset
 terbaru di `research/`. Ide yang sudah dibangun dicoret dari sini
 dan dicatat di CHANGELOG.md, jangan dibangun dua kali.
 
+## Laporan user 2026-11-05 ~13:48 WIB (video + chat) — SELESAI di r38
+
+User main di nusantara.ranggafigo.com dan merekam buktinya:
+pemburu "Ys" berdiri di samping rusa "Rusa" yang bar HP-nya
+tetap penuh; tidak ada warga yang mengumpulkan buah/hewan;
+minta semua warga bisa melawan dan membunuh hewan; rumah
+dibangun menembus restoran sementara "tata kota" AI bilang
+tidak ada yang menumpuk; minta sistem petak ala game strategi
+(rumah 2x2 = 4 petak).
+
+- 1) Pemburu menyerang tapi hewan tidak mati — SELESAI:
+  akar tiga lapis (kabur 120-150 tile/jam sebelum giliran
+  pemburu; pemburu hanya mengincar dalam 6 tile dan tidak
+  pernah mendatangi mangsa jauh; serangan hanya bila sudah
+  bersebelahan di awal giliran) + akar keempat yang ketemu
+  saat tes (mengembara 120 tile/jam). Perbaikan: kabur +
+  mengembara jinak dibatasi 30 tile/jam, pemburu cari 40 tile,
+  lari 1.5x, serang begitu tiba di samping mangsa.
+- 2) Tidak ada yang mengumpulkan buah/hewan — SELESAI:
+  `lajuKumpul` dikembalikan ke 20 + 5*stat %/jam (dulu
+  0.25 + 0.05*stat: satu ronde 150-300 jam game).
+- 3) Semua warga bisa melawan/membunuh hewan — SELESAI:
+  gate peran dihapus di `stepPerburuan` (pemburu cari 40 tile,
+  warga lain oportunis 3 tile) + duel hewan buas terbuka untuk
+  semua warga stamina >= 20 (warga lemah tetap kalah/kabur).
+- 4) Rumah menembus restoran — SELESAI: penjaga akhir petak
+  sebelum placement ditulis (batal + refund bila menumpuk)
+  + model paviliun diskalakan pas footprint 8x8 (dulu 0.88,
+  visual ~28x24 menelan tetangga).
+- 5) "Tata kota" bilang tidak menumpuk — SELESAI: satu helper
+  petak kanonik (`ukuranPetak`/`petakBangunan`/
+  `occupiedDariPlacements`/`plotBebas`) dipakai sim, rapikan,
+  dan tatakota; rapikan/tatakota kini juga memeriksa bangunan
+  yang sedang dibangun.
+- 6) Sistem petak ala game strategi — SELESAI: tiap bangunan
+  menempati petak (gubuk 2x2 = 4, paviliun 8x8 = 64);
+  penempatan menolak petak terisi; konsisten di penempatan
+  manual (sim) dan cek AI (rapikan/tatakota).
+- Sisa yang dicatat, bukan dikerjakan di r38: paviliun jadi
+  jauh lebih pendek/gemuk (lebar ~8, tinggi ~3) — bila ingin
+  kembali menjulang, footprint katalognya yang diperbesar;
+  hewan buas kini bisa dikalahkan warga kuat mana pun — bila
+  beruang harus menakutkan lagi, naikkan ambang duel
+  (14/18/22), bukan gate peran. Detail di CHANGELOG.md r38.
+
 ## Ide 1 — Bangunan bisa dipencet, buka halaman baru (dari user, 2026-11-03 23:19 WIB)
 
 Contoh: restoran (paviliun makan / dapur umum) bisa dipencet dari

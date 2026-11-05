@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCollection } from "@/lib/db";
-import { findHousePlotBesideRoad } from "@/lib/batu/dunia";
+import { findHousePlotBesideRoad, ukuranPetak, petakBangunan, occupiedDariPlacements } from "@/lib/batu/dunia";
 
 export const dynamic = "force-dynamic";
 
@@ -42,15 +42,17 @@ export async function POST(req: Request) {
     const dunia = await duniaCol.findOne({});
 
     const roadTiles = new Set<string>(jalanDocs.map((j: any) => `${j.gx},${j.gy}`));
-    const occupied = new Set<string>();
-    for (const p of allTiles) {
-      const pw = Number(p.w ?? 2);
-      const ph = Number(p.h ?? 2);
-      for (let dy = 0; dy < ph; dy++) {
-        for (let dx = 0; dx < pw; dx++) {
-          occupied.add(`${p.gx + dx},${p.gy + dy}`);
-        }
-      }
+    // r38: occupied dari helper petak kanonik — SAMA dengan yang
+    // dipakai sim saat menempatkan. Dulu default 2 di sini vs 1 di
+    // sim: dua sumber kebenaran.
+    const occupied = occupiedDariPlacements(allTiles);
+    // r38: bangunan yang sedang DIBANGUN ikut menghalangi (koleksi
+    // `bangunan` status antre/dibangun, gx/gy sudah ditetapkan).
+    const bangunanCol = await getCollection("bangunan");
+    const konstruksi = (await bangunanCol.find({ status: { $in: ["antre", "dibangun"] } }).toArray()) as any[];
+    for (const k of konstruksi) {
+      if (k.gx === null || k.gx === undefined || k.gy === null || k.gy === undefined) continue;
+      for (const key of petakBangunan({ kind: k.tipe, gx: Number(k.gx), gy: Number(k.gy), w: k.w ?? undefined, h: k.h ?? undefined })) occupied.add(key);
     }
 
     // Filter hunian yang berpotensi direlokasi agar berada di tepi jalan
@@ -65,8 +67,7 @@ export async function POST(req: Request) {
     // Cari hunian yang belum menempel jalan
     let targetHunian = hunianList.find((h: any) => {
       let nempel = false;
-      const hw = Number(h.w ?? 2);
-      const hh = Number(h.h ?? 2);
+      const { w: hw, h: hh } = ukuranPetak(h);
       for (let dx = 0; dx < hw; dx++) {
         if (roadTiles.has(`${h.gx + dx},${h.gy - 1}`) || roadTiles.has(`${h.gx + dx},${h.gy + hh}`)) nempel = true;
       }
@@ -76,15 +77,10 @@ export async function POST(req: Request) {
       return !nempel;
     }) ?? hunianList[0];
 
-    const w = Number(targetHunian.w ?? 2);
-    const h = Number(targetHunian.h ?? 2);
+    const { w, h } = ukuranPetak(targetHunian);
 
     // Hapus occupied milik target sementara
-    for (let dy = 0; dy < h; dy++) {
-      for (let dx = 0; dx < w; dx++) {
-        occupied.delete(`${targetHunian.gx + dx},${targetHunian.gy + dy}`);
-      }
-    }
+    for (const k of petakBangunan(targetHunian)) occupied.delete(k);
 
     const plotBaru = findHousePlotBesideRoad(occupied, new Set(), roadTiles, w, h, 1);
     if (!plotBaru) {
