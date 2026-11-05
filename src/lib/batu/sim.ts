@@ -333,6 +333,15 @@ export function jumlahKumpul(statFokus: number): number {
 export const CAP_KUMPUL_HARIAN_BIASA = 3;
 export const CAP_KUMPUL_HARIAN_LANGKA = 2;
 
+// r45 (2026-11-05, perintah user: resource 5x lipat karena pangan 0
+// terus): pengali hasil kumpul per ronde untuk sumber BIASA
+// (pangan/kayu/batu/kulit — termasuk daging buruan + buah pemanjat).
+// Besi/emas TIDAK dikali (tetap langka, cap langka tetap 2/hari).
+// Cap harian biasa ikut 5x (3 -> 15) supaya pengali tidak langsung
+// dipangkas cap; kapasitas gudang TIDAK berubah (clamp + pembusukan
+// hanya berlaku di atas kap, jadi stok penuh tidak hangus).
+export const PENGALI_KUMPUL = 5;
+
 // RONDE 20 — gampangin pangan SEDIKIT (laporan user 2026-11-05:
 // "pangan masih 0 terus", terbukti simulasi 10 hari: produksi
 // dimakan secepat muncul, lapar rata-rata ~90 = paceklik kronis).
@@ -405,9 +414,12 @@ export function terapkanPembusukan(ctx: SimCtx): Record<string, number> {
 }
 
 export function capHarianUntuk(resource: string): number {
+  // r45: cap biasa 5x (3 -> 15, PENGALI_KUMPUL) — tanpa ini pengali
+  // hasil kumpul langsung dipangkas cap dan 5x tidak terasa. Langka
+  // tetap 2/hari (besi/emas tidak dikali).
   return resource === "besi" || resource === "emas"
     ? CAP_KUMPUL_HARIAN_LANGKA
-    : CAP_KUMPUL_HARIAN_BIASA;
+    : CAP_KUMPUL_HARIAN_BIASA * PENGALI_KUMPUL;
 }
 
 export function sisaCapHarian(w: Warga, resource: string, hari: number): number {
@@ -1351,6 +1363,18 @@ export function gerak(
   const dikunjungi = new Set<string>([`${gx},${gy}`]);
   while (budget > 0) {
     if (gx === tujuan.gx && gy === tujuan.gy) break;
+    // r45: tujuan yang rintangan (tengah bangunan: gubuk/tabib/paviliun)
+    // TIDAK PERNAH bisa dimasuki — berhenti di sebelahnya (Chebyshev
+    // <= 1) begitu tercapai. Tanpa ini gerak mengorbit bangunan sampai
+    // budget habis lalu berakhir jauh dari tujuan (jalan ke tabib dari
+    // (85,94) berakhir di (104,121), 22 ubin dari pondok) — warga
+    // tidak pernah sampai, tidak pernah sembuh, tidak pernah kerja.
+    // Berhenti di sebelah TIDAK berarti "masuk": ubin tujuan yang
+    // rintangan tetap tidak dimasuki (kontrak tabrakan penuh).
+    if (
+      rintangan?.has(`${tujuan.gx},${tujuan.gy}`) &&
+      Math.max(Math.abs(gx - tujuan.gx), Math.abs(gy - tujuan.gy)) <= 1
+    ) break;
     const dx = Math.sign(tujuan.gx - gx);
     const dy = Math.sign(tujuan.gy - gy);
     const sisaX = Math.abs(tujuan.gx - gx);
@@ -1578,7 +1602,7 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
   // RONDE 10 (lanjutan): warga yang sedang MAKAN di paviliun ikut pulang
   // tidur malam (tidak ada makan tengah malam) — keluar lewat pintu
   // berkat aturan lokasi di rintanganUntuk.
-  if (fase === "malam" && (w.fase_siklus === "jalan" || w.fase_siklus === "kumpul" || w.fase_siklus === "makan")) {
+  if (fase === "malam" && (w.fase_siklus === "jalan" || w.fase_siklus === "kumpul" || w.fase_siklus === "makan" || w.fase_siklus === "berobat")) {
     const titikMalam = ctx.hunianTitik(w);
     w.daging_target = null;
     if (w.lokasi.gx === titikMalam.gx && w.lokasi.gy === titikMalam.gy) {
@@ -1665,10 +1689,30 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
     }
   }
   // SISTEM KESEHATAN & TABIB (DUNIA FANTASI):
-  // Bila kesehatan rendah (sehat < 65) atau terluka: warga berobat ke Pondok Tabib
+  // Bila kesehatan rendah (sehat < 65) atau terluka: warga berobat ke Pondok Tabib.
+  // r45 (perbaikan beku tabib — laporan user 2026-11-05): cabang ini
+  // dulu menyetel fase "jalan" + node null + aksi "berobat", padahal
+  // TIDAK ADA cabang jalan yang menggerakkan warga tanpa node — warga
+  // sakit beku di satu ubin selamanya, lalu fallthrough akhir menimpa
+  // penugasan berobat dengan kerja baru tiap jam (status berkedip
+  // "Berjalan mencari makan darurat…" / "Membangun jalan…" tanpa
+  // pernah bergerak; pangan 0, jalan 0). Kini fase = "berobat"
+  // (sudah dikenal Map3D + /api/map) dan cabang berobat di bawah yang
+  // menjalankan perjalanannya. Guard baru: jangan bajak warga yang
+  // SUDAH berobat, dan jangan bajak perjalanan pulang (kembali) —
+  // aturan malam harus menang supaya warga sakit pulang tidur dulu.
   const tabibPlacement = (ctx.placements ?? []).find((p) => p.kind === "pondok_tabib");
   const tabibWarga = ctx.wargaSemua.find((x) => x.peran === "tabib" || x.peran === "peramu");
-  if (w.sehat < 65 && w.fase_siklus !== "istirahat" && w.fase_siklus !== "makan" && (tabibPlacement || tabibWarga)) {
+  // Guard fase "kumpul": ronde kumpul yang sedang berjalan TIDAK boleh
+  // dibatalkan (sama seperti guard lapar di atas) — warga sakit
+  // menyelesaikan ronde dulu, baru berobat; kalau tidak, tidak ada
+  // ronde yang pernah selesai (pangan 0 selamanya).
+  // Guard darurat (w.node.darurat): warga yang sedang mencari makan
+  // darurat (lapar >= 90, stok pangan 0) TIDAK dibelokkan ke tabib —
+  // makan adalah prioritas bertahan hidup yang menghentikan penyebab
+  // sakitnya sendiri (lapar >= 95 menggerus sehat -3/jam). Berobat
+  // dulu lalu lapar lagi keesokan paginya = deadlock kelaparan.
+  if (w.sehat < 65 && w.fase_siklus !== "istirahat" && w.fase_siklus !== "makan" && w.fase_siklus !== "kumpul" && w.fase_siklus !== "berobat" && w.fase_siklus !== "kembali" && !w.node?.darurat && (tabibPlacement || tabibWarga)) {
     const targetTabib = tabibPlacement
       ? { gx: tabibPlacement.gx + 1, gy: tabibPlacement.gy + 1 }
       : { gx: tabibWarga!.lokasi.gx, gy: tabibWarga!.lokasi.gy };
@@ -1699,7 +1743,7 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
     } else {
       w.tujuan = targetTabib;
       w.node = null;
-      w.fase_siklus = "jalan";
+      w.fase_siklus = "berobat";
       w.aksi_sekarang = "berobat";
       w.status_teks = "Berjalan ke Pondok Tabib untuk diobati…";
       w.progres_aksi_pct = 0;
@@ -1885,6 +1929,71 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       }
       w.progres_aksi_pct = 0;
     }
+    return;
+  }
+  // r45 — BEROBAT (perjalanan ke Pondok Tabib): HARUS sebelum cabang
+  // jalan umum (yang mensyaratkan node — warga berobat tidak punya
+  // node). Tiba (jarak <= 2 dari tabib, karena ubin tengah pondok
+  // adalah footprint/rintangan sehingga gerak berhenti di sebelahnya)
+  // -> sembuh seperti jalur instan di preemption tabib di atas.
+  // Bila pondok/tabib hilang di tengah jalan -> cari kerja lain.
+  if (w.fase_siklus === "berobat" && w.tujuan) {
+    const targetTabib = tabibPlacement
+      ? { gx: tabibPlacement.gx + 1, gy: tabibPlacement.gy + 1 }
+      : tabibWarga
+        ? { gx: tabibWarga.lokasi.gx, gy: tabibWarga.lokasi.gy }
+        : null;
+    if (!targetTabib) {
+      if (ambilTargetKerja(w, ctx)) {
+        // Jalan atau kerja baru sudah diatur.
+      } else {
+        w.node = null;
+        w.tujuan = null;
+        w.fase_siklus = "istirahat";
+        w.aksi_sekarang = "beristirahat";
+        w.status_teks = "Beristirahat…";
+        w.tempat_kerja = "kampung";
+      }
+      w.progres_aksi_pct = 0;
+      return;
+    }
+    // Perbarui tujuan bila tabib (warga) berpindah.
+    w.tujuan = targetTabib;
+    const distTabib = Math.abs(w.lokasi.gx - targetTabib.gx) + Math.abs(w.lokasi.gy - targetTabib.gy);
+    if (distTabib <= 2) {
+      w.fase_siklus = "istirahat";
+      w.aksi_sekarang = "beristirahat";
+      w.sehat = 100;
+      (w as any).healtpoint = 100;
+      w.stamina = Math.min(100, w.stamina + 40);
+      w.istirahat_sisa = 3;
+      w.status_teks = "Diobati oleh Tabib. Sedang menjalani masa pemulihan…";
+      w.tujuan = ctx.hunianTitik(w);
+      w.interaksi = {
+        jenis: "ngobrol",
+        dengan: "Tabib",
+        teks: "Minumlah ramuan herbal ini lalu beristirahatlah beberapa hari... lukamu telah sembuh!",
+        sampai_jam: jam + 2,
+      };
+      w.progres_aksi_pct = 0;
+      ctx.kabar.push({
+        jenis: "sembuh",
+        teks: `${w.nama} diobati di Pondok Tabib dan menjalani istirahat pemulihan.`,
+        hari,
+        dibuat_pada: new Date(),
+      });
+      return;
+    }
+    const speed = kecepatanJalan(w.stat.agi, w.stat.sta, w.bakat);
+    const r = gerak(w.lokasi, w.tujuan, speed, { jembatan: ctx.jembatan, rintangan: rintanganUntuk(w, ctx) });
+    w.lokasi = r.lokasi;
+    w.sedang_berenang = r.berenang;
+    w.stamina = Math.max(0, w.stamina - 3 - (r.berenang ? 4 : 0));
+    w.lapar = Math.min(100, w.lapar + 4);
+    w.aksi_sekarang = "berobat";
+    w.status_teks = "Berjalan ke Pondok Tabib untuk diobati…";
+    w.tempat_kerja = "Pondok Tabib";
+    w.progres_aksi_pct = 0;
     return;
   }
   // RONDE 14 — FIGO MEMBANTU (perjalanan + diam membantu di tempat):
@@ -2266,16 +2375,14 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
 
       // Juru masak: masakan lebih bergizi (x1.5 pangan).
       if (w.peran === "juru_masak" && hasil.resource === "pangan") jumlah = Math.round(jumlah * 1.5);
-      // RONDE 15 — satu ronde = satu node (SISA_NODE_AWAL 1): hasil
-      // per ronde dikali 5 supaya TOTAL per node PERSIS sama dengan
-      // 5 ronde lama untuk penebang yang sama (bonus ikut dikali,
-      // pembulatan juru masak sudah terjadi sebelum dikali — identik).
-      // Beda penebang antar ronde dulu memberi total berbeda; kini satu
-      // penebang x5 — rata-rata sama, per node bisa beda tipis.
-      // PENGECUALIAN: node pseudo (sungai/ladang/restoran) TIDAK habis
-      // (terbarukan) -> pengali 1, kalau tidak ekonomi nelayan/petani
-      // ikut terlipat 5 diam-diam.
-      const pengaliRonde = 1;
+      // r45 (perintah user 2026-11-05: resource 5x lipat): hasil per
+      // ronde dikali PENGALI_KUMPUL untuk sumber biasa (pangan/kayu/
+      // batu/kulit) — mengembalikan semangat r15 (satu ronde = satu
+      // node, hasil per ronde besar) yang dulu dipangkas r23
+      // ("kelangkaan realistis", pengaliRonde = 1). Besi/emas TIDAK
+      // dikali (tetap langka). Node pseudo (sungai/ladang/restoran)
+      // ikut dikali — cap harian 15 yang membatasi, bukan pengali.
+      const pengaliRonde = hasil.resource === "besi" || hasil.resource === "emas" ? 1 : PENGALI_KUMPUL;
       jumlah = jumlah * pengaliRonde;
       // Cap harian dulu, baru cap gudang (keduanya via helper clamp).
       const jumlahCapHari = Math.min(jumlah, sisaCapHarian(w, hasil.resource, hari));
@@ -2636,9 +2743,9 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
           // di stepWarga + konversi stok saat tiba di kampung).
           ctx.hewanHilang.add(String(h._id));
           const dagingId = `daging-${jam}-${String(h._id)}`;
-          if (ctx.daging) ctx.daging.push({ _id: dagingId, jenis: def.label, gx: h.gx, gy: h.gy, pangan: def.pangan, kulit: def.kulit, dibuat_jam: jam });
+          if (ctx.daging) ctx.daging.push({ _id: dagingId, jenis: def.label, gx: h.gx, gy: h.gy, pangan: def.pangan * PENGALI_KUMPUL, kulit: def.kulit * PENGALI_KUMPUL, dibuat_jam: jam }); // r45: daging buruan 5x (sumber biasa)
           dekat.target_hewan = null;
-          dekat.daging_target = { id: dagingId, gx: h.gx, gy: h.gy, jenis: def.label, pangan: def.pangan, kulit: def.kulit };
+          dekat.daging_target = { id: dagingId, gx: h.gx, gy: h.gy, jenis: def.label, pangan: def.pangan * PENGALI_KUMPUL, kulit: def.kulit * PENGALI_KUMPUL };
           dekat.tujuan = { gx: h.gx, gy: h.gy };
           dekat.node = null;
           dekat.fase_siklus = "jalan";
@@ -2734,9 +2841,9 @@ export function stepPerburuan(w: Warga, jam: number, ctx: SimCtx): void {
       // RONDE 10: hewan JATUH -> DAGING tergeletak (bukan stok instan).
       ctx.hewanHilang.add(String(target._id));
       const dagingId = `daging-${jam}-${String(target._id)}`;
-      if (ctx.daging) ctx.daging.push({ _id: dagingId, jenis: def.label, gx: target.gx, gy: target.gy, pangan: def.pangan, kulit: def.kulit, dibuat_jam: jam });
+      if (ctx.daging) ctx.daging.push({ _id: dagingId, jenis: def.label, gx: target.gx, gy: target.gy, pangan: def.pangan * PENGALI_KUMPUL, kulit: def.kulit * PENGALI_KUMPUL, dibuat_jam: jam }); // r45: daging buruan 5x (sumber biasa)
       w.target_hewan = null;
-      w.daging_target = { id: dagingId, gx: target.gx, gy: target.gy, jenis: def.label, pangan: def.pangan, kulit: def.kulit };
+      w.daging_target = { id: dagingId, gx: target.gx, gy: target.gy, jenis: def.label, pangan: def.pangan * PENGALI_KUMPUL, kulit: def.kulit * PENGALI_KUMPUL };
       w.tujuan = { gx: target.gx, gy: target.gy };
       w.node = null;
       w.fase_siklus = "jalan";

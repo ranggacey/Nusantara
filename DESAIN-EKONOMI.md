@@ -4,7 +4,30 @@ Spesifikasi user 2026-11-03 (aturan kumpul) + rancangan asisten (tangga
 progresi). File ini DIBACA cron tiap run sebelum memilih apa yang dibangun.
 Implementasi bertahap, satu irisan kecil per run, wajib tes offline.
 Keputusan user di bagian 1 TIDAK BOLEH dilanggar atau "diakali" lewat
-pengali lain.
+pengali lain — KECUALI override 2026-11-05 di bawah ini, yang
+merupakan perintah eksplisit user dan mengalahkan bagian 1.
+
+## OVERRIDE USER 2026-11-05 — RESOURCE 5x (mengalahkan bagian 1)
+
+Perintah eksplisit user 2026-11-05 ~18:57 WIB (pangan 0 terus, warga
+kelaparan): hasil kumpul dikali 5. Implementasi r45:
+
+- PENGALI_KUMPUL = 5 pada hasil kumpul pangan/kayu/batu/kulit (termasuk
+  daging buruan dan bonus buah pemanjat; satu ronde = roll 1-3 x5 =
+  5-15 per ronde, bukan 45 — roll tetap 1-3, pengali yang berubah).
+- Cap harian biasa naik 3 -> 15 (3 x 5) supaya pengali tidak langsung
+  terpotong cap; cap dihitung dari HASIL AKHIR yang masuk stok.
+- Besi/emas TIDAK dikali (tetap langka, cap 2/hari) — keputusan asisten,
+  dicatat di sini: user minta "resource 5x" karena pangan 0; besi/emas
+  langka adalah identitas ekonomi yang sudah disepakati, bukan penyebab
+  paceklik.
+- Kapasitas gudang TIDAK berubah; pembusukan hanya di atas kapasitas,
+  jadi hasil 5x tidak langsung hangus — tapi stok di atas kapasitas
+  tetap membusuk (pangan 50%/hari), jadi 5x bukan alasan menimbun.
+- Override ini MENGGANTIKAN kalimat "TIDAK ADA cara apa pun yang
+  menembus cap 3" di bagian 1 untuk keempat sumber biasa; bagian 1
+  selebihnya (roll 50/30/20, besi/emas langka, floor minimal 1) tetap
+  berlaku.
 
 ## 1. Aturan kumpul harian (spesifikasi user, WAJIB)
 

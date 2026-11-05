@@ -1,11 +1,11 @@
 // Test logika zaman batu (tsx). Jalankan: npx tsx tests/batu.test.ts
 import { PERAN, nodeHasil, labelNode, bobotFit, pengaliFit, perkakasPeran, RESEP_PERKAKAS, type NodeKind } from "../src/lib/batu/peran";
-import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi } from "../src/lib/batu/sumberdaya";
+import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, hitungKapasitasStok, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi } from "../src/lib/batu/sumberdaya";
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, rotasiKeJalan, GRID_W, GRID_H, GRID_MIN, GRID_MAX, PUSAT, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk, petakBangunan, plotBebas } from "../src/lib/batu/dunia";
 import { pintarUntukJalan, rencanaJalan, jalurJalan, jalurSegmen, lebarkanJalan, jalurPelebaran, SEGMEN_JALAN, TIM_JALAN_INT_MIN } from "../src/lib/batu/jalan";
-import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, peluangKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, terapkanPembusukan, capHarianUntuk, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, ambilTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, lokasiRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, terapkanBantuBangun, hitungPembantuBangun, progresKonstruksiPerJam, MAKS_PEMBANTU_BANGUN, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, IKAN_CAP, IKAN_REGROW_HARIAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
+import { kecepatanJalan, lajuKumpul, jumlahKumpul, rollHasilKumpul, peluangKumpul, sisaCapHarian, catatKumpulHarian, tambahStokClamp, terapkanPembusukan, capHarianUntuk, PENGALI_KUMPUL, CAP_KUMPUL_HARIAN_BIASA, apakahStokPeranPenuh, terapkanRehatStokPenuh, pilihNodeTerbaik, sektorDariPosisi, sektorWarga, pilihTargetKerja, ambilTargetKerja, pilihPanganTerdekat, isPanganNode, statusKumpul, pengaliCuaca, gerak, stepWarga, stepInteraksi, stepHewan, stepPerburuan, jadwalRegrow, butuhRespawnHewan, peluangRespawnHewan, lokasiRespawnHewan, carikanHunian, tileHunian, tileTamu, titikSungaiTerdekat, waypointPatroliBerikutnya, WAYPOINT_PATROLI, tileSebelah, pilihLokasiRespawn, terapkanSpawnTertunda, periksaNodeHabis, pintuRestoran, tengahRestoran, dapurRestoran, kolomPintuRestoran, diDalamRestoran, rintanganUntuk, punyaTombakIblis, damageSenjata, damageBerburu, hpHewan, skorGelud, cariBantuan, terapkanBantu, terapkanJalan, terapkanBantuBangun, hitungPembantuBangun, progresKonstruksiPerJam, MAKS_PEMBANTU_BANGUN, KAP_HIDANGAN, LAPAR_HIDANGAN, LAPAR_PANGAN_RESTORAN, IKAN_CAP, IKAN_REGROW_HARIAN, SISA_NODE_AWAL, type SimCtx, type Warga, type DagingDoc } from "../src/lib/batu/sim";
 import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, bubbleInteraksiAktif, teksBubbleEvent, blokObrolan, obrolanTampil, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, poseTidur, specRambut, gayaTombolGender, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, wargaTanpaTugas, tidurDiDalam, rapikanLabelBertumpuk, JARAK_LABEL_BERTUMPUK } from "../src/lib/batu/tampil";
 import { gainJarak, panKamera, lapisanAmbien, SFX_JARAK, SFX_PERKAKAS, SFX_HEWAN } from "../src/lib/audio";
 import { HEWAN, hewanById } from "../src/lib/batu/hewan";
@@ -320,7 +320,9 @@ function wargaDasar(over: Partial<Warga>): Warga {
   const ctx = ctxKosong(w);
   stepWarga(w, 12, ctx);
   ok(w.fase_siklus === "kembali" && w.progres_aksi_pct === 0, "kumpul selesai -> kembali");
-  ok(ctx.stok.kayu === 45, "r15: kumpul selesai -> stok kayu +45 (9 per ronde x5, total per node sama)");
+  // r45 (perintah user 2026-11-05: resource 5x): 1 ronde = roll 1-3 x5
+  // = 5..15 (dulu r15: 45 dari rumus lama yang sudah tidak ada).
+  ok(ctx.stok.kayu >= 5 && ctx.stok.kayu <= 15, `r45: kumpul selesai -> stok kayu 5..15 (roll 1-3 x5, dapat ${ctx.stok.kayu})`);
   eq(w.tujuan, { gx: 100, gy: 100 }, "kumpul selesai -> tujuan hunian");
 }
 {
@@ -611,19 +613,22 @@ ok(POHON_TINGGI / ORANG_TINGGI > 3, "pohon > 3x orang");
   const next = waypointPatroliBerikutnya({ gx: 100, gy: 86 });
   ok(next.gx === 110 && next.gy === 90, "waypoint patroli giliran ring");
   // Pemanjat: kayu + 1 buah. Penenun: padang -> kulit 4 (2 bonus + 2 olah).
+  // r45: hasil 5x (roll 1-3 x5 = 5..15; buah 1x5 = 5; kulit (2+2)x5 = 20
+  // tapi cap kulit harian 15, jadi 15). Dulu r15: 35/35/20 (rumus lama).
   const pm = wargaDasar({ peran: "pemanjat", stat: { int: 5, str: 5, agi: 5, sta: 5 }, lokasi: { gx: 105, gy: 100 }, node: { kind: "pohon", gx: 105, gy: 100 }, fase_siklus: "kumpul", progres_aksi_pct: 90 });
   const ctxPm = ctxKosong(pm);
   stepWarga(pm, 12, ctxPm);
-  ok(ctxPm.stok.kayu === 35 && ctxPm.stok.pangan === 5, `r15: pemanjat: kayu 35 (7 x5) + buah 5 (1 x5) (kayu ${ctxPm.stok.kayu}, pangan ${ctxPm.stok.pangan})`);
+  ok(ctxPm.stok.kayu >= 5 && ctxPm.stok.kayu <= 15 && ctxPm.stok.pangan === 5, `r45: pemanjat: kayu 5..15 + buah 5 (kayu ${ctxPm.stok.kayu}, pangan ${ctxPm.stok.pangan})`);
   const pn = wargaDasar({ peran: "penenun", stat: { int: 5, str: 5, agi: 5, sta: 5 }, lokasi: { gx: 105, gy: 100 }, node: { kind: "padang_buruan", gx: 105, gy: 100 }, fase_siklus: "kumpul", progres_aksi_pct: 90 });
   const ctxPn = ctxKosong(pn);
   stepWarga(pn, 12, ctxPn);
-  ok(ctxPn.stok.pangan === 35 && ctxPn.stok.kulit === 20, `r15: penenun: pangan 35 (7 x5) + kulit 20 (4 x5) (pangan ${ctxPn.stok.pangan}, kulit ${ctxPn.stok.kulit})`);
+  ok(ctxPn.stok.pangan >= 5 && ctxPn.stok.pangan <= 15 && ctxPn.stok.kulit === 15, `r45: penenun: pangan 5..15 + kulit 15 (cap harian) (pangan ${ctxPn.stok.pangan}, kulit ${ctxPn.stok.kulit})`);
   // Pseudo tidak mengalami deplesi: nelayan kumpul di sungai tidak mengurangi nodeSisa.
+  // r45: hasil 5x (roll 1-3 x5 = 5..15; dulu r15: 7 dari rumus lama).
   const nl = wargaDasar({ peran: "nelayan", stat: { int: 5, str: 5, agi: 5, sta: 5 }, lokasi: { gx: 40, gy: 100 }, node: { kind: "semak_beri", gx: 41, gy: 100, pseudo: "sungai" }, fase_siklus: "kumpul", progres_aksi_pct: 90 });
   const ctxNl = ctxKosong(nl);
   stepWarga(nl, 12, ctxNl);
-  ok(ctxNl.stok.pangan === 7 && !ctxNl.nodeSisa.has("41,100"), "pseudo sungai: pangan naik (6 + 1 STR) tanpa deplesi");
+  ok(ctxNl.stok.pangan >= 5 && ctxNl.stok.pangan <= 15 && !ctxNl.nodeSisa.has("41,100"), `r45: pseudo sungai: pangan 5..15 (5x) tanpa deplesi (dapat ${ctxNl.stok.pangan})`);
   // Penjaga mengusir hewan buas (stepHewan): jarak hewan-penjaga BERTAMBAH.
   const hw = { _id: "h1", jenis: "serigala", gx: 101, gy: 100 };
   const jg = wargaDasar({ peran: "penjaga", lokasi: { gx: 100, gy: 100 } });
@@ -875,7 +880,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r44"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r45"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1049,13 +1054,13 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   ok(pemburu.membawa_daging != null && pemburu.membawa_daging.jenis === "Rusa", "r10: tiba di daging -> membawa_daging");
   ok(String(pemburu.fase_siklus) === "kembali", "r10: setelah ambil -> kembali ke kampung");
   ok((ctxH.daging ?? []).length === 0, "r10: daging diambil -> dokumen hilang dari peta");
-  // Tiba di kampung -> stok naik (rusa pangan 6, TAPI cap harian
-  // pangan 2026-11-03 = 3/hari/orang, jadi hanya 3 yang masuk stok).
+  // Tiba di kampung -> stok naik (rusa pangan 6, r45: daging 5x = 30,
+  // TAPI cap harian pangan 2026-11-05 = 15/hari/orang, jadi 15 yang masuk stok).
   pemburu.lokasi = { gx: 100, gy: 100 };
   pemburu.tujuan = { gx: 100, gy: 100 };
   pemburu.fase_siklus = "kembali";
   stepWarga(pemburu, 14, ctxH);
-  ok(pemburu.membawa_daging === null && ctxH.stok.pangan === stokSebelum + 3, "r10: tiba kampung -> stok pangan +3 (cap harian), daging habis dibawa");
+  ok(pemburu.membawa_daging === null && ctxH.stok.pangan === stokSebelum + 15, "r10: tiba kampung -> stok pangan +15 (daging 5x, cap harian 15), daging habis dibawa");
   // Malam: pemburu tidak berburu.
   const malam = wargaDasar({ peran: "pemburu", stat: { int: 5, str: 10, agi: 10, sta: 10 }, lokasi: { gx: 100, gy: 100 }, fase_siklus: "jalan" });
   const ctxM = { ...ctxKosong(malam), hewan: [{ _id: "h10", jenis: "rusa", gx: 101, gy: 100 }], daging: [] as DagingDoc[], dagingHapus: new Set<string>(), wargaSemua: [malam] };
@@ -1318,7 +1323,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r44"'), "versi: BUILD_ID r44");
+  ok(ver.includes('"r45"'), "versi: BUILD_ID r45");
 }
 
 {
@@ -1785,7 +1790,8 @@ function wargaFigo(over: Partial<Warga>): Warga {
   eq(penebang.aksi_sekarang, "berjalan", "r15: rantai aksinya berjalan");
   eq((penebang.node as unknown as { gx: number; gy: number } | null)?.gx, 105, "r15: rantai target = node berikut");
   eq(ctxK.nodeSisa.get("101,100"), 0, "r15: node tumbang sisa 0");
-  eq(ctxK.stok.kayu, 45, "r15: hasil 1 ronde = 5x (8 dasar + 1 bonus STR) = 45 (total per node sama)");
+  // r45: hasil 1 ronde = roll 1-3 x5 = 5..15 (dulu r15: 45, rumus lama).
+  ok(ctxK.stok.kayu >= 5 && ctxK.stok.kayu <= 15, `r45: hasil 1 ronde = 5x (dapat ${ctxK.stok.kayu})`);
   // Rantai TIDAK jalan bila stamina < 40 -> pulang seperti biasa.
   const penebangLelah = wargaDasar({ peran: "penebang", stat: { int: 5, str: 8, agi: 5, sta: 5 }, lokasi: { gx: 100, gy: 100 }, fase_siklus: "kumpul", node: { kind: "pohon", gx: 101, gy: 100 } as never, progres_aksi_pct: 90, stamina: 30, lapar: 20 });
   const ctxL = {
@@ -2068,15 +2074,17 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const meanEmas = totalE / N;
   ok(meanEmas > 0.2 && meanEmas < 0.45, `kumpul emas: rata-rata ${meanEmas.toFixed(2)} di 0,2..0,45`);
   ok(nolE / N > 0.65, `kumpul emas: hari tanpa emas >65% (dapat ${(nolE / N * 100).toFixed(1)}%)`);
-  ok(capHarianUntuk("kayu") === 3 && capHarianUntuk("besi") === 2, "cap harian: 3 biasa, 2 langka");
+  // r45 (perintah user 2026-11-05: resource 5x): cap biasa 3 -> 15
+  // (PENGALI_KUMPUL); langka tetap 2 (besi/emas tidak dikali).
+  ok(capHarianUntuk("kayu") === 15 && capHarianUntuk("besi") === 2, "cap harian: 15 biasa (5x), 2 langka");
   const wCap = { kumpul_hari: undefined, kumpul_harian: undefined } as unknown as Warga;
-  ok(sisaCapHarian(wCap, "kayu", 10) === 3, "cap harian: kayu segar = 3");
+  ok(sisaCapHarian(wCap, "kayu", 10) === 15, "cap harian: kayu segar = 15");
   ok(sisaCapHarian(wCap, "besi", 10) === 2, "cap harian: besi segar = 2");
   catatKumpulHarian(wCap, "kayu", 2, 10);
-  ok(sisaCapHarian(wCap, "kayu", 10) === 1, "cap harian: kayu sisa 1 setelah 2");
+  ok(sisaCapHarian(wCap, "kayu", 10) === 13, "cap harian: kayu sisa 13 setelah 2");
   catatKumpulHarian(wCap, "kayu", 1, 10);
-  ok(sisaCapHarian(wCap, "kayu", 10) === 0, "cap harian: kayu habis setelah 3");
-  ok(sisaCapHarian(wCap, "kayu", 11) === 3, "cap harian: reset hari baru");
+  ok(sisaCapHarian(wCap, "kayu", 10) === 12, "cap harian: kayu sisa 12 setelah 3");
+  ok(sisaCapHarian(wCap, "kayu", 11) === 15, "cap harian: reset hari baru");
   const ctxClamp = {
     stok: { kayu: 199, batu: 0, pangan: 0, kulit: 0, emas: 0, besi: 0 },
     kapasitasMaks: { kayu: 200, batu: 150, pangan: 200, kulit: 100, emas: 50, besi: 60 },
@@ -2161,7 +2169,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const bKayu = terapkanPembusukan(ctxKayu);
   ok(bKayu.kayu === 1 && (ctxKayu.stok as unknown as Record<string, number>).kayu === 204, "busuk-kecil: kayu 205/200 susut 1 (5 x 10% = 0,5 -> 0 dulu)");
   const verKecil = readFileSync("src/lib/version.ts", "utf8");
-  ok(verKecil.includes('BUILD_ID = "r44"'), "busuk-kecil: BUILD_ID naik ke r41");
+  ok(verKecil.includes('BUILD_ID = "r45"'), "busuk-kecil: BUILD_ID naik ke r41");
 }
 
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
@@ -2378,7 +2386,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcTg = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTg.includes(".menu-tonggak") && cssSrcTg.includes(".menu-tonggak-title") && cssSrcTg.includes(".menu-tonggak-isi"), "tonggak: CSS baris ada");
   const verSrcTg = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcTg.includes('BUILD_ID = "r44"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcTg.includes('BUILD_ID = "r45"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // "Selama kamu pergi" (2026-11-05, Ide 22): fungsi murni display-only —
@@ -2408,7 +2416,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcPergi = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcPergi.includes(".menu-pergi") && cssSrcPergi.includes(".menu-pergi-title") && cssSrcPergi.includes(".menu-pergi-tutup"), "pergi: CSS blok ada");
   const verSrcPergi = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcPergi.includes('BUILD_ID = "r44"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcPergi.includes('BUILD_ID = "r45"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda loop render saat tab disembunyikan (2026-11-04, Ide 9):
@@ -2422,7 +2430,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r44"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r45"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2529,7 +2537,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r44"'), "muat3d: BUILD_ID naik ke r41");
+  ok(verMuat.includes('BUILD_ID = "r45"'), "muat3d: BUILD_ID naik ke r41");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2573,7 +2581,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r44"'), "geraktenang: BUILD_ID naik ke r41");
+  ok(verGerak.includes('BUILD_ID = "r45"'), "geraktenang: BUILD_ID naik ke r41");
 }
 
 
@@ -2592,7 +2600,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r44"'), "tip: BUILD_ID naik ke r41");
+  ok(verTip.includes('BUILD_ID = "r45"'), "tip: BUILD_ID naik ke r41");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2610,7 +2618,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r44"'), "fokus: BUILD_ID naik ke r41");
+  ok(verFokus.includes('BUILD_ID = "r45"'), "fokus: BUILD_ID naik ke r41");
 }
 
 // Audit geometri/material bersama sebelum instancing (2026-11-05,
@@ -2637,7 +2645,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
   ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
   const verAudit = readFileSync("src/lib/version.ts", "utf8");
-  ok(verAudit.includes('BUILD_ID = "r44"'), "audit30: BUILD_ID naik ke r41");
+  ok(verAudit.includes('BUILD_ID = "r45"'), "audit30: BUILD_ID naik ke r41");
 }
 
 // Dispose lewati material bersama (2026-11-05, penutup celah audit
@@ -2663,7 +2671,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!isRoadMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: material baru bukan material jalan bersama");
   ok(!isVillageMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: predikat desa/jalan tidak saling tertukar (jalan bukan desa)");
   const ver36 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver36.includes('BUILD_ID = "r44"'), "dispose36: BUILD_ID naik ke r41");
+  ok(ver36.includes('BUILD_ID = "r45"'), "dispose36: BUILD_ID naik ke r41");
 }
 
 // RONDE 20 (2026-11-05, laporan user): "kenapa gada yg bikin jalan?" +
@@ -2785,7 +2793,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const map3d20 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(map3d20.includes("fishes") && map3d20.includes("mF?.ikan"), "r20: Map3D menggambar ikan dari stok ikan");
   const ver20 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver20.includes('BUILD_ID = "r44"'), "r20: BUILD_ID naik ke r41");
+  ok(ver20.includes('BUILD_ID = "r45"'), "r20: BUILD_ID naik ke r41");
 }
 
 {
@@ -2872,7 +2880,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(simSrc21.includes("bangunanDibangun"), "r21: sim memuat bangunanDibangun di ctx");
   ok(!simSrc21.includes("pintarUntukJalan(w)"), "r21: gate pinter tidak lagi dipakai di sim");
   const ver21 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver21.includes('BUILD_ID = "r44"'), "r21: BUILD_ID naik ke r42");
+  ok(ver21.includes('BUILD_ID = "r45"'), "r21: BUILD_ID naik ke r42");
 }
 
 {
@@ -2914,7 +2922,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrc22 = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrc22.includes("background: #facc15") && cssSrc22.includes("border: 2px solid #0b182e"), "r22: tombol menu latar kuning solid + border gelap (kontras tinggi)");
   const ver22 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver22.includes('BUILD_ID = "r44"'), "r22: BUILD_ID naik ke r42");
+  ok(ver22.includes('BUILD_ID = "r45"'), "r22: BUILD_ID naik ke r42");
 }
 
 {
@@ -2950,7 +2958,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const pageSrc23 = readFileSync("src/app/page.tsx", "utf8");
   ok(pageSrc23.includes("cuaca={cuaca}"), "r23: page meneruskan cuaca ke Map3D");
   const ver23 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver23.includes('BUILD_ID = "r44"'), "r23: BUILD_ID naik ke r43");
+  ok(ver23.includes('BUILD_ID = "r45"'), "r23: BUILD_ID naik ke r43");
 }
 
 {
@@ -2979,7 +2987,215 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const mapSrc24 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(mapSrc24.includes("rapikanLabelBertumpuk"), "r24: Map3D masih memakai rapikanLabelBertumpuk");
   const ver24 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver24.includes('BUILD_ID = "r44"'), "r24: BUILD_ID naik ke r44");
+  ok(ver24.includes('BUILD_ID = "r45"'), "r24: BUILD_ID naik ke r44");
+}
+
+// RONDE 45 — BEKU TABIB + RESOURCE 5x (laporan user 2026-11-05 via video:
+// warga berkerumun diam, jalan 0 ubin, pangan 0 terus).
+// Akar (terbukti simulasi live-like): sehat warga jatuh < 65 karena
+// kelaparan berkepanjangan -> cabang tabib menyetel fase "jalan" +
+// node null + aksi "berobat", padahal TIDAK ADA cabang yang
+// menggerakkan warga tanpa node; fallthrough akhir lalu menimpa
+// penugasan berobat dengan kerja baru tiap jam -> warga beku di satu
+// ubin, status berkedip, pangan 0, jalan 0. Perbaikan: fase "berobat"
+// + cabang berobat yang benar-benar berjalan ke Pondok Tabib + sembuh.
+{
+  // (a) Warga sakit berjalan ke tabib lalu sembuh (tidak beku).
+  const tabibP = { _id: "pdt", kind: "pondok_tabib", gx: 104, gy: 99, w: 2, h: 2 } as never;
+  const rintanganTabib = new Set<string>([...petakBangunan(tabibP), ...gunungTileKeys()]);
+  const sakit = wargaDasar({ peran: "penebang", lokasi: { gx: 85, gy: 94 }, node: { kind: "pohon", gx: 90, gy: 90 }, tujuan: { gx: 89, gy: 90 }, fase_siklus: "jalan", stamina: 80, lapar: 20, sehat: 40 });
+  const ctxSakit = { ...ctxKosong(sakit), placements: [tabibP], rintangan: rintanganTabib, wargaSemua: [sakit] };
+  const posAwalSakit = { ...sakit.lokasi };
+  stepWarga(sakit, 12, ctxSakit);
+  ok(sakit.fase_siklus === "berobat", `r45: warga sakit -> fase berobat (dapat ${sakit.fase_siklus})`);
+  ok(sakit.lokasi.gx !== posAwalSakit.gx || sakit.lokasi.gy !== posAwalSakit.gy, "r45: warga sakit BERGERAK ke tabib (tidak beku di tempat)");
+  let sembuh = false;
+  for (let j = 13; j <= 18; j++) {
+    stepWarga(sakit, j, ctxSakit);
+    if (sakit.sehat === 100 && sakit.fase_siklus === "istirahat") { sembuh = true; break; }
+  }
+  ok(sembuh, `r45: warga sakit sembuh di tabib (sehat ${sakit.sehat}, fase ${sakit.fase_siklus})`);
+  // (b) Berobat tidak membajak pulang malam: jam 20 -> pulang, bukan berobat.
+  const sakitMalam = wargaDasar({ peran: "penebang", lokasi: { gx: 85, gy: 94 }, node: { kind: "pohon", gx: 90, gy: 90 }, tujuan: { gx: 89, gy: 90 }, fase_siklus: "jalan", stamina: 80, lapar: 20, sehat: 40 });
+  const ctxMalam = { ...ctxKosong(sakitMalam), placements: [tabibP], rintangan: rintanganTabib, wargaSemua: [sakitMalam] };
+  stepWarga(sakitMalam, 20, ctxMalam);
+  ok(sakitMalam.fase_siklus !== "berobat" && sakitMalam.aksi_sekarang !== "berobat", `r45: sakit jam 20 -> pulang tidur, bukan berobat (fase ${sakitMalam.fase_siklus})`);
+  ok(sakitMalam.lokasi.gx !== 85 || sakitMalam.lokasi.gy !== 94, "r45: sakit jam 20 tetap bergerak pulang");
+  // (c) Berobat tidak membajak warga yang sedang membawa hasil pulang.
+  const bawa = wargaDasar({ peran: "penebang", lokasi: { gx: 85, gy: 94 }, tujuan: { gx: 100, gy: 100 }, fase_siklus: "kembali", aksi_sekarang: "membawa_hasil", stamina: 80, lapar: 20, sehat: 40 });
+  const ctxBawa = { ...ctxKosong(bawa), placements: [tabibP], rintangan: rintanganTabib, wargaSemua: [bawa] };
+  stepWarga(bawa, 12, ctxBawa);
+  ok(bawa.fase_siklus !== "berobat" && bawa.aksi_sekarang !== "berobat", `r45: bawa hasil sakit -> tetap pulang, bukan berobat (fase ${bawa.fase_siklus})`);
+  ok(bawa.lokasi.gx !== 85 || bawa.lokasi.gy !== 94, "r45: bawa hasil sakit tetap bergerak pulang");
+  // (d) Konstanta 5x: pengali + cap biasa 15, langka tetap 2.
+  ok(PENGALI_KUMPUL === 5, "r45: PENGALI_KUMPUL = 5");
+  ok(capHarianUntuk("pangan") === CAP_KUMPUL_HARIAN_BIASA * PENGALI_KUMPUL && capHarianUntuk("pangan") === 15, "r45: cap harian pangan 15 (5x)");
+  ok(capHarianUntuk("besi") === 2 && capHarianUntuk("emas") === 2, "r45: cap langka tetap 2 (besi/emas tidak dikali)");
+  // (e) gerak berhenti DI SEBELAH tujuan yang rintangan (tengah bangunan),
+  // bukan mengorbit sampai budget habis lalu berakhir jauh. Kasus live:
+  // jalan ke tabib (105,100) dari (85,94) berakhir di (104,121).
+  {
+    const g = gerak({ gx: 0, gy: 0 }, { gx: 5, gy: 5 }, 100, { rintangan: new Set(["5,5"]) });
+    ok(!(g.lokasi.gx === 5 && g.lokasi.gy === 5), "r45: gerak tidak masuk ubin tujuan yang rintangan");
+    ok(Math.max(Math.abs(g.lokasi.gx - 5), Math.abs(g.lokasi.gy - 5)) <= 1, `r45: gerak berhenti di sebelah tujuan rintangan (dapat ${g.lokasi.gx},${g.lokasi.gy})`);
+    const gTabib = gerak({ gx: 85, gy: 94 }, { gx: 105, gy: 100 }, 90, { rintangan: rintanganTabib });
+    ok(Math.max(Math.abs(gTabib.lokasi.gx - 105), Math.abs(gTabib.lokasi.gy - 100)) <= 2, `r45: gerak ke tabib berakhir dekat pondok (dapat ${gTabib.lokasi.gx},${gTabib.lokasi.gy})`);
+  }
+  // (f) Berobat TIDAK membajak warga yang sedang mencari makan darurat
+  // (node.darurat) — makan menghentikan penyebab sakitnya sendiri.
+  {
+    const lapar2 = wargaDasar({ peran: "penebang", lokasi: { gx: 85, gy: 94 }, node: { kind: "semak_beri", gx: 88, gy: 93, darurat: true }, tujuan: { gx: 87, gy: 93 }, fase_siklus: "jalan", stamina: 80, lapar: 100, sehat: 40 });
+    const ctxLapar = { ...ctxKosong(lapar2), placements: [tabibP], rintangan: rintanganTabib, wargaSemua: [lapar2] };
+    stepWarga(lapar2, 12, ctxLapar);
+    ok(lapar2.fase_siklus !== "berobat" && lapar2.aksi_sekarang !== "berobat", `r45: darurat makan sakit -> tetap ke beri, bukan berobat (fase ${lapar2.fase_siklus})`);
+  }
+  // (g) Berobat TIDAK membajak ronde kumpul yang sedang berjalan.
+  {
+    const kumpul2 = wargaDasar({ peran: "penebang", lokasi: { gx: 88, gy: 93 }, node: { kind: "pohon", gx: 90, gy: 90 }, tujuan: { gx: 89, gy: 90 }, fase_siklus: "kumpul", stamina: 80, lapar: 20, sehat: 40, progres_aksi_pct: 40 });
+    const ctxKumpul = { ...ctxKosong(kumpul2), placements: [tabibP], rintangan: rintanganTabib, wargaSemua: [kumpul2] };
+    stepWarga(kumpul2, 12, ctxKumpul);
+    ok(kumpul2.fase_siklus !== "berobat" && kumpul2.aksi_sekarang !== "berobat", `r45: kumpul sakit -> selesaikan ronde dulu, bukan berobat (fase ${kumpul2.fase_siklus})`);
+  }
+}
+
+// RONDE 45 — SIMULASI 10 HARI LIVE-LIKE (12 warga, pangan 0, sehat 10,
+// posisi/status persis API 2026-11-05 ~19:00 WIB): pangan harus > 0
+// secara berkelanjutan (bukan sesaat), jalan harus terbangun, tidak ada
+// warga yang beku di ubin awal. Sebelum perbaikan, simulasi yang sama
+// memberi: pangan akhir 3 (1 ronde kumpul/10 hari), jalan 0, 12/12 beku.
+{
+  const rndAsli45 = Math.random;
+  let seed45 = 20261105;
+  Math.random = () => { seed45 = (seed45 * 1103515245 + 12345) & 0x7fffffff; return seed45 / 0x7fffffff; };
+  const PL45 = [
+    { _id: "g1", kind: "gubuk", gx: 101, gy: 101, w: 2, h: 2 },
+    { _id: "g2", kind: "gubuk", gx: 99, gy: 96, w: 2, h: 2 },
+    { _id: "jmb", kind: "jembatan", gx: 36, gy: 100, w: 4, h: 1 },
+    { _id: "lmb", kind: "lumbung", gx: 96, gy: 99, w: 2, h: 2 },
+    { _id: "pdt", kind: "pondok_tabib", gx: 104, gy: 99, w: 2, h: 2 },
+    { _id: "g3", kind: "gubuk", gx: 96, gy: 92, w: 2, h: 2 },
+    { _id: "g4", kind: "gubuk", gx: 92, gy: 93, w: 2, h: 2 },
+    { _id: "ldg", kind: "ladang", gx: 99, gy: 104, w: 2, h: 2 },
+    { _id: "bky", kind: "bengkel_kayu", gx: 91, gy: 99, w: 2, h: 2 },
+    { _id: "g5", kind: "gubuk", gx: 88, gy: 93, w: 2, h: 2 },
+    { _id: "g6", kind: "gubuk", gx: 89, gy: 89, w: 2, h: 2 },
+    { _id: "pav", kind: "paviliun_makan", gx: 109, gy: 96, w: 8, h: 8, hidangan: 0 },
+    { _id: "k1", kind: "kebun_rempah", gx: 101, gy: 91, w: 2, h: 2 },
+    { _id: "k2", kind: "kebun_rempah", gx: 94, gy: 104, w: 2, h: 2 },
+  ] as never[];
+  const LIVE45: [string, string, number, number, number, number][] = [
+    ["Figo", "penebang", 100, 67, 105, 100], ["Nera", "penjelajah", 100, 100, 117, 100],
+    ["Praboti", "petani", 100, 70, 100, 105], ["Evos dyroth", "pengumpul", 40, 100, 97, 98],
+    ["Siti", "pemanjat", 40, 100, 97, 97], ["Budi", "penjerat", 100, 100, 85, 94],
+    ["ribran gakabuming", "kepala_suku", 100, 100, 85, 94], ["Miners", "penambang", 100, 47, 72, 155],
+    ["Renata", "juru_masak", 100, 100, 85, 92], ["Ys", "pemburu", 100, 40, 106, 58],
+    ["reja auditore", "penjaga_api", 100, 100, 85, 93], ["Go Younjung", "pengukir", 100, 100, 85, 93],
+  ];
+  const STAT45: Record<string, [number, number, number, number]> = {
+    penebang: [5, 8, 5, 5], penjelajah: [5, 5, 8, 5], petani: [5, 5, 5, 7],
+    pengumpul: [5, 5, 6, 5], pemanjat: [5, 5, 8, 5], penjerat: [5, 5, 7, 5],
+    kepala_suku: [8, 5, 5, 5], penambang: [5, 8, 5, 5], juru_masak: [7, 5, 5, 5],
+    pemburu: [5, 5, 8, 5], penjaga_api: [5, 5, 5, 7], pengukir: [7, 5, 5, 5],
+  };
+  const GUB45 = ["g1", "g2", "g3", "g4", "g5", "g6"];
+  const warga45: Warga[] = LIVE45.map(([nama, peran, lapar, stamina, gx, gy], i) => {
+    const s = STAT45[peran] ?? [5, 5, 5, 5];
+    return {
+      _id: `w${i}`, nama, nomor: String(i + 1), gender: "laki", umur: 30, lahir_hari: 0,
+      tahap_hidup: "dewasa", peran, stat: { int: s[0], str: s[1], agi: s[2], sta: s[3] },
+      bakat: "STR", sifat: "rajin", lokasi: { gx, gy }, tujuan: null, node: null,
+      aksi_sekarang: "", status_teks: "", tempat_kerja: "", progres_aksi_pct: 0,
+      fase_siklus: "istirahat", istirahat_sisa: 0,
+      hunian: { id: GUB45[Math.floor(i / 2)], tipe: "gubuk", label: "Gubuk" },
+      profil_id: null, dibuat_pada: new Date(), sim_hari: 382,
+      stamina, lapar, sehat: 10, perkakas: [], interaksi: null,
+      target_hewan: null, sedang_berenang: false,
+    } as unknown as Warga;
+  });
+  const nodes45 = generateNodes();
+  const nodeSisa45 = new Map<string, number>();
+  for (const n of nodes45) nodeSisa45.set(`${n.gx},${n.gy}`, SISA_NODE_AWAL);
+  const nodeTiles45 = new Set<string>(nodes45.map((n) => `${n.gx},${n.gy}`));
+  const rintangan45 = new Set<string>();
+  for (const p of PL45) for (const k of petakBangunan(p as never)) rintangan45.add(k);
+  for (const k of gunungTileKeys()) rintangan45.add(k);
+  const hunianTitik45 = (w: Warga) => {
+    if (w.hunian) {
+      const p = (PL45 as never[]).find((x: never) => String((x as { _id: unknown })._id) === w.hunian?.id) as never;
+      if (p) {
+        const serumah = warga45.filter((x) => x.hunian?.id === w.hunian?.id).sort((a, b) => String(a._id).localeCompare(String(b._id)));
+        const idx = serumah.findIndex((x) => x === w);
+        return tileHunian(p, idx < 0 ? 0 : idx);
+      }
+    }
+    return tileTamu(PL45, warga45.indexOf(w));
+  };
+  const ctx45 = {
+    nodes: nodes45, nodeSisa: nodeSisa45, nodeRegrow: new Map(), nodeSpawn: [], nodeSpawnTertunda: new Map(),
+    nodeTilesAll: nodeTiles45, stok: { ...stokKosong(), kayu: 149, batu: 6, emas: 1, besi: 47, pangan: 0, kulit: 92 },
+    kapasitasMaks: hitungKapasitasStok(PL45 as never), kabar: [],
+    hunianTitik: hunianTitik45, rintangan: rintangan45, jembatan: new Set(["36,100", "37,100", "38,100", "39,100"]),
+    perahuAda: false, hewan: [], hewanHilang: new Set(), wargaSemua: warga45,
+    cuaca: "cerah", hari: 382, jam: 9185,
+    ladang: { gx: 100, gy: 105 },
+    restoran: { _id: "pav", kind: "paviliun_makan", gx: 109, gy: 96, w: 8, h: 8, hidangan: 0 } as never,
+    restoranBerubah: false, placements: PL45,
+    jalanSelesai: new Set<string>(), jalanTugas: new Set<string>(), jalanRencana: null,
+    jalanBaru: [], bangunanAktif: false, bangunanDibangun: [], ikanSungai: 30,
+  } as unknown as SimCtx;
+  const posAwal45 = warga45.map((w) => `${w.lokasi.gx},${w.lokasi.gy}`);
+  let panganHariPositif = 0;
+  let hariTerakhir45 = 382;
+  for (let t = 0; t < 240; t++) {
+    const jam = 9185 + t + 1;
+    const hari = Math.floor(jam / 24);
+    ctx45.jam = jam; ctx45.hari = hari; ctx45.cuaca = "cerah";
+    if (hari !== hariTerakhir45) {
+      hariTerakhir45 = hari;
+      ctx45.ikanSungai = Math.min(IKAN_CAP, (ctx45.ikanSungai ?? IKAN_CAP) + IKAN_REGROW_HARIAN);
+      terapkanPembusukan(ctx45);
+    }
+    ctx45.jalanTugas = new Set<string>();
+    ctx45.jalanRencana = rencanaJalan(
+      (PL45 as never[]).map((p: never) => { const q = p as { kind: string; gx: number; gy: number; w: number; h: number }; return { kind: q.kind, gx: q.gx, gy: q.gy, w: q.w, h: q.h }; }),
+      ctx45.jalanSelesai ?? new Set<string>(), ctx45.nodeTilesAll ?? new Set<string>()
+    );
+    for (const w of warga45) { stepWarga(w, jam, ctx45); if (w.lapar >= 95) w.sehat = Math.max(10, w.sehat - 3); }
+    for (const [k, kapan] of [...(ctx45.nodeRegrow ?? new Map())]) {
+      if (jam >= kapan) { ctx45.nodeSisa.set(k, SISA_NODE_AWAL); ctx45.nodeRegrow!.delete(k); }
+    }
+    if (ctx45.nodeSpawnTertunda && ctx45.nodeSpawn) {
+      terapkanSpawnTertunda(ctx45.nodeSpawnTertunda, jam, ctx45.nodeSpawn, ctx45.nodeSisa, ctx45.kabar);
+      for (const sp of ctx45.nodeSpawn) ctx45.nodeTilesAll?.add(`${sp.gx},${sp.gy}`);
+    }
+    const MIN_T: Record<string, number> = { pohon: 35, semak_beri: 18, singkapan_batu: 18, padang_buruan: 12, urat_emas: 8, urat_besi: 10 };
+    const countAktif: Record<string, number> = {};
+    for (const n of ctx45.nodes) {
+      const k = `${n.gx},${n.gy}`;
+      if ((ctx45.nodeSisa.get(k) ?? SISA_NODE_AWAL) > 0) countAktif[n.kind] = (countAktif[n.kind] ?? 0) + 1;
+    }
+    for (const [kindStr, minTarget] of Object.entries(MIN_T)) {
+      if ((countAktif[kindStr] ?? 0) < minTarget) {
+        const taken = new Set<string>(ctx45.nodeTilesAll ?? []);
+        for (const tt of ctx45.nodeSpawnTertunda!.values()) taken.add(`${tt.gx},${tt.gy}`);
+        const spawn = pilihLokasiRespawn(kindStr as never, { gx: 100, gy: 100 }, jam + 2, taken, ctx45.rintangan);
+        if (spawn) {
+          ctx45.nodeSpawnTertunda!.set(`spawn_${kindStr}_${jam}`, { kind: spawn.kind, gx: spawn.gx, gy: spawn.gy, jam: jam + 2 });
+          ctx45.nodeTilesAll?.add(`${spawn.gx},${spawn.gy}`);
+        }
+      }
+    }
+    if ((t + 1) % 24 === 0 && (ctx45.stok.pangan ?? 0) > 0) panganHariPositif++;
+  }
+  Math.random = rndAsli45;
+  const kumpul45 = ctx45.kabar.filter((k) => k.jenis === "kumpul").length;
+  const jalan45 = ctx45.jalanSelesai?.size ?? 0;
+  const beku45 = warga45.filter((w, i) => `${w.lokasi.gx},${w.lokasi.gy}` === posAwal45[i]).length;
+  ok((ctx45.stok.pangan ?? 0) > 0, `r45 sim 10 hari: pangan akhir > 0 (dapat ${ctx45.stok.pangan})`);
+  ok(panganHariPositif >= 8, `r45 sim 10 hari: pangan > 0 di ${panganHariPositif}/10 hari (berkelanjutan, bukan sesaat)`);
+  ok(jalan45 >= 5, `r45 sim 10 hari: jalan terbangun >= 5 ubin (dapat ${jalan45})`);
+  ok(beku45 <= 2, `r45 sim 10 hari: warga beku di ubin awal <= 2 (dapat ${beku45}/12)`);
+  ok(kumpul45 >= 20, `r45 sim 10 hari: ronde kumpul selesai >= 20 (dapat ${kumpul45})`);
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
