@@ -84,6 +84,23 @@ paviliun yang diskalakan pas footprint 8x8.
   lebih ringan; bila nanti beruang harus menakutkan lagi,
   ambang duel (14/18/22) yang perlu dinaikkan, bukan gate peran.
 
+### Verifikasi live r38 (deploy auto dari main, commit 59f3dbf, dpl_4P1Ez8qi9H4PyXns2Y4d57oDGESE READY)
+- /api/version: {"ok":true,"build":"r38"}. Homepage 200
+  (judul "Negara Emas — Zaman Batu") dan ikon
+  /batu/icons/kayu.png 200.
+- /api/world ok: kampung Suka Maju, populasi 12, hari 364,
+  17.34 Sore, Hujan; stok kayu 149/160, batu 6/130, emas 1/40,
+  besi 47/55, pangan 0/200, kulit 92/95 — semua di dalam
+  kapasitas, tidak ada regresi stok dari deploy ini. Pangan
+  masih 0 (keadaan sebelum deploy); laju kumpul baru butuh
+  jam-jam game berjalan sebelum stok pangan terlihat naik.
+- /api/map ok: 12 warga, 14 placements. /api/bangunan ok:
+  katalog lengkap diawali Gubuk.
+- Perburuan/paviliun baru belum diverifikasi visual di
+  browser (butuh main + lihat HP rusa berkurang dan paviliun
+  yang tidak lagi menelan tetangga); yang terverifikasi
+  adalah kode + tesnya, dan API tetap ok.
+
 ## 2026-11-05 12:29 WIB — Baris "Tonggak kampung" di kartu menu (Ide 29) + brief riset onboarding/prestasi
 
 Perubahan dalam 2 kalimat: kartu menu kini menampilkan satu
