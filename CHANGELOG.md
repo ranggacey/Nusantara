@@ -21,6 +21,12 @@ Perubahan dalam 2 kalimat: label nama warga yang berkerumun kini benar-benar ter
 ### Riset + backlog (brief research/2026-11-05-1829.md)
 - Sudut: UX (rotasi dari AUDIO 16:29). Sumber dibaca penuh: Wandr (jempol bukan kursor, target besar DAN berjarak, umpan balik di luar titik sentuh, kurangi isi layar) + Cursa (teks sekunder min 12-13px, scrim di atas gambar, target 44-48px + jarak 8-12px, jangan menempel tepi); plus h-idris (safe area), Supagames (safe-area-inset + cadangkan ruang kontrol), Egmatic (49% main satu tangan, lantai 48dp). Ide 33 (label hewan ikut antrean rapikan) dan Ide 34 (safe-area klaster kontrol) masuk IDE-FITUR.md sebagai backlog. Tidak direkomendasikan: perkecil font label di bawah 11px, pindah kontrol ke atas layar, tur interaktif multi-langkah, menebak penyebab analog terpotong tanpa bukti visual.
 
+### Verifikasi live r44 (browser, 18:40-18:42 WIB)
+- Deployment Vercel dpl_HXGrbNGU6SLeKxo1R5y75sgGmgAm READY (commit 0bc86c2, production); `/api/version` = `{"ok":true,"build":"r44"}`.
+- `/api/world` ok: Suka Maju, populasi 12, hari 17 (total 381), tahun 2, jam 14.57 siang berawan; `/api/map` ok: grid 600, 12 warga, 14 placement, ikan 30, hewan + node lengkap; `/api/bangunan` ok: katalog 26 tipe, antrean 0, bangunan selesai 100%. Homepage render (judul "Negara Emas — Zaman Batu", peta 3D + warga + kontrol tampil); favicon.ico 48x48 "N" termuat.
+- PERHATIAN (bukan regresi r44 — perubahan ini display-only, tidak menyentuh sim): `/api/world` menunjukkan pangan 0/600 (kayu 149, batu 6, emas 1, besi 47, kulit 92). Pangan sempat 462 ribu saat observasi 16:29; susut ini konsisten dengan pembusukan 50%/hari di atas kapasitas + produksi tipis pasca-r40, tapi angka NOL dengan 12 warga perlu diawasi run berikut (apakah pangan pulih atau paceklik berlanjut) — cron dilarang menulis DB, jadi hanya dicatat.
+- Verifikasi visual jarak label baru 28px BELUM dilakukan (butuh framing kerumun yang sama seperti observasi 18:29) — antrean run berikut.
+
 ## 2026-11-05 ~16:29 WIB — r43: ambien prosedural siang/malam/cuaca (Ide 32, irisan 1)
 
 Perubahan dalam 2 kalimat: kampung kini terdengar hidup — tiga lapis ambien prosedural (angin, hujan, malam) mengikuti fase dan cuaca game, dibuat dari noise yang sudah ada tanpa satu file audio pun; lapisnya crossfade pelan saat siang berganti malam atau hujan turun, dan ikut toggle Suara + gate gestur yang sudah ada, jadi tidak pernah bunyi sendiri saat load.
