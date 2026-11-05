@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -585,6 +585,10 @@ export default function Page() {
                 (map?.warga ?? []).some((w: J) => String(w.peran) === "penambang")
               );
               const aksi = aksiPertamaBerikutnya(kb);
+              const tg = tonggakKampung(
+                world?.populasi ?? 0,
+                (map?.placements ?? []).map((p: J) => String(p.kind))
+              );
               return (
                 <>
                   <div className="menu-kebutuhan">
@@ -617,6 +621,26 @@ export default function Page() {
                       <span className="menu-mulai-teks">{aksi.teks}</span>
                     </button>
                   )}
+                  {/* Tonggak kampung (2026-11-05, Ide 29): satu baris
+                      ringkas rekam kemajuan kumulatif — hitungan
+                      tercapai + daftar yang sudah dicapai + SATU
+                      berikutnya yang paling dekat. Display-only,
+                      tanpa hadiah ekonomi, tanpa ubah sim. */}
+                  <div className="menu-tonggak">
+                    <div className="menu-tonggak-title">🏅 Tonggak kampung: {tg.tercapai} dari {tg.total}</div>
+                    <div className="menu-tonggak-isi">
+                      {tg.tercapai > 0 ? (
+                        <>✓ {tg.daftar.filter((t) => t.tercapai).map((t) => t.nama).join(" · ")}</>
+                      ) : (
+                        <>Belum ada tonggak tercapai.</>
+                      )}
+                      {tg.berikutnya ? (
+                        <> — Berikutnya: {tg.berikutnya}.</>
+                      ) : (
+                        <> — Semua tonggak tercapai!</>
+                      )}
+                    </div>
+                  </div>
                 </>
               );
             })()}

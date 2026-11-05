@@ -1,6 +1,6 @@
 // Test logika zaman batu (tsx). Jalankan: npx tsx tests/batu.test.ts
 import { PERAN, nodeHasil, labelNode, bobotFit, pengaliFit, perkakasPeran, RESEP_PERKAKAS, type NodeKind } from "../src/lib/batu/peran";
-import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya } from "../src/lib/batu/sumberdaya";
+import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung } from "../src/lib/batu/sumberdaya";
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, GRID_W, GRID_H, GRID_MIN, GRID_MAX, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk } from "../src/lib/batu/dunia";
@@ -875,7 +875,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r36"'), "version: BUILD_ID r34 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r37"'), "version: BUILD_ID r34 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1226,7 +1226,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r36"'), "versi: BUILD_ID r34");
+  ok(ver.includes('"r37"'), "versi: BUILD_ID r34");
 }
 
 {
@@ -2058,7 +2058,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const bKayu = terapkanPembusukan(ctxKayu);
   ok(bKayu.kayu === 1 && (ctxKayu.stok as unknown as Record<string, number>).kayu === 204, "busuk-kecil: kayu 205/200 susut 1 (5 x 10% = 0,5 -> 0 dulu)");
   const verKecil = readFileSync("src/lib/version.ts", "utf8");
-  ok(verKecil.includes('BUILD_ID = "r36"'), "busuk-kecil: BUILD_ID naik ke r35");
+  ok(verKecil.includes('BUILD_ID = "r37"'), "busuk-kecil: BUILD_ID naik ke r35");
 }
 
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
@@ -2247,6 +2247,37 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(cssSrcMulai.includes(".menu-mulai") && cssSrcMulai.includes(".menu-mulai-label") && cssSrcMulai.includes(".menu-mulai-teks"), "mulai: CSS baris ada");
 }
 
+// Tonggak kampung (2026-11-05, Ide 29): fungsi murni display-only —
+// 7 tonggak dari tangga DESAIN-EKONOMI §2, hitungan tercapai +
+// SATU berikutnya yang paling dekat, tanpa hadiah ekonomi.
+{
+  const t0 = tonggakKampung(0, []);
+  eq(t0.total, 7, "tonggak: total 7");
+  eq(t0.tercapai, 0, "tonggak: kampung kosong 0 tercapai");
+  eq(t0.berikutnya, "Api pertama menyala", "tonggak: kampung kosong berikutnya = api pertama");
+  const tApi = tonggakKampung(3, ["api_unggun"]);
+  eq(tApi.tercapai, 1, "tonggak: api saja 1 tercapai");
+  eq(tApi.berikutnya, "Gubuk pertama berdiri", "tonggak: setelah api, berikutnya gubuk");
+  const tPop9 = tonggakKampung(9, ["api_unggun", "gubuk", "lumbung"]);
+  eq(tPop9.tercapai, 3, "tonggak: populasi 9 belum menghitung tonggak populasi 10");
+  const tPop10 = tonggakKampung(10, ["api_unggun", "gubuk", "lumbung"]);
+  eq(tPop10.tercapai, 4, "tonggak: populasi 10 menghitung tonggak populasi");
+  const tBatu = tonggakKampung(12, ["api_unggun", "gubuk", "lumbung", "bengkel_batu"]);
+  ok(tBatu.daftar.find((t) => t.id === "bengkel_pertama")?.tercapai === true, "tonggak: bengkel batu juga menghitung bengkel pertama");
+  const tPenuh = tonggakKampung(20, ["api_unggun", "gubuk", "lumbung", "bengkel_kayu", "balai", "paviliun_makan"]);
+  eq(tPenuh.tercapai, 7, "tonggak: tangga penuh 7 tercapai");
+  eq(tPenuh.berikutnya, null, "tonggak: tangga penuh tidak ada berikutnya");
+  const tAneh = tonggakKampung(NaN, []);
+  eq(tAneh.tercapai, 0, "tonggak: populasi tidak valid diperlakukan 0");
+  // Baris terpasang di kartu menu + CSS ada (penjaga statis).
+  const pageSrcTg = readFileSync("src/app/page.tsx", "utf8");
+  ok(pageSrcTg.includes("tonggakKampung") && pageSrcTg.includes("Tonggak kampung"), "tonggak: baris terpasang di kartu menu page");
+  const cssSrcTg = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrcTg.includes(".menu-tonggak") && cssSrcTg.includes(".menu-tonggak-title") && cssSrcTg.includes(".menu-tonggak-isi"), "tonggak: CSS baris ada");
+  const verSrcTg = readFileSync("src/lib/version.ts", "utf8");
+  ok(verSrcTg.includes('BUILD_ID = "r37"'), "tonggak: BUILD_ID naik ke r37 (pil Versi baru bisa membedakan rilis ini)");
+}
+
 // Jeda loop render saat tab disembunyikan (2026-11-04, Ide 9):
 // penjaga statis — loop Map3D dibatalkan saat hidden, dimulai lagi
 // saat visible hanya bila tidak ada loop berjalan, timestamp di-reset
@@ -2258,7 +2289,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r36"'), "vis: BUILD_ID naik ke r34 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r37"'), "vis: BUILD_ID naik ke r34 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2365,7 +2396,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r36"'), "muat3d: BUILD_ID naik ke r34");
+  ok(verMuat.includes('BUILD_ID = "r37"'), "muat3d: BUILD_ID naik ke r34");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2409,7 +2440,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r36"'), "geraktenang: BUILD_ID naik ke r34");
+  ok(verGerak.includes('BUILD_ID = "r37"'), "geraktenang: BUILD_ID naik ke r34");
 }
 
 
@@ -2428,7 +2459,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r36"'), "tip: BUILD_ID naik ke r34");
+  ok(verTip.includes('BUILD_ID = "r37"'), "tip: BUILD_ID naik ke r34");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2446,7 +2477,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r36"'), "fokus: BUILD_ID naik ke r34");
+  ok(verFokus.includes('BUILD_ID = "r37"'), "fokus: BUILD_ID naik ke r34");
 }
 
 // Audit geometri/material bersama sebelum instancing (2026-11-05,
@@ -2473,7 +2504,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
   ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
   const verAudit = readFileSync("src/lib/version.ts", "utf8");
-  ok(verAudit.includes('BUILD_ID = "r36"'), "audit30: BUILD_ID naik ke r34");
+  ok(verAudit.includes('BUILD_ID = "r37"'), "audit30: BUILD_ID naik ke r34");
 }
 
 // Dispose lewati material bersama (2026-11-05, penutup celah audit
@@ -2499,7 +2530,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!isRoadMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: material baru bukan material jalan bersama");
   ok(!isVillageMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: predikat desa/jalan tidak saling tertukar (jalan bukan desa)");
   const ver36 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver36.includes('BUILD_ID = "r36"'), "dispose36: BUILD_ID naik ke r36");
+  ok(ver36.includes('BUILD_ID = "r37"'), "dispose36: BUILD_ID naik ke r36");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

@@ -1,6 +1,76 @@
 # CHANGELOG Nusantara
 
-## 2026-11-05 10:29 WIB — Dispose lewati material bersama (penutup celah audit Ide 30) + brief riset performa
+## 2026-11-05 12:29 WIB — Baris "Tonggak kampung" di kartu menu (Ide 29) + brief riset onboarding/prestasi
+
+Perubahan dalam 2 kalimat: kartu menu kini menampilkan satu
+baris ringkas "🏅 Tonggak kampung: N dari 7" berisi tonggak yang
+sudah tercapai plus SATU berikutnya yang paling dekat, diturunkan
+dari data poll yang sudah ada; display-only, tanpa hadiah
+ekonomi dan tanpa ubah sim.
+
+- `src/lib/batu/sumberdaya.ts`: fungsi murni baru `tonggakKampung`
+  (populasi + jenis bangunan berdiri -> 7 tonggak dari tangga
+  DESAIN-EKONOMI §2: Api pertama, Gubuk pertama, Lumbung berdiri,
+  Populasi 10, Bengkel pertama (kayu ATAU batu), Balai berdiri,
+  Paviliun makan berdiri; `berikutnya` = tonggak pertama yang
+  belum tercapai, null bila semua tercapai; populasi tidak valid
+  diperlakukan 0).
+- `src/app/page.tsx`: baris `.menu-tonggak` di kartu menu, di
+  bawah panel "Kampung menginginkan" + "Mulai dari sini",
+  memakai placements + populasi yang sudah dihitung panel
+  kebutuhan — tanpa fetch baru.
+- `src/app/globals.css`: `.menu-tonggak` (+ title/isi) senada
+  panel kebutuhan, tanpa animasi (patuh reduced-motion r31).
+- `src/lib/version.ts`: BUILD_ID r36 -> r37. Build Next.js hijau.
+- Tes: 14 penjaga baru (total 7, kampung kosong -> berikutnya
+  api pertama, api saja -> berikutnya gubuk, ambang populasi
+  9 vs 10, bengkel batu menghitung bengkel pertama, tangga
+  penuh -> 7 + berikutnya null, populasi NaN -> 0, baris
+  terpasang di page, CSS ada, BUILD_ID r37) + penjaga versi
+  diperbarui r36 -> r37. Total: 7834 lolos / 656 gagal —
+  baseline r36 7820/656, jadi +14 lolos, nol regresi baru
+  (656 gagal yang sama adalah baseline lama; nol FAIL bertanda
+  tonggak).
+- Riset: brief research/2026-11-05-1229.md (sudut ONBOARDING +
+  PRESTASI, rotasi dari performa 10:29) — Cities: Skylines II
+  (milestone terlihat di panel progresi), panduan Android
+  (tier + progres terukur yang terlihat + sebagian bisa dicapai
+  sejam pertama), devlog Saltwick (tampilkan hitungan tiap yang
+  terkunci + mana yang paling dekat), devlog Doomscroll 2077
+  (angka mentah membosankan, butuh kait emosional — tonggak
+  dinamai peristiwa, bukan angka). Tidak direkomendasikan:
+  hadiah ekonomi per tonggak (dunia bersama, bisa digandakan),
+  prestige/reset, dan puluhan achievement sekaligus.
+- Sisa Ide 29 yang BELUM dibangun: kilas "Tonggak baru!" saat
+  tonggak tercapai (butuh snapshot localStorage) + panel detail
+  tonggak — keduanya antrean run berikut, bukan disisipkan ke
+  run ini.
+
+### Observasi live (browser, hanya melihat, 12:29-12:32 WIB)
+- Muat pertama jujur, bukan blank: layar gelap "Memuat peta
+  3D…" lalu desa penuh tampil sebelum cek 60 detik (detik
+  persis tidak diukur — pengamatan selang 60 detik).
+- Warga berlabel (Figo, Nera, Praboti, Siti, Budi, Renata, Ys,
+  Go Younjung, dll) — posisi hanya bergeser sedikit antara cek
+  60 dan 120 detik, mengelompok di sekitar gubuk/bangunan besar,
+  tanpa aktivitas kerja yang jelas terlihat di zoom dan cahaya
+  malam itu; paling tepat digambarkan pelan/mengelompok, bukan
+  terbukti bekerja.
+- Hewan ada lewat label (Rusa, Kelinci, Ayam Hutan, Serigala,
+  Beruang) tapi modelnya kecil/gelap, sulit dibedakan dari
+  terrain — identifikasi berbasis label, bukan close-up.
+- Strip sumber TIDAK tampak di atas layar tanpa membuka menu
+  (hanya tombol ☰ kanan-atas) — itu wajar sejak navbar dihapus
+  (strip kini tinggal di dalam kartu menu), bukan regresi.
+- Tidak ada error/blank; tombol tidak tumpang tindih; satu-satunya
+  tumpang tindih adalah label nama warga yang berdesakan di dekat
+  bangunan (mis. Go Younjung/Renata, Nera/Praboti, satu label
+  terpotong "ribran gakabuming"); lahan hijau luas adalah terrain,
+  bukan area kosong; keseluruhan adegan gelap/kontras rendah
+  (malam game) sehingga detail sulit dibaca.
+
+### Verifikasi live r37 (diisi setelah deploy)
+
 
 Perubahan dalam 2 kalimat: `disposeGroup` di Map3D kini melewati
 material cache bersama desa dan jalan yang dipakai ulang tiap

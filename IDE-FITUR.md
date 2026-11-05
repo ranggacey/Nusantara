@@ -426,7 +426,16 @@ WebGPU (perombakan renderer, risiko kompatibilitas) dan cap pixel
 ratio membabi buta tanpa baseline + cek label.
 
 ## Ide 29 — Tonggak kampung yang terlihat (dari riset 2026-11-05 00:29 WIB, sudut onboarding + prestasi)
-
+~~SEBAGIAN DIBANGUN 2026-11-05 12:29 WIB~~ — irisan baris ringkas:
+fungsi murni `tonggakKampung` di `sumberdaya.ts` (7 tonggak dari
+tangga DESAIN-EKONOMI.md: Api pertama, Gubuk pertama, Lumbung,
+Populasi 10, Bengkel pertama, Balai, Paviliun makan) + baris
+"🏅 Tonggak kampung: N dari 7" di kartu menu (yang tercapai +
+SATU berikutnya yang paling dekat; "Semua tonggak tercapai!"
+bila penuh). Display-only, tanpa hadiah ekonomi, tanpa ubah
+sim, tanpa fetch baru. BUILD_ID r36 -> r37 + 14 tes penjaga.
+SISA: kilas "Tonggak baru!" (snapshot localStorage) + panel
+detail tonggak.
 Sumber: Wayline (umpan balik jelas + tutorial opsional) + catatan
 desain idle (retensi = frekuensi umpan balik bermakna; milestone
 otomatis pada ambang; achievement terbaik bila bermakna, bukan

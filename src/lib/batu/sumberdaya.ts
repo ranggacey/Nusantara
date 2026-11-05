@@ -199,6 +199,48 @@ export function aksiPertamaBerikutnya(kb: KebutuhanKampung): AksiPertama | null 
   };
 }
 
+// Tonggak kampung (2026-11-05, Ide 29): rekam kemajuan kumulatif,
+// display-only, TANPA hadiah ekonomi (dunia bersama — hadiah klaim
+// bisa digandakan lintas perangkat, dan DESAIN-EKONOMI.md melarang
+// pengali di luar cap). Fungsi MURNI dari data poll yang sudah ada
+// (populasi + jenis bangunan berdiri): 7 tonggak dari tangga
+// DESAIN-EKONOMI §2, diurutkan dari yang paling awal. `berikutnya`
+// = tonggak pertama yang belum tercapai (pola "paling dekat" dari
+// riset run ini: Saltwick + panduan Android — progres terlihat +
+// satu target terdekat, bukan daftar terkunci yang panjang).
+// Nama tonggak adalah peristiwa kampung, bukan angka mentah
+// (Doomscroll: angka mentah membosankan, kait emosional yang
+// membuatnya bermakna).
+export interface Tonggak {
+  id: string;
+  nama: string;
+  tercapai: boolean;
+}
+
+export interface TonggakKampung {
+  daftar: Tonggak[];
+  tercapai: number;
+  total: number;
+  berikutnya: string | null;
+}
+
+export function tonggakKampung(populasi: number, jenisBerdiri: string[]): TonggakKampung {
+  const pop = Number.isFinite(populasi) ? Math.max(0, Math.floor(populasi)) : 0;
+  const ada = (id: string) => jenisBerdiri.includes(id);
+  const daftar: Tonggak[] = [
+    { id: "api_pertama", nama: "Api pertama menyala", tercapai: ada("api_unggun") },
+    { id: "gubuk_pertama", nama: "Gubuk pertama berdiri", tercapai: ada("gubuk") },
+    { id: "lumbung", nama: "Lumbung berdiri", tercapai: ada("lumbung") },
+    { id: "populasi_10", nama: "Populasi 10 warga", tercapai: pop >= 10 },
+    { id: "bengkel_pertama", nama: "Bengkel pertama", tercapai: ada("bengkel_kayu") || ada("bengkel_batu") },
+    { id: "balai", nama: "Balai berdiri", tercapai: ada("balai") },
+    { id: "paviliun", nama: "Paviliun makan berdiri", tercapai: ada("paviliun_makan") },
+  ];
+  const tercapai = daftar.filter((t) => t.tercapai).length;
+  const berikutnya = daftar.find((t) => !t.tercapai)?.nama ?? null;
+  return { daftar, tercapai, total: daftar.length, berikutnya };
+}
+
 // Kekurangan stok untuk satu biaya: {resource: jumlah_kurang}.
 export function kurangDariBiaya(stok: Partial<Record<ResourceId, number>>, biaya: Partial<Record<ResourceId, number>>): Partial<Record<ResourceId, number>> {
   const kurang: Partial<Record<ResourceId, number>> = {};

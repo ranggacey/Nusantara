@@ -383,6 +383,25 @@ canvas.game-canvas {
   font-size: 14px;
   cursor: pointer;
 }
+/* Tonggak kampung (2026-11-05, Ide 29): bingkai netral senada panel
+   kebutuhan, tanpa animasi (patuh reduced-motion r31). */
+.menu-tonggak {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.menu-tonggak-title {
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+.menu-tonggak-isi {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
 .menu-list {
   display: flex;
   flex-direction: column;
