@@ -132,15 +132,65 @@ function cariPlacement(
   return best;
 }
 
+// RONDE 20 — JALAN 2x LEBAR (permintaan user 2026-11-05): tiap ubin
+// jalur ditemani satu ubin sejajar di sisi tegak lurus arah jalan
+// (bila bisa dilewati). Renderer Map3D menggambar tiap ubin sesuai
+// tetangganya (potongan T/simpang), jadi lajur ganda terbaca sebagai
+// jalan lebar, bukan garis tipis.
+export function lebarkanJalan(
+  path: { gx: number; gy: number }[],
+  bisa: (gx: number, gy: number) => boolean
+): { gx: number; gy: number }[] {
+  const out: { gx: number; gy: number }[] = [];
+  const seen = new Set<string>();
+  const push = (gx: number, gy: number) => {
+    const k = `${gx},${gy}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ gx, gy });
+  };
+  for (let i = 0; i < path.length; i++) {
+    const t = path[i];
+    push(t.gx, t.gy);
+    let dx = 0;
+    let dy = 0;
+    if (i > 0) {
+      dx = Math.sign(t.gx - path[i - 1].gx);
+      dy = Math.sign(t.gy - path[i - 1].gy);
+    } else if (path.length > 1) {
+      dx = Math.sign(path[1].gx - t.gx);
+      dy = Math.sign(path[1].gy - t.gy);
+    }
+    if (dx === 0 && dy === 0) continue;
+    for (const [ox, oy] of [
+      [dy, -dx],
+      [-dy, dx],
+    ] as const) {
+      const sx = t.gx + ox;
+      const sy = t.gy + oy;
+      if (bisa(sx, sy)) {
+        push(sx, sy);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 // BFS deterministik antar tepi dua bangunan. `hindariNode` = true dulu
 // (jalan tidak menabrak node sumber daya); bila gagal, ulangi dengan
 // node dibolehkan supaya segmen tetap tersambung.
+// RONDE 20: jalur boleh menyeberang sungai LEWAT JEMBATAN (ubin
+// jembatan tetap bisa dilewati meski di air / di dalam footprint
+// jembatan itu sendiri) — dulu sungai memutus segmen yang ujungnya
+// berseberangan.
 export function jalurJalan(
   a: PlacementMini,
   b: PlacementMini,
   opts: {
     footprintSemua: Set<string>;
     nodeKeys: Set<string>;
+    jembatan?: Set<string>;
   }
 ): { gx: number; gy: number }[] | null {
   const fp = new Set<string>(opts.footprintSemua);
@@ -154,6 +204,7 @@ export function jalurJalan(
     const bisa = (gx: number, gy: number): boolean => {
       if (gx < minX || gx > maxX || gy < minY || gy > maxY) return false;
       const k = `${gx},${gy}`;
+      if (opts.jembatan?.has(k)) return true;
       if (fp.has(k)) return false;
       if (isWater(gx, gy) || isGunung(gx, gy)) return false;
       if (hindariNode && opts.nodeKeys.has(k)) return false;
@@ -204,9 +255,79 @@ export function jalurJalan(
       k = asal.get(k) ?? null;
     }
     path.reverse();
-    return path;
+    return lebarkanJalan(path, bisa);
   }
   return null;
+}
+
+// Ubin jembatan dari placements (footprint kind "jembatan").
+function jembatanDariPlacements(placements: PlacementMini[]): Set<string> {
+  const out = new Set<string>();
+  for (const p of placements) {
+    if (p.kind !== "jembatan") continue;
+    for (const k of footprintTiles(p)) out.add(k);
+  }
+  return out;
+}
+
+// RONDE 20 — PELEBARAN jalan lama (1 ubin -> 2 ubin): ubin pelebar di
+// samping jalan yang sudah dibangun (tegak lurus arah jalan setempat,
+// bila bebas). Ubin yang SUDAH punya tetangga jalan di sisi tegak
+// lurus dilewati — tanpa ini, lajur luar ikut dilebarkan lagi dan
+// jalan merambat jadi 3-4 ubin.
+export function jalurPelebaran(
+  placements: PlacementMini[],
+  jalanSelesai: Set<string>,
+  nodeKeys: Set<string>
+): { gx: number; gy: number }[] | null {
+  if (jalanSelesai.size === 0) return null;
+  const fp = new Set<string>();
+  for (const p of placements) for (const k of footprintTiles(p)) fp.add(k);
+  const jembatan = jembatanDariPlacements(placements);
+  const bisa = (gx: number, gy: number): boolean => {
+    const k = `${gx},${gy}`;
+    if (jalanSelesai.has(k)) return false;
+    if (gx < GRID_MIN || gy < GRID_MIN || gx >= GRID_MAX || gy >= GRID_MAX) return false;
+    if (jembatan.has(k)) return true;
+    if (fp.has(k)) return false;
+    if (isWater(gx, gy) || isGunung(gx, gy)) return false;
+    if (nodeKeys.has(k)) return false;
+    return true;
+  };
+  const out: { gx: number; gy: number }[] = [];
+  const seen = new Set<string>();
+  const tiles = [...jalanSelesai]
+    .map((k) => k.split(",").map(Number))
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  for (const [gx, gy] of tiles) {
+    const ada = (dx: number, dy: number) => jalanSelesai.has(`${gx + dx},${gy + dy}`);
+    const searahEW = ada(1, 0) || ada(-1, 0);
+    const searahNS = ada(0, 1) || ada(0, -1);
+    let tegak: [number, number][];
+    if (searahEW && !searahNS) {
+      if (ada(0, 1) || ada(0, -1)) continue; // sudah lebar
+      tegak = [[0, 1], [0, -1]];
+    } else if (searahNS && !searahEW) {
+      if (ada(1, 0) || ada(-1, 0)) continue; // sudah lebar
+      tegak = [[1, 0], [-1, 0]];
+    } else if (searahEW && searahNS) {
+      continue; // simpang — sudah lebar ke segala arah
+    } else {
+      tegak = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+    }
+    for (const [ox, oy] of tegak) {
+      const sx = gx + ox;
+      const sy = gy + oy;
+      if (!bisa(sx, sy)) continue;
+      const k = `${sx},${sy}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({ gx: sx, gy: sy });
+      break;
+    }
+    if (out.length >= 40) break;
+  }
+  return out.length > 0 ? out : null;
 }
 
 // Rencana jalan jam ini: segmen pertama (urutan prioritas) yang ujungnya
@@ -221,6 +342,9 @@ export function rencanaJalan(
     const r = jalurSegmen(s.id, placements, jalanSelesai, nodeKeys);
     if (r) return r;
   }
+  // Semua segmen selesai -> lebarkan jalan lama yang masih 1 ubin.
+  const lebar = jalurPelebaran(placements, jalanSelesai, nodeKeys);
+  if (lebar) return { segmen: "pelebaran", tiles: lebar };
   return null;
 }
 
@@ -255,7 +379,7 @@ export function jalurSegmen(
     pb = cariPlacement(placements, s.b);
   }
   if (!pa || !pb) return null;
-  const jalur = jalurJalan(pa, pb, { footprintSemua: fp, nodeKeys });
+  const jalur = jalurJalan(pa, pb, { footprintSemua: fp, nodeKeys, jembatan: jembatanDariPlacements(placements) });
   if (!jalur) return null;
   const sisa = jalur.filter((t) => !jalanSelesai.has(`${t.gx},${t.gy}`));
   if (sisa.length === 0) return null;

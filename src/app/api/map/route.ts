@@ -153,6 +153,8 @@ export async function GET() {
     return jsonOk({
       grid: { w: GRID_W, h: GRID_H, min: GRID_MIN },
       riverXs,
+      // RONDE 20 — stok ikan sungai (untuk panel Map3D + verifikasi live).
+      ikan: Number((duniaDoc as unknown as Record<string, unknown>).ikan_sungai ?? 30),
       nodes,
       gunung: generateGunung(),
       placements: dedupePlacement(

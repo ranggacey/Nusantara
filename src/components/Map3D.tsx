@@ -1228,6 +1228,21 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     let lenteraGroup = new THREE.Group();
     scene.add(lenteraGroup);
     let boats: THREE.Group[] = [];
+    // RONDE 20 — IKAN SUNGAI: 8 ikan deterministik berenang bolak-balik
+    // di alur sungai (kerucut pipih oranye, menghadap arah renang).
+    // Jumlah yang tampak = min(stok ikan, 8); sungai sepi = tak terlihat.
+    const fishGroup = new THREE.Group();
+    scene.add(fishGroup);
+    const fishGeo = new THREE.ConeGeometry(0.14, 0.5, 6);
+    fishGeo.rotateX(Math.PI / 2); // kerucut menghadap +z (arah renang)
+    const fishMat = new THREE.MeshLambertMaterial({ color: 0xff9f43 });
+    const fishes: { mesh: THREE.Mesh; offset: number; speed: number }[] = [];
+    for (let fi = 0; fi < 8; fi++) {
+      const fm = new THREE.Mesh(fishGeo, fishMat);
+      fm.visible = false;
+      fishGroup.add(fm);
+      fishes.push({ mesh: fm, offset: (fi % 3) * 0.8 - 0.8, speed: 1.2 + (fi % 4) * 0.5 });
+    }
 
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.7, 0.95, 24),
@@ -1880,6 +1895,36 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
 
       // Sungai mengalir: geser tekstur arus.
       riverTex.offset.y -= dt * 0.12;
+
+      // RONDE 20 — IKAN SUNGAI: ikan berenang bolak-balik mengikuti alur
+      // sungai; jumlah yang tampak = min(stok ikan, 8) — sungai sepi
+      // (stok 0) = tidak ada ikan terlihat.
+      {
+        const mF = mapRef.current;
+        const rxs: number[] = mF?.riverXs ?? [];
+        const stokIkan = Number(mF?.ikan ?? 30);
+        const tampil = Math.max(0, Math.min(fishes.length, stokIkan));
+        const cxF = gridTampil.gmin + gridTampil.gw / 2;
+        const cyF = gridTampil.gmin + gridTampil.gh / 2;
+        for (let fi = 0; fi < fishes.length; fi++) {
+          const f = fishes[fi];
+          if (fi >= tampil || rxs.length === 0) { f.mesh.visible = false; continue; }
+          // Posisi sepanjang sungai: gy berosilasi perlahan (deterministik
+          // dari index + waktu), x = tepi sungai di baris itu + offset.
+          const span = rxs.length;
+          const fase = (t * f.speed * 0.05 + fi * 0.37) % 2;
+          const idx = fase < 1 ? fase * (span - 1) : (2 - fase) * (span - 1);
+          const i0 = Math.max(0, Math.min(span - 2, Math.floor(idx)));
+          const frac = idx - i0;
+          const rx0 = rxs[i0] ?? 80;
+          const rx = rx0 + ((rxs[i0 + 1] ?? rx0) - rx0) * frac;
+          const gy = gridTampil.gmin + i0 + frac;
+          f.mesh.visible = true;
+          f.mesh.position.set(rx + 0.5 + f.offset - cxF, 0.12 + Math.sin(t * 2 + fi) * 0.03, gy - cyF + 0.5);
+          // Hadap arah gerak (bolak-balik): fase naik = +z, turun = -z.
+          f.mesh.rotation.y = fase < 1 ? 0 : Math.PI;
+        }
+      }
 
       // Awan melayang pelan, melingkar di atas peta.
       for (const c of clouds) {

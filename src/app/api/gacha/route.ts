@@ -52,7 +52,22 @@ export async function POST(req: Request) {
       // Pool peran = semua 18 peran di PERAN (10 lama + 8 baru ronde 4),
       // jadi peran baru bisa muncul begitu populasi bertambah.
       const stat = rollStat();
-      const peran = pilihPeranFit(stat);
+      let peran = pilihPeranFit(stat);
+      // RONDE 20 — JAMINAN PEMANCING (laporan user 2026-11-05: "kasih
+      // sungai buat pemancing dan ada ikan buat dipancing"): sistem
+      // memancing sudah ada sejak lama (pemancing -> tepi sungai,
+      // "Memancing di sungai…"), tapi gacha tidak pernah mengeluarkan
+      // pemancing (live: 0 dari 12 warga). Bila kampung belum punya
+      // pemancing dan stat roll ini cukup (agi >= 4, sta >= 3 — sama
+      // dengan syarat peran), roll ini menjadi pemancing. Gacha tetap
+      // bebas memilih peran lain setelah kampung punya pemancing.
+      if (peran !== "pemancing") {
+        const wargaCol = await getCollection("warga");
+        const adaPemancing = await wargaCol.findOne({ peran: "pemancing" });
+        if (!adaPemancing && (stat.agi ?? 0) >= 4 && (stat.sta ?? 0) >= 3) {
+          peran = "pemancing";
+        }
+      }
       const roll = {
         peran,
         label_peran: labelPeran(peran),

@@ -79,7 +79,7 @@ import { gameTime, cuacaGame, migrasiJam, migrasiJamV4 } from "../clock";
 import { faseDariJam, seededRandom } from "../world";
 import { peranById, labelNode, nodeHasil, pengaliFit, perkakasPeran, LABEL_ALAT, RESEP_PERKAKAS, type NodeKind, type PeranId } from "./peran";
 import { stokKosong, bangunanById, cukupBiaya, kurangDariBiaya, hitungKapasitasStok, type Stok } from "./sumberdaya";
-import { generateNodes, isWater, riverX, findPlot, findHousePlotBesideRoad, findBridgePlot, findBoatSpot, PLACEMENT_AWAL, PUSAT, GRID_MIN, GRID_MAX, isGunung, gunungTileKeys, dedupePlacement, ukuranPetak, petakBangunan, occupiedDariPlacements, plotBebas, type Node } from "./dunia";
+import { generateNodes, isWater, riverX, findPlot, findHousePlotBesideRoad, findBridgePlot, findBoatSpot, rotasiKeJalan, PLACEMENT_AWAL, PUSAT, GRID_MIN, GRID_MAX, isGunung, gunungTileKeys, dedupePlacement, ukuranPetak, petakBangunan, occupiedDariPlacements, plotBebas, type Node } from "./dunia";
 import { pintarUntukJalan, rencanaJalan } from "./jalan";
 import { hewanById, HEWAN_AWAL, type HewanDef } from "./hewan";
 import { debatBaris, geludBaris, ngobrolBaris } from "./dialog";
@@ -102,6 +102,8 @@ export interface DuniaDoc {
   node_spawn?: { kind: NodeKind; gx: number; gy: number }[];
   node_spawn_tertunda?: Record<string, { kind: NodeKind; gx: number; gy: number; jam: number }>;
   last_llm_jam?: number;
+  // RONDE 20 — stok ikan sungai (tidak ada di dunia lama = penuh).
+  ikan_sungai?: number;
 }
 
 export interface Perkakas {
@@ -328,10 +330,16 @@ export function jumlahKumpul(statFokus: number): number {
 export const CAP_KUMPUL_HARIAN_BIASA = 3;
 export const CAP_KUMPUL_HARIAN_LANGKA = 2;
 
-function peluangKumpul(resource: string, berbakat: boolean): number[] {
+// RONDE 20 — gampangin pangan SEDIKIT (laporan user 2026-11-05:
+// "pangan masih 0 terus", terbukti simulasi 10 hari: produksi
+// dimakan secepat muncul, lapar rata-rata ~90 = paceklik kronis).
+// Roll biasa 1/2/3 = 64/27/9% (rata-rata 1,45) -> 50/30/20%
+// (rata-rata 1,7) — PERSIS angka DESAIN-EKONOMI.md, cap 3/hari/orang
+// TIDAK berubah, besi/emas tidak berubah.
+export function peluangKumpul(resource: string, berbakat: boolean): number[] {
   if (resource === "besi") return berbakat ? [0.7, 0.25, 0.05] : [0.8, 0.17, 0.03];
   if (resource === "emas") return [0.75, 0.2, 0.05];
-  return [0, 0.64, 0.27, 0.09];
+  return [0, 0.5, 0.3, 0.2];
 }
 
 export function rollHasilKumpul(resource: string, w: Warga): number {
@@ -544,16 +552,20 @@ export function terapkanBantu(w: Warga, ctx: SimCtx): boolean {
 }
 
 // RONDE 18 — TERAPKAN JALAN: tim pinter (Figo memimpin + INT >= 9)
-// membangun jalan saat tidak ada bangunan antre/dibangun.
-// RONDE 19: dipanggil di titik keluar paviliun SEBELUM pilihTargetKerja
-// (pemicu lama "tidak ada target kerja" tidak pernah terjadi — node
-// tidak pernah habis di dunia live, jadi jalan lama = 0 ubin).
-// Guard sama seperti santai: fit + tidak lapar; preemption malam/lapar/
+// membangun jalan.
+// RONDE 20 (laporan user 2026-11-05: "kenapa gada yg bikin jalan",
+// terbukti simulasi 10 hari: rencana 12 ubin ADA, tapi dengan gate
+// bangunanAktif TERBUKA pun hanya 6 penugasan -> 2 ubin selesai):
+// (a) gate `bangunanAktif` DIHAPUS — bangunan maju lewat hitungan
+// perajin, bukan lewat waktu tim pinter, jadi gate itu hanya membuat
+// jalan kelaparan giliran selamanya (antrean NPC hampir tidak pernah
+// kosong selama kandidat ada); (b) pemicu DIPERLUAS dari "keluar
+// paviliun saja" ke SEMUA titik pilih kerja via ambilTargetKerja di
+// bawah. Guard fit + tidak lapar tetap; preemption malam/lapar/
 // stamina di atas tetap menang (cabang jalan keyed node pseudo "jalan",
 // dan semua redirect men-null-kan node — tidak pernah menahan pulang).
 export function terapkanJalan(w: Warga, ctx: SimCtx): boolean {
   if (!pintarUntukJalan(w)) return false;
-  if (ctx.bangunanAktif) return false;
   if (w.stamina < 40 || w.lapar >= 90) return false;
   const rencana = ctx.jalanRencana;
   if (!rencana || rencana.tiles.length === 0) return false;
@@ -568,6 +580,29 @@ export function terapkanJalan(w: Warga, ctx: SimCtx): boolean {
   w.aksi_sekarang = "bangun_jalan";
   w.status_teks = `Membangun jalan ${rencana.segmen}…`;
   w.tempat_kerja = "jalan";
+  w.progres_aksi_pct = 0;
+  return true;
+}
+
+// RONDE 20 — SATU PINTU PILIH KERJA: coba jalan dulu (tim pinter),
+// kalau tidak, target kumpul biasa. Dipakai di SEMUA titik warga
+// memilih kerja baru (bangun tidur, habis makan, rantai node, selesai
+// membantu, fallback) — dulu hanya titik keluar paviliun yang mencoba
+// jalan, jadi jalan hampir tidak pernah dapat pekerja.
+export function ambilTargetKerja(w: Warga, ctx: SimCtx): boolean {
+  if (terapkanJalan(w, ctx)) return true;
+  const target = pilihTargetKerja(w, ctx);
+  if (!target) return false;
+  w.node = target.node;
+  w.tujuan = target.tujuan;
+  w.fase_siklus = "jalan";
+  w.aksi_sekarang = "berjalan";
+  w.status_teks = `Berjalan ke ${labelNode(target.node.kind)}…`;
+  w.tempat_kerja = labelNode(target.node.kind);
+  if (target.node.pseudo === "sungai") { w.status_teks = "Berjalan ke sungai…"; w.tempat_kerja = "sungai"; }
+  else if (target.node.pseudo === "ladang") { w.status_teks = "Berjalan ke ladang…"; w.tempat_kerja = "ladang"; }
+  else if (target.node.pseudo === "restoran") { w.status_teks = "Berjalan ke paviliun makan…"; w.tempat_kerja = "Paviliun Makan"; }
+  else if (target.node.darurat) { w.status_teks = "Berjalan mencari makan darurat…"; }
   w.progres_aksi_pct = 0;
   return true;
 }
@@ -724,7 +759,13 @@ export interface RestoranPlacement {
 // masak; hidangan memberi lapar -60, pangan biasa -40).
 export const KAP_HIDANGAN = 10;
 export const LAPAR_HIDANGAN = 60;
-export const LAPAR_PANGAN_RESTORAN = 40;
+export const LAPAR_PANGAN_RESTORAN = 55;
+// RONDE 20 — IKAN SUNGAI: stok ikan di sungai (maks 30, tumbuh lagi
+// +3 per hari game). Pemancing menangkap 1 ikan per ronde kumpul
+// selesai; sungai sepi -> tidak ada hasil, pemancing beralih kumpul
+// beri sampai ikan kembali.
+export const IKAN_CAP = 30;
+export const IKAN_REGROW_HARIAN = 3;
 
 // RONDE 15 — SISA NODE AWAL = 1 (dulu 5): satu node = satu ronde kumpul
 // (~10 pentung visual) lalu TUMBANG + hilang, warga langsung jalan ke
@@ -1018,6 +1059,26 @@ export function pilihTargetKerja(
     return null;
   }
   if (w.peran === "nelayan" || w.peran === "pemancing") {
+    // RONDE 20 — sungai sepi (ikan habis): pemancing beralih kumpul
+    // beri seperti pengumpul, bukan diam di tepi sungai yang kosong.
+    if ((ctx.ikanSungai ?? IKAN_CAP) <= 0) {
+      const taken = new Map<string, number>();
+      for (const o of ctx.wargaSemua ?? []) {
+        if (o === w || !o.node || o.node.pseudo) continue;
+        const k = `${o.node.gx},${o.node.gy}`;
+        taken.set(k, (taken.get(k) ?? 0) + 1);
+      }
+      const node = pilihNodeTerbaik("pengumpul", w.lokasi, ctx.nodes, ctx.nodeSisa, {
+        sektor: sektorWarga(w),
+        taken,
+        stamina: w.stamina,
+      });
+      if (node) {
+        const t = tileSebelah(node, w.lokasi, { rintangan: ctx.rintangan, nodeTiles: ctx.nodeTilesAll });
+        return { node: { kind: node.kind, gx: node.gx, gy: node.gy }, tujuan: t };
+      }
+      return null;
+    }
     const tepi = titikSungaiTerdekat(w.lokasi);
     return { node: { kind: "semak_beri", gx: tepi.gx, gy: tepi.gy, pseudo: "sungai" }, tujuan: tepi };
   }
@@ -1328,12 +1389,15 @@ export interface SimCtx {
   jalanRencana?: { segmen: string; tiles: { gx: number; gy: number }[] } | null;
   jalanBaru?: { gx: number; gy: number; segmen: string }[];
   bangunanAktif?: boolean;
+  // RONDE 20 — stok ikan sungai saat ini (default IKAN_CAP bila kosong).
+  ikanSungai?: number;
 }
 
 // Jadwal regrow node: 30-60 jam game setelah habis (deterministik dari posisi).
 export function jadwalRegrow(jam: number, gx: number, gy: number): number {
-  // Siklus musim buah / bahan: 48 - 72 jam game (2 - 3 hari game), buah tidak muncul tiap hari
-  return jam + 48 + ((gx * 7 + gy * 13) % 24);
+  // Siklus musim buah / bahan: 36 - 60 jam game (1,5 - 2,5 hari game).
+  // RONDE 20: dipercepat sedikit dari 48-72 jam (bagian dari gampangin pangan).
+  return jam + 36 + ((gx * 7 + gy * 13) % 24);
 }
 
 // Respawn hewan: aktif bila populasi < 25; peluang per jam game (50% bila
@@ -1662,51 +1726,29 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
         w.aksi_sekarang = "pulang_istirahat";
         w.status_teks = "Pulang tidur malam…";
         w.tempat_kerja = "kampung";
-      } else if (terapkanJalan(w, ctx)) {
-        // RONDE 19 — PEMICU JALAN DIPERBAIKI: dicoba SEBELUM pilihTargetKerja.
-        // Pemicu lama ("tidak ada target kerja") tidak pernah terjadi di
-        // dunia live: 10.747 node + respawn membuat pilihTargetKerja
-        // praktis selalu menemukan target, sehingga 92 jam game sejak r18
-        // = 0 ubin jalan. Titik keluar paviliun adalah jeda alami (habis
-        // makan): warga pinter yang tidak sedang membangun bangunan
-        // (guard di terapkanJalan: bangunanAktif, fit, tidak lapar) mulai
-        // membangun jalan dari sini; warga lain + bila tidak ada rencana
-        // jalan, alur di bawah tidak berubah sama sekali. BUKAN pembangun
-        // khusus: begitu 5 segmen selesai, semua kembali kumpul biasa.
-      } else {
-        const target = pilihTargetKerja(w, ctx);
-        if (target) {
-          w.node = target.node;
-          w.tujuan = target.tujuan;
-          w.fase_siklus = "jalan";
-          w.aksi_sekarang = "berjalan";
-          w.status_teks = `Berjalan ke ${labelNode(target.node.kind)}…`;
-          w.tempat_kerja = labelNode(target.node.kind);
-          if (target.node.pseudo === "sungai") { w.status_teks = "Berjalan ke sungai…"; w.tempat_kerja = "sungai"; }
-          else if (target.node.pseudo === "ladang") { w.status_teks = "Berjalan ke ladang…"; w.tempat_kerja = "ladang"; }
-          else if (target.node.pseudo === "restoran") { w.status_teks = "Berjalan ke paviliun makan…"; w.tempat_kerja = "Paviliun Makan"; }
-          else if (target.node.darurat) { w.status_teks = "Berjalan mencari makan darurat…"; }
-        } else if (terapkanBantu(w, ctx)) {
-          // RONDE 14: Figo membantu (diutamakan atas santai umum).
-        } else if (w.stamina >= 40 && w.lapar < 90) {
-          // RONDE 13 — habis makan + tidak ada target kerja + kondisi
-          // aman → SANTAI, bukan langsung istirahat di kampung.
-          if (!mulaiSantai(w, ctx)) {
-            w.node = null;
-            w.fase_siklus = "istirahat";
-            w.aksi_sekarang = "beristirahat";
-            w.status_teks = "Beristirahat…";
-            w.tempat_kerja = "kampung";
-          }
-        } else {
-          // Tidak ada target kerja -> istirahat; cabang istirahat akan
-          // mengarahkan pulang bila warga tidak di hunian (pengaman).
+      } else if (ambilTargetKerja(w, ctx)) {
+        // RONDE 20 — jalan atau kerja baru sudah diatur (ambilTargetKerja:
+        // jalan dulu, baru kumpul biasa).
+      } else if (terapkanBantu(w, ctx)) {
+        // RONDE 14: Figo membantu (diutamakan atas santai umum).
+      } else if (w.stamina >= 40 && w.lapar < 90) {
+        // RONDE 13 — habis makan + tidak ada target kerja + kondisi
+        // aman → SANTAI, bukan langsung istirahat di kampung.
+        if (!mulaiSantai(w, ctx)) {
           w.node = null;
           w.fase_siklus = "istirahat";
           w.aksi_sekarang = "beristirahat";
           w.status_teks = "Beristirahat…";
           w.tempat_kerja = "kampung";
         }
+      } else {
+        // Tidak ada target kerja -> istirahat; cabang istirahat akan
+        // mengarahkan pulang bila warga tidak di hunian (pengaman).
+        w.node = null;
+        w.fase_siklus = "istirahat";
+        w.aksi_sekarang = "beristirahat";
+        w.status_teks = "Beristirahat…";
+        w.tempat_kerja = "kampung";
       }
       w.progres_aksi_pct = 0;
     }
@@ -1833,18 +1875,8 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       w.lapar = Math.min(100, w.lapar + 2);
       w.progres_aksi_pct = Math.min(100, w.progres_aksi_pct + 100);
       if (w.progres_aksi_pct >= 100) {
-        const target = pilihTargetKerja(w, ctx);
-        if (target) {
-          w.node = target.node;
-          w.tujuan = target.tujuan;
-          w.fase_siklus = "jalan";
-          w.aksi_sekarang = "berjalan";
-          w.status_teks = `Berjalan ke ${labelNode(target.node.kind)}…`;
-          w.tempat_kerja = labelNode(target.node.kind);
-          if (target.node.pseudo === "sungai") { w.status_teks = "Berjalan ke sungai…"; w.tempat_kerja = "sungai"; }
-          else if (target.node.pseudo === "ladang") { w.status_teks = "Berjalan ke ladang…"; w.tempat_kerja = "ladang"; }
-          else if (target.node.pseudo === "restoran") { w.status_teks = "Berjalan ke paviliun makan…"; w.tempat_kerja = "Paviliun Makan"; }
-          else if (target.node.darurat) { w.status_teks = "Berjalan mencari makan darurat…"; }
+        if (ambilTargetKerja(w, ctx)) {
+          // Jalan atau kerja baru sudah diatur.
         } else if (!mulaiSantai(w, ctx)) {
           w.node = null;
           w.tujuan = null;
@@ -1982,17 +2014,8 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
         w.stamina = Math.max(0, w.stamina - 7);
         w.lapar = Math.min(100, w.lapar + 6);
       } else {
-        const target = pilihTargetKerja(w, ctx);
-        if (target) {
-          w.node = target.node;
-          w.tujuan = target.tujuan;
-          w.fase_siklus = "jalan";
-          w.aksi_sekarang = "berjalan";
-          w.status_teks = `Berjalan ke ${labelNode(target.node.kind)}…`;
-          w.tempat_kerja = labelNode(target.node.kind);
-          if (target.node.pseudo === "sungai") { w.status_teks = "Berjalan ke sungai…"; w.tempat_kerja = "sungai"; }
-          else if (target.node.pseudo === "ladang") { w.status_teks = "Berjalan ke ladang…"; w.tempat_kerja = "ladang"; }
-          else if (target.node.darurat) { w.status_teks = "Berjalan mencari makan darurat…"; }
+        if (ambilTargetKerja(w, ctx)) {
+          // Jalan atau kerja baru sudah diatur.
         } else {
           const titik = ctx.hunianTitik(w);
           w.tujuan = titik;
@@ -2039,6 +2062,17 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       const strVal = Number(w.stat?.str ?? 0);
       const bonusStr = Math.floor(strVal / 3);
       let jumlah = rollHasilKumpul(hasil.resource, w);
+      // RONDE 20 — IKAN: tiap tangkapan mengurangi stok ikan sungai;
+      // bila sungai sepi, ronde ini tidak ada hasil (bukan hasil gratis).
+      let ikanHabis = false;
+      if (w.node.pseudo === "sungai") {
+        if ((ctx.ikanSungai ?? IKAN_CAP) > 0) {
+          ctx.ikanSungai = (ctx.ikanSungai ?? IKAN_CAP) - 1;
+        } else {
+          jumlah = 0;
+          ikanHabis = true;
+        }
+      }
 
       // Pengurasan stamina realistis: dasar 25 stamina + 10 per bonusStr
       const kurasStaminaPanen = 25 + bonusStr * 10;
@@ -2065,9 +2099,11 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       let kulitTotal = hasil.kulitBonus;
       if (w.peran === "penenun" && hasil.kulitBonus > 0) kulitTotal += 2;
       kulitTotal = kulitTotal * pengaliRonde;
-      let teks = tambah > 0
-        ? `${w.nama} membawa ${tambah} ${hasil.resource} ke lumbung.`
-        : `${w.nama} membawa ${hasil.resource}, tetapi lumbung sudah penuh!`;
+      let teks = ikanHabis
+        ? `${w.nama} memancing di sungai, tapi belum ada ikan yang menyangkut.`
+        : tambah > 0
+          ? `${w.nama} membawa ${tambah} ${hasil.resource} ke lumbung.`
+          : `${w.nama} membawa ${hasil.resource}, tetapi lumbung sudah penuh!`;
 
       if (kulitTotal > 0) {
         const kulitCapHari = Math.min(kulitTotal, sisaCapHarian(w, "kulit", hari));
@@ -2136,19 +2172,7 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
         return;
       }
       if (nodeTumbang && fase !== "malam" && w.stamina >= 40 && w.lapar < 90) {
-        const target = pilihTargetKerja(w, ctx);
-        if (target) {
-          w.node = target.node;
-          w.tujuan = target.tujuan;
-          w.fase_siklus = "jalan";
-          w.aksi_sekarang = "berjalan";
-          w.status_teks = `Berjalan ke ${labelNode(target.node.kind)}…`;
-          w.tempat_kerja = labelNode(target.node.kind);
-          if (target.node.pseudo === "sungai") { w.status_teks = "Berjalan ke sungai…"; w.tempat_kerja = "sungai"; }
-          else if (target.node.pseudo === "ladang") { w.status_teks = "Berjalan ke ladang…"; w.tempat_kerja = "ladang"; }
-          else if (target.node.pseudo === "restoran") { w.status_teks = "Berjalan ke paviliun makan…"; w.tempat_kerja = "Paviliun Makan"; }
-          else if (target.node.darurat) { w.status_teks = "Berjalan mencari makan darurat…"; }
-          w.progres_aksi_pct = 0;
+        if (ambilTargetKerja(w, ctx)) {
           rantai = true;
         }
       }
@@ -2288,9 +2312,11 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
     // (deadlock: sehat < 30 memblokir bangun, pangan 0 memblokir makan).
     if (w.sehat < 100) w.sehat = Math.min(100, w.sehat + (w.lapar < 70 ? 2 : 1));
     // Makan: lapar >= 50 + stok pangan ada -> makan 1 pangan.
+    // RONDE 20: seporsi makan lebih mengenyangkan (-55, dulu -40) —
+    // bagian dari gampangin pangan sedikit (lebih jarang makan).
     if (w.lapar >= 50 && (ctx.stok.pangan ?? 0) > 0) {
       ctx.stok.pangan -= 1;
-      w.lapar = Math.max(0, w.lapar - 40);
+      w.lapar = Math.max(0, w.lapar - 55);
       w.sehat = Math.min(100, w.sehat + 2);
       w.stamina = Math.min(100, w.stamina + 10);
       w.status_teks = "Makan di kampung…";
@@ -2332,14 +2358,8 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       w.istirahat_sisa = 1;
       return;
     }
-    const target = pilihTargetKerja(w, ctx);
-    if (target) {
-      w.node = target.node;
-      w.tujuan = target.tujuan;
-      w.fase_siklus = "jalan";
-      w.aksi_sekarang = "berjalan";
-      w.status_teks = `Berjalan ke ${labelNode(target.node.kind)}…`;
-      w.tempat_kerja = labelNode(target.node.kind);
+    if (ambilTargetKerja(w, ctx)) {
+      // Jalan atau kerja baru sudah diatur.
     } else if (terapkanBantu(w, ctx)) {
       // RONDE 14: Figo membantu (diutamakan atas santai umum).
     } else if (w.lapar < 90) {
@@ -2351,15 +2371,8 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
     return;
   }
   // State tak dikenal / warga baru tanpa node: kirim ke target kerja.
-  const target = pilihTargetKerja(w, ctx);
-  if (target) {
-    w.node = target.node;
-    w.tujuan = target.tujuan;
-    w.fase_siklus = "jalan";
-    w.aksi_sekarang = "berjalan";
-    w.status_teks = `Berjalan ke ${labelNode(target.node.kind)}…`;
-    w.tempat_kerja = labelNode(target.node.kind);
-    w.progres_aksi_pct = 0;
+  if (ambilTargetKerja(w, ctx)) {
+    // Jalan atau kerja baru sudah diatur.
   } else if (terapkanBantu(w, ctx)) {
     // RONDE 14: Figo membantu (diutamakan atas santai umum).
   } else if (faseDariJam(jam % 24) !== "malam" && w.stamina >= 40 && w.lapar < 90) {
@@ -2923,6 +2936,7 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     jalanRencana: null,
     jalanBaru: [],
     bangunanAktif: false,
+    ikanSungai: dunia.ikan_sungai ?? IKAN_CAP,
   };
   const perajin = wargaDocs.filter((w) => w.peran === "perajin").length;
   const bangunanCol = await getCollection("bangunan");
@@ -2967,6 +2981,8 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     // tidak membanjiri kabar saat susutnya kecil.
     if (hari !== hariBusukTerakhir) {
       hariBusukTerakhir = hari;
+      // RONDE 20 — ikan sungai tumbuh lagi (+3/hari, maks IKAN_CAP).
+      ctx.ikanSungai = Math.min(IKAN_CAP, (ctx.ikanSungai ?? IKAN_CAP) + IKAN_REGROW_HARIAN);
       const busuk = terapkanPembusukan(ctx);
       if ((busuk.pangan ?? 0) >= 100) {
         ctx.kabar.push({
@@ -2989,19 +3005,19 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
         if (baru) w.hunian = baru; else { w.hunian = null; w.status_teks = "Saya butuh rumah!"; }
       }
     }
-    // RONDE 18 — rencana jalan jam ini: hanya bila tidak ada bangunan
-    // antre/dibangun (prioritas sesudah hunian/pangan). Tugas jalan
-    // di-reset tiap jam supaya pembangun tidak berebut ubin yang sama.
+    // RONDE 18 — rencana jalan jam ini. Tugas jalan di-reset tiap jam
+    // supaya pembangun tidak berebut ubin yang sama.
+    // RONDE 20: rencana DIHITUNG SELALU (dulu null saat ada bangunan
+    // antre/dibangun — lihat terapkanJalan: gate itu yang membuat jalan
+    // tidak pernah dibangun).
     ctx.bangunanAktif = antrean.some((b) => b.status === "antre" || b.status === "dibangun");
     ctx.jalanTugas = new Set<string>();
-    ctx.jalanRencana = ctx.bangunanAktif
-      ? null
-      : rencanaJalan(
-          // r38: ukuran petak dari helper kanonik.
-          placements.map((p) => ({ kind: p.kind, gx: p.gx, gy: p.gy, ...ukuranPetak(p) })),
-          ctx.jalanSelesai ?? new Set<string>(),
-          ctx.nodeTilesAll ?? new Set<string>()
-        );
+    ctx.jalanRencana = rencanaJalan(
+      // r38: ukuran petak dari helper kanonik.
+      placements.map((p) => ({ kind: p.kind, gx: p.gx, gy: p.gy, ...ukuranPetak(p) })),
+      ctx.jalanSelesai ?? new Set<string>(),
+      ctx.nodeTilesAll ?? new Set<string>()
+    );
     for (const w of wargaDocs) {
       stepWarga(w, jam, ctx);
       w.umur = Math.max(0, Math.floor((hari - w.lahir_hari) / 365));
@@ -3186,8 +3202,10 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
             if (hp) {
               plot = { gx: hp.gx, gy: hp.gy, w: def.footprint, h: def.footprint, rotasi: hp.rotasi };
             } else {
+              // RONDE 20 — tidak ada petak di tepi jalan: tetap hadap
+              // jalan TERDEKAT yang ada (rotasiKeJalan), bukan default 0.
               const fp = findPlot(occupied, nodeKeys, def.footprint, def.footprint, 2);
-              if (fp) plot = { ...fp, w: def.footprint, h: def.footprint, rotasi: 0 };
+              if (fp) plot = { ...fp, w: def.footprint, h: def.footprint, rotasi: rotasiKeJalan(fp.gx, fp.gy, def.footprint, def.footprint, roadTiles) };
             }
           } else {
             const fp = findPlot(occupied, nodeKeys, def.footprint, def.footprint, 3);
@@ -3253,6 +3271,9 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
               gy: b.gy,
               w: wBaru,
               h: hBaru,
+              // RONDE 20 — orientasi depan rumah (0=S, PI=N, PI/2=E,
+              // -PI/2=W) dari jalan terdekat; Map3D memakainya.
+              rotasi: (b as any).rotasi ?? 0,
               bangunan_id: String(b._id),
               // RONDE 10 (lanjutan): paviliun lahir dengan dapur kosong.
               ...(def.id === "paviliun_makan" ? { hidangan: 0 } : {}),
@@ -3401,6 +3422,31 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
       );
     }
   }
+  // RONDE 20 — RE-ORIENTASI RUMAH: jalan baru selesai -> rumah di
+  // sekitarnya (jarak Manhattan <= 8 dari pusat rumah ke ubin jalan
+  // baru) menghadap ke jalan terdekat yang ada sekarang. Rumah jauh
+  // dari jalan tetap pada orientasi lamanya.
+  if ((ctx.jalanBaru?.length ?? 0) > 0 && ctx.jalanSelesai) {
+    const roadSet = ctx.jalanSelesai;
+    const sudahDicek = new Set<string>();
+    for (const j of ctx.jalanBaru!) {
+      for (const p of placements) {
+        const key = String(p._id);
+        if (sudahDicek.has(key)) continue;
+        const defP = bangunanById(p.kind);
+        if (!defP || (defP.kapasitas ?? 0) <= 0) continue;
+        const cx = p.gx + Math.floor((p.w ?? 1) / 2);
+        const cy = p.gy + Math.floor((p.h ?? 1) / 2);
+        if (Math.abs(cx - j.gx) + Math.abs(cy - j.gy) > 8) continue;
+        sudahDicek.add(key);
+        const rotBaru = rotasiKeJalan(p.gx, p.gy, p.w ?? 1, p.h ?? 1, roadSet);
+        if (rotBaru !== ((p as any).rotasi ?? 0)) {
+          (p as any).rotasi = rotBaru;
+          await tilesCol.updateOne({ _id: p._id as never }, { $set: { rotasi: rotBaru } });
+        }
+      }
+    }
+  }
   // Hewan: hapus yang diburu, update posisi, tambah respawn.
   if (ctx.hewanHilang.size > 0) {
     const { ObjectId } = await import("mongodb");
@@ -3451,7 +3497,7 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
   await getCollection<DuniaDoc>("dunia").then((c) =>
     c.updateOne(
       { _id: "utama" },
-      { $set: { stok, sim_hari: simBaruHari, sim_jam: simBaruJam, node_sisa: nodeSisaObj, node_regrow: nodeRegrowObj, node_spawn: nodeSpawn.slice(-40), node_spawn_tertunda: nodeSpawnTertundaObj, jam_v4: true, last_llm_jam: lastLlmJam } }
+      { $set: { stok, sim_hari: simBaruHari, sim_jam: simBaruJam, node_sisa: nodeSisaObj, node_regrow: nodeRegrowObj, node_spawn: nodeSpawn.slice(-40), node_spawn_tertunda: nodeSpawnTertundaObj, jam_v4: true, last_llm_jam: lastLlmJam, ikan_sungai: ctx.ikanSungai ?? IKAN_CAP } }
     )
   );
   return { advanced: tertinggal, day: simBaruHari, jam: simBaruJam };

@@ -476,6 +476,57 @@ export function findHousePlotBesideRoad(
   return best ? { gx: best.gx, gy: best.gy, rotasi: best.rotasi } : null;
 }
 
+// RONDE 20 — ARAH HADAP RUMAH (permintaan user 2026-11-05: "bagian
+// depan rumah harus menghadap ke jalan"). Rotasi dari ubin jalan
+// TERDEKAT dengan footprint (bukan hanya yang menempel — rumah yang
+// dibangun sebelum ada jalan tetap bisa menghadap jalan terdekat yang
+// ada). Konvensi sama dengan findHousePlotBesideRoad: jalan di selatan
+// -> 0, utara -> PI, timur -> PI/2, barat -> -PI/2. 0 bila belum ada
+// jalan sama sekali.
+export function rotasiKeJalan(
+  gx: number,
+  gy: number,
+  w: number,
+  h: number,
+  roadTiles: Set<string>
+): number {
+  if (roadTiles.size === 0) return 0;
+  let best: { d: number; sisi: "S" | "N" | "E" | "W"; tegak: number } | null = null;
+  for (const k of roadTiles) {
+    const [rx, ry] = k.split(",").map(Number);
+    const dx = rx < gx ? gx - rx - 1 : rx >= gx + w ? rx - (gx + w - 1) - 1 : 0;
+    const dy = ry < gy ? gy - ry - 1 : ry >= gy + h ? ry - (gy + h - 1) - 1 : 0;
+    const d = dx + dy;
+    // Sisi = sumbu dengan jarak lebih besar (ubin diagonal dinilai dari
+    // sisi terdekatnya); tegak = jarak di sumbu satunya (tie-break).
+    // RONDE 20 — perbaikan: ubin jalan yang LANGSUNG menempel di sisi
+    // timur/barat (dx = dy = 0, mis. (gx+w, gy)) dulu jatuh ke cabang
+    // `dy >= dx` -> "N", jadi rumah di tepi jalan timur/barat salah
+    // menghadap utara. Ubin menempel kini dinilai dari posisinya
+    // terhadap footprint (prioritas S, N, E, W — sama seperti
+    // findHousePlotBesideRoad).
+    let sisi: "S" | "N" | "E" | "W";
+    let tegak: number;
+    if (dx === 0 && dy === 0) {
+      if (ry >= gy + h) { sisi = "S"; tegak = 0; }
+      else if (ry < gy) { sisi = "N"; tegak = 0; }
+      else if (rx >= gx + w) { sisi = "E"; tegak = 0; }
+      else { sisi = "W"; tegak = 0; }
+    } else if (dy >= dx) {
+      sisi = ry >= gy + h ? "S" : "N";
+      tegak = dx;
+    } else {
+      sisi = rx >= gx + w ? "E" : "W";
+      tegak = dy;
+    }
+    if (!best || d < best.d || (d === best.d && tegak < best.tegak)) {
+      best = { d, sisi, tegak };
+    }
+  }
+  if (!best) return 0;
+  return best.sisi === "S" ? 0 : best.sisi === "N" ? Math.PI : best.sisi === "E" ? Math.PI / 2 : -Math.PI / 2;
+}
+
 export function findBridgePlot(
   occupied: Set<string>
 ): { gx: number; gy: number; w: number; h: number } | null {
