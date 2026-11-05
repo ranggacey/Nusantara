@@ -201,7 +201,12 @@ jejak — pemain tidak tahu siapa dekat dengan siapa. Cara kerja:
 dari data sim yang sudah ada, tampilkan satu baris di kabar
 ("Duo paling kompak: X & Y") + ikon hati kecil di atas pasangan
 itu saat berdekatan. Display-only. Dampak sedang, usaha
-kecil-sedang.
+kecil-sedang. CATATAN riset 2026-11-05 20:29 (Village in the Shade:
+hubungan membuka cerita; Moonfrost: cerita warga berkembang):
+cek dulu apakah kabar menyimpan pasangan ngobrol secara terstruktur
+— bila hanya teks bebas, irisan pertama adalah baris kroniknya saja
+(Ide 23), bukan hitungan pasangan. Detail di
+research/2026-11-05-2029.md.
 
 ## Ide 12 — Satu aksi pertama "Mulai dari sini" di kartu menu (dari riset 2026-11-04 06:29 WIB, sudut UX)
 ~~DIBANGUN 2026-11-04 08:29 WIB, DENGAN ADAPTASI JUJUR~~ — baris
@@ -393,7 +398,17 @@ semua orang, bukan untuk satu pemain). Dampak sedang-tinggi,
 usaha kecil-sedang.
 
 ## Ide 23 — Kronik kampung satu baris (dari riset 2026-11-04 16:29 WIB, sudut kembali bermain)
-
+~~DIBANGUN 2026-11-05 20:29 WIB~~ — satu baris "📜 Kronik kampung" di
+kartu menu (di bawah baris Tonggak, di atas tip): fungsi murni
+`kronikKampung` di `sumberdaya.ts` dengan aturan prioritas
+deterministik dari data poll yang sudah ada — pangan habis/menipis
+(<= 25% kapasitas) -> bangunan sedang dibangun (progres terbesar,
+dijepit 0..100) -> warga tanpa tugas -> stok penuh (urutan katalog)
+-> tonggak berikutnya -> keadaan hari ini (hari + populasi + fase +
+cuaca). Display-only, tanpa ubah sim, tanpa fetch baru. BUILD_ID
+r45 -> r46 + 18 tes penjaga (tes 8042/637, daftar gagal identik
+baseline). Penguat riset run ini: kronik satu baris Plai disebut
+developernya "my favorite feature... a single line of text".
 Sumber: Plai: Village Tale (satu baris kronik yang bereaksi pada
 keadaan game, gaya Dwarf Fortress, lakonis). Masalah: kabar
 kampung daftar panjang yang mudah tenggelam; pemain yang hanya
@@ -616,6 +631,18 @@ bukan dibangun sekarang. Cara kerja: satu antrean gabungan
 (warga + hewan) lewat fungsi yang sama; transform label hewan
 diterapkan setelah loop hewan. Display-only, tanpa ubah sim.
 Dampak sedang, usaha kecil. Detail di research/2026-11-05-1829.md.
+
+## Ide 35 — Pasar mingguan tiap 7 hari game (dari riset 2026-11-05 20:29 WIB, sudut fitur baru; spesifikasi Ide 10 festival)
+
+Sumber: My Village Story (haat tiap 7 hari + pesanan desa berbonus +
+telepon yang mengajukan pertanyaan yang tidak dijawab game) + Plai
+(festival *hram* mingguan). Masalah: hari-hari game terasa sama; tidak
+ada momen yang ditunggu bersama (sudah dicatat di Ide 10). Cara kerja
+(versi display-only dulu): tiap hari game kelipatan 7, kabar mengumumkan
+"Pasar minggu ini di balai" H-1, warga berkumpul di balai/paviliun di
+hari H; versi sim belakangan (pesanan desa berbonus ala haat). Tidak
+mengubah ekonomi di irisan pertama. Dampak sedang-tinggi, usaha sedang
+(display-only: kecil). Detail di research/2026-11-05-2029.md.
 
 ## Ide 34 — Safe-area inset untuk klaster kontrol bawah (dari riset 2026-11-05 18:29 WIB, sudut UX)
 

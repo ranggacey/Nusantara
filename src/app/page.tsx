@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, type CuplikanKampung } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, kronikKampung, type CuplikanKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -676,6 +676,23 @@ export default function Page() {
                     populasi: Number(world?.populasi ?? 0),
                     bangunan: (map?.placements ?? []).map((p: J) => String(p.kind)),
                   });
+              // Kronik kampung (2026-11-05, Ide 23): satu baris "cerita
+              // hari ini" dari data poll yang sudah ada — aturan
+              // prioritas di kronikKampung, bukan karangan. Display-only.
+              const kronik = kronikKampung({
+                hari: Number(world?.hari_total ?? 0),
+                populasi: Number(world?.populasi ?? 0),
+                kampung: String(world?.kampung ?? "Suka Maju"),
+                fase: String(world?.label_fase ?? ""),
+                cuaca: labelCuaca(cuaca),
+                stok: stok as Partial<Record<string, number>>,
+                kapasitas: kapasitas as Partial<Record<string, number>>,
+                dibangun: (bangunan?.antrean ?? [])
+                  .filter((b: J) => String(b.status ?? "") === "dibangun")
+                  .map((b: J) => ({ label: String(b.label ?? b.tipe ?? ""), progres: Number(b.progres ?? 0) })),
+                tanpaTugas: (map?.warga ?? []).filter((w: J) => wargaTanpaTugas(w)).length,
+                tonggakBerikutnya: tg.berikutnya,
+              });
               return (
                 <>
                   {pergi && (
@@ -740,6 +757,13 @@ export default function Page() {
                         <> — Semua tonggak tercapai!</>
                       )}
                     </div>
+                  </div>
+                  {/* Kronik kampung (2026-11-05, Ide 23): satu baris
+                      "cerita hari ini" — kalimatnya berasal dari data
+                      poll (pangan, bangunan dibangun, warga tanpa
+                      tugas, tonggak), bukan karangan. Display-only. */}
+                  <div className="menu-kronik">
+                    <div className="menu-kronik-teks">📜 {kronik}</div>
                   </div>
                 </>
               );

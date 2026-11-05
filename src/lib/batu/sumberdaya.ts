@@ -281,6 +281,73 @@ export function selamaKamuPergi(
   return baris.slice(0, 3);
 }
 
+// Kronik kampung (2026-11-05, Ide 23 / riset fitur baru run ini): satu
+// baris "cerita hari ini" di kartu menu — pola kronik satu baris Plai:
+// Village Tale (ticker lakonis yang bereaksi pada keadaan game).
+// Fungsi MURNI, display-only, deterministik (input sama -> baris sama):
+// aturan prioritas sederhana, BUKAN LLM, dan setiap kalimat berasal
+// dari data poll yang sudah ada — tidak ada karangan. Prioritas:
+// (1) pangan habis/menipis, (2) bangunan sedang dibangun, (3) warga
+// tanpa tugas, (4) ada stok yang penuh, (5) tonggak berikutnya,
+// (6) keadaan hari ini (hari + populasi + fase + cuaca). Tanpa ubah
+// sim, tanpa fetch baru.
+export interface BangunanDibangun {
+  label: string;
+  progres: number; // 0..100
+}
+
+export interface KeadaanKampung {
+  hari: number;
+  populasi: number;
+  kampung: string;
+  fase: string; // label fase, mis. "Pagi"
+  cuaca: string; // label cuaca, mis. "Cerah"
+  stok: Partial<Record<ResourceId, number>>;
+  kapasitas: Partial<Record<ResourceId, number>>;
+  dibangun: BangunanDibangun[];
+  tanpaTugas: number;
+  tonggakBerikutnya: string | null;
+}
+
+export function kronikKampung(k: KeadaanKampung): string {
+  const hari = Number.isFinite(k.hari) ? Math.max(1, Math.floor(k.hari)) : 1;
+  const pop = Number.isFinite(k.populasi) ? Math.max(0, Math.floor(k.populasi)) : 0;
+  const kampung = (k.kampung ?? "").trim() || "kampung ini";
+  const fase = (k.fase ?? "").trim().toLowerCase();
+  const cuaca = (k.cuaca ?? "").trim().toLowerCase();
+  const stok = k.stok ?? {};
+  const kap = k.kapasitas ?? {};
+  const pangan = Number(stok.pangan ?? 0);
+  const kapPangan = Number(kap.pangan ?? 0);
+  // (1) Pangan habis / menipis — paling mendesak, mengalahkan yang lain.
+  if (pangan <= 0) return "Pangan habis — warga menahan lapar, pengumpul dan pemburu sedang bekerja keras.";
+  if (kapPangan > 0 && pangan <= kapPangan * 0.25) return `Pangan menipis (${pangan}/${kapPangan}) — ladang dan hutan jadi tumpuan hari ini.`;
+  // (2) Bangunan sedang dibangun (progres terbesar dulu).
+  const dibangun = (k.dibangun ?? []).filter((b) => b && String(b.label ?? "").trim() !== "");
+  if (dibangun.length > 0) {
+    const b = [...dibangun].sort((a, b2) => (Number(b2.progres ?? 0) - Number(a.progres ?? 0)))[0];
+    const prog = Number.isFinite(b.progres) ? Math.max(0, Math.min(100, Math.round(b.progres))) : 0;
+    return `${b.label} sedang dibangun (${prog}%) — palu berdentang di ${kampung}.`;
+  }
+  // (3) Warga tanpa tugas.
+  const tanpa = Number.isFinite(k.tanpaTugas) ? Math.max(0, Math.floor(k.tanpaTugas)) : 0;
+  if (tanpa > 0) return `${tanpa} warga tanpa tugas — mereka membantu tetangga sambil menunggu kerja.`;
+  // (4) Ada stok yang penuh (urutan katalog RESOURCES).
+  for (const r of RESOURCES) {
+    const isi = Number(stok[r.id] ?? 0);
+    const maks = Number(kap[r.id] ?? 0);
+    if (maks > 0 && isi >= maks) return `${r.label} penuh (${isi}/${maks}) — lumbung tidak muat lagi, waktunya membangun.`;
+  }
+  // (5) Tonggak berikutnya.
+  const berikut = (k.tonggakBerikutnya ?? "").trim();
+  if (berikut) return `Selangkah lagi: ${berikut}.`;
+  // (6) Keadaan hari ini — selalu ada baris, tidak pernah kosong.
+  const suasana = [fase, cuaca].filter(Boolean).join(" ");
+  return suasana
+    ? `Hari ${hari} di ${kampung} — ${pop} warga, ${suasana}.`
+    : `Hari ${hari} di ${kampung} — ${pop} warga menjalani harinya.`;
+}
+
 // Kekurangan stok untuk satu biaya: {resource: jumlah_kurang}.
 export function kurangDariBiaya(stok: Partial<Record<ResourceId, number>>, biaya: Partial<Record<ResourceId, number>>): Partial<Record<ResourceId, number>> {
   const kurang: Partial<Record<ResourceId, number>> = {};

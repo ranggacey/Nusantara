@@ -405,6 +405,21 @@ canvas.game-canvas {
   line-height: 1.5;
   opacity: 0.9;
 }
+/* Kronik kampung (2026-11-05, Ide 23): satu baris "cerita hari ini",
+   bingkai netral senada tonggak, tanpa animasi (patuh reduced-motion
+   r31). Teksnya berasal dari data poll, bukan karangan. */
+.menu-kronik {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.menu-kronik-teks {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
 /* "Selama kamu pergi" (2026-11-05, Ide 22): bingkai biru tenang,
    teks + tombol ✕ sebaris seperti tip; tanpa animasi (patuh
    reduced-motion r31). Maksimal 3 baris, display-only. */

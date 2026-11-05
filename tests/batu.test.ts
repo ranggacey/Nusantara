@@ -1,6 +1,6 @@
 // Test logika zaman batu (tsx). Jalankan: npx tsx tests/batu.test.ts
 import { PERAN, nodeHasil, labelNode, bobotFit, pengaliFit, perkakasPeran, RESEP_PERKAKAS, type NodeKind } from "../src/lib/batu/peran";
-import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, hitungKapasitasStok, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi } from "../src/lib/batu/sumberdaya";
+import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, hitungKapasitasStok, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, kronikKampung } from "../src/lib/batu/sumberdaya";
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, rotasiKeJalan, GRID_W, GRID_H, GRID_MIN, GRID_MAX, PUSAT, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk, petakBangunan, plotBebas } from "../src/lib/batu/dunia";
@@ -880,7 +880,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r45"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r46"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1323,7 +1323,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r45"'), "versi: BUILD_ID r45");
+  ok(ver.includes('"r46"'), "versi: BUILD_ID r46");
 }
 
 {
@@ -2169,7 +2169,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const bKayu = terapkanPembusukan(ctxKayu);
   ok(bKayu.kayu === 1 && (ctxKayu.stok as unknown as Record<string, number>).kayu === 204, "busuk-kecil: kayu 205/200 susut 1 (5 x 10% = 0,5 -> 0 dulu)");
   const verKecil = readFileSync("src/lib/version.ts", "utf8");
-  ok(verKecil.includes('BUILD_ID = "r45"'), "busuk-kecil: BUILD_ID naik ke r41");
+  ok(verKecil.includes('BUILD_ID = "r46"'), "busuk-kecil: BUILD_ID naik ke r41");
 }
 
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
@@ -2386,7 +2386,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcTg = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTg.includes(".menu-tonggak") && cssSrcTg.includes(".menu-tonggak-title") && cssSrcTg.includes(".menu-tonggak-isi"), "tonggak: CSS baris ada");
   const verSrcTg = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcTg.includes('BUILD_ID = "r45"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcTg.includes('BUILD_ID = "r46"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // "Selama kamu pergi" (2026-11-05, Ide 22): fungsi murni display-only —
@@ -2416,7 +2416,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcPergi = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcPergi.includes(".menu-pergi") && cssSrcPergi.includes(".menu-pergi-title") && cssSrcPergi.includes(".menu-pergi-tutup"), "pergi: CSS blok ada");
   const verSrcPergi = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcPergi.includes('BUILD_ID = "r45"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcPergi.includes('BUILD_ID = "r46"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda loop render saat tab disembunyikan (2026-11-04, Ide 9):
@@ -2430,7 +2430,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r45"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r46"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2537,7 +2537,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r45"'), "muat3d: BUILD_ID naik ke r41");
+  ok(verMuat.includes('BUILD_ID = "r46"'), "muat3d: BUILD_ID naik ke r41");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2581,7 +2581,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r45"'), "geraktenang: BUILD_ID naik ke r41");
+  ok(verGerak.includes('BUILD_ID = "r46"'), "geraktenang: BUILD_ID naik ke r41");
 }
 
 
@@ -2600,7 +2600,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r45"'), "tip: BUILD_ID naik ke r41");
+  ok(verTip.includes('BUILD_ID = "r46"'), "tip: BUILD_ID naik ke r41");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2618,7 +2618,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r45"'), "fokus: BUILD_ID naik ke r41");
+  ok(verFokus.includes('BUILD_ID = "r46"'), "fokus: BUILD_ID naik ke r41");
 }
 
 // Audit geometri/material bersama sebelum instancing (2026-11-05,
@@ -2645,7 +2645,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
   ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
   const verAudit = readFileSync("src/lib/version.ts", "utf8");
-  ok(verAudit.includes('BUILD_ID = "r45"'), "audit30: BUILD_ID naik ke r41");
+  ok(verAudit.includes('BUILD_ID = "r46"'), "audit30: BUILD_ID naik ke r41");
 }
 
 // Dispose lewati material bersama (2026-11-05, penutup celah audit
@@ -2671,7 +2671,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!isRoadMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: material baru bukan material jalan bersama");
   ok(!isVillageMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: predikat desa/jalan tidak saling tertukar (jalan bukan desa)");
   const ver36 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver36.includes('BUILD_ID = "r45"'), "dispose36: BUILD_ID naik ke r41");
+  ok(ver36.includes('BUILD_ID = "r46"'), "dispose36: BUILD_ID naik ke r41");
 }
 
 // RONDE 20 (2026-11-05, laporan user): "kenapa gada yg bikin jalan?" +
@@ -2793,7 +2793,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const map3d20 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(map3d20.includes("fishes") && map3d20.includes("mF?.ikan"), "r20: Map3D menggambar ikan dari stok ikan");
   const ver20 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver20.includes('BUILD_ID = "r45"'), "r20: BUILD_ID naik ke r41");
+  ok(ver20.includes('BUILD_ID = "r46"'), "r20: BUILD_ID naik ke r41");
 }
 
 {
@@ -2880,7 +2880,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(simSrc21.includes("bangunanDibangun"), "r21: sim memuat bangunanDibangun di ctx");
   ok(!simSrc21.includes("pintarUntukJalan(w)"), "r21: gate pinter tidak lagi dipakai di sim");
   const ver21 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver21.includes('BUILD_ID = "r45"'), "r21: BUILD_ID naik ke r42");
+  ok(ver21.includes('BUILD_ID = "r46"'), "r21: BUILD_ID naik ke r42");
 }
 
 {
@@ -2922,7 +2922,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrc22 = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrc22.includes("background: #facc15") && cssSrc22.includes("border: 2px solid #0b182e"), "r22: tombol menu latar kuning solid + border gelap (kontras tinggi)");
   const ver22 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver22.includes('BUILD_ID = "r45"'), "r22: BUILD_ID naik ke r42");
+  ok(ver22.includes('BUILD_ID = "r46"'), "r22: BUILD_ID naik ke r42");
 }
 
 {
@@ -2958,7 +2958,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const pageSrc23 = readFileSync("src/app/page.tsx", "utf8");
   ok(pageSrc23.includes("cuaca={cuaca}"), "r23: page meneruskan cuaca ke Map3D");
   const ver23 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver23.includes('BUILD_ID = "r45"'), "r23: BUILD_ID naik ke r43");
+  ok(ver23.includes('BUILD_ID = "r46"'), "r23: BUILD_ID naik ke r43");
 }
 
 {
@@ -2987,7 +2987,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const mapSrc24 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(mapSrc24.includes("rapikanLabelBertumpuk"), "r24: Map3D masih memakai rapikanLabelBertumpuk");
   const ver24 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver24.includes('BUILD_ID = "r45"'), "r24: BUILD_ID naik ke r44");
+  ok(ver24.includes('BUILD_ID = "r46"'), "r24: BUILD_ID naik ke r44");
 }
 
 // RONDE 45 — BEKU TABIB + RESOURCE 5x (laporan user 2026-11-05 via video:
@@ -3196,6 +3196,61 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(jalan45 >= 5, `r45 sim 10 hari: jalan terbangun >= 5 ubin (dapat ${jalan45})`);
   ok(beku45 <= 2, `r45 sim 10 hari: warga beku di ubin awal <= 2 (dapat ${beku45}/12)`);
   ok(kumpul45 >= 20, `r45 sim 10 hari: ronde kumpul selesai >= 20 (dapat ${kumpul45})`);
+}
+
+// RONDE 46 — kronik kampung satu baris (Ide 23, riset fitur baru
+// 2026-11-05 20:29): pola kronik Plai: Village Tale — satu baris
+// lakonis yang bereaksi pada keadaan game. Fungsi murni, display-only,
+// deterministik: aturan prioritas pangan habis/menipis -> bangunan
+// dibangun -> warga tanpa tugas -> stok penuh -> tonggak berikutnya ->
+// keadaan hari ini. Setiap kalimat berasal dari data poll, bukan karangan.
+{
+  const dasar46 = {
+    hari: 389, populasi: 12, kampung: "Suka Maju", fase: "Pagi", cuaca: "Cerah",
+    stok: { kayu: 30, batu: 21, emas: 1, besi: 47, pangan: 143, kulit: 65 },
+    kapasitas: { kayu: 160, batu: 130, emas: 40, besi: 55, pangan: 200, kulit: 95 },
+    dibangun: [] as { label: string; progres: number }[], tanpaTugas: 0, tonggakBerikutnya: null as string | null,
+  };
+  // (a) Keadaan live-like (observasi 20:30: pangan 143/200, tanpa
+  // bangunan dibangun, tonggak 7/7) -> baris keadaan hari ini.
+  eq(kronikKampung(dasar46), "Hari 389 di Suka Maju — 12 warga, pagi cerah.", "r46: fallback keadaan hari ini (angka live 20:30)");
+  // (b) Pangan habis mengalahkan bangunan yang sedang dibangun.
+  eq(kronikKampung({ ...dasar46, stok: { ...dasar46.stok, pangan: 0 }, dibangun: [{ label: "Paviliun Makan", progres: 20 }] }),
+    "Pangan habis — warga menahan lapar, pengumpul dan pemburu sedang bekerja keras.", "r46: pangan 0 -> baris habis (prioritas 1)");
+  // (c) Pangan menipis: 20/200 = 10% (<= 25% kapasitas).
+  eq(kronikKampung({ ...dasar46, stok: { ...dasar46.stok, pangan: 20 } }),
+    "Pangan menipis (20/200) — ladang dan hutan jadi tumpuan hari ini.", "r46: pangan 20/200 -> baris menipis");
+  ok(kronikKampung({ ...dasar46, stok: { ...dasar46.stok, pangan: 51 } }).startsWith("Hari 389"), "r46: pangan 51/200 (di atas 25%) bukan menipis");
+  // (d) Bangunan dibangun: progres terbesar menang, progres dijepit 0..100.
+  eq(kronikKampung({ ...dasar46, dibangun: [{ label: "Paviliun Makan", progres: 20 }] }),
+    "Paviliun Makan sedang dibangun (20%) — palu berdentang di Suka Maju.", "r46: bangunan dibangun -> baris dibangun");
+  eq(kronikKampung({ ...dasar46, dibangun: [{ label: "Gubuk", progres: 5 }, { label: "Paviliun Makan", progres: 20 }] }),
+    "Paviliun Makan sedang dibangun (20%) — palu berdentang di Suka Maju.", "r46: dua dibangun -> progres terbesar menang");
+  ok(kronikKampung({ ...dasar46, dibangun: [{ label: "Gubuk", progres: 150 }] }).includes("(100%)"), "r46: progres 150 dijepit ke 100%");
+  ok(kronikKampung({ ...dasar46, dibangun: [{ label: "Gubuk", progres: NaN }] }).includes("(0%)"), "r46: progres NaN -> 0%");
+  ok(kronikKampung({ ...dasar46, dibangun: [{ label: "   ", progres: 50 }] }).startsWith("Hari 389"), "r46: label bangunan kosong diabaikan");
+  // (e) Warga tanpa tugas.
+  eq(kronikKampung({ ...dasar46, tanpaTugas: 3 }),
+    "3 warga tanpa tugas — mereka membantu tetangga sambil menunggu kerja.", "r46: 3 warga tanpa tugas");
+  // (f) Stok penuh: urutan katalog (kayu dulu bila kayu + batu penuh).
+  eq(kronikKampung({ ...dasar46, stok: { ...dasar46.stok, kayu: 160 } }),
+    "Kayu penuh (160/160) — lumbung tidak muat lagi, waktunya membangun.", "r46: kayu penuh");
+  eq(kronikKampung({ ...dasar46, stok: { ...dasar46.stok, kayu: 160, batu: 130 } }),
+    "Kayu penuh (160/160) — lumbung tidak muat lagi, waktunya membangun.", "r46: kayu + batu penuh -> kayu dulu");
+  // (g) Tonggak berikutnya.
+  eq(kronikKampung({ ...dasar46, tonggakBerikutnya: "Balai berdiri" }),
+    "Selangkah lagi: Balai berdiri.", "r46: tonggak berikutnya");
+  // (h) Deterministik + input aneh tidak pernah kosong / mengandung NaN.
+  eq(kronikKampung(dasar46), kronikKampung(dasar46), "r46: input sama -> baris sama (deterministik)");
+  const aneh46 = kronikKampung({ hari: NaN, populasi: NaN, kampung: "", fase: "", cuaca: "", stok: { pangan: 100 }, kapasitas: { pangan: 200 }, dibangun: [], tanpaTugas: NaN, tonggakBerikutnya: "" });
+  ok(aneh46.length > 0 && !aneh46.includes("NaN"), `r46: input aneh tetap satu baris waras (dapat "${aneh46}")`);
+  // (i) Audit sumber: terpasang di kartu menu + gaya ada.
+  const pageSrc46 = readFileSync("src/app/page.tsx", "utf8");
+  ok(pageSrc46.includes("kronikKampung") && pageSrc46.includes("menu-kronik"), "r46: kronik terpasang di kartu menu page");
+  const cssSrc46 = readFileSync("src/app/globals.css", "utf8");
+  ok(cssSrc46.includes(".menu-kronik"), "r46: gaya .menu-kronik ada di globals.css");
+  const ver46 = readFileSync("src/lib/version.ts", "utf8");
+  ok(ver46.includes('BUILD_ID = "r46"'), "r46: BUILD_ID naik ke r46");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);
