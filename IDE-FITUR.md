@@ -633,7 +633,15 @@ diterapkan setelah loop hewan. Display-only, tanpa ubah sim.
 Dampak sedang, usaha kecil. Detail di research/2026-11-05-1829.md.
 
 ## Ide 35 — Pasar mingguan tiap 7 hari game (dari riset 2026-11-05 20:29 WIB, sudut fitur baru; spesifikasi Ide 10 festival)
-
+~~SEBAGIAN DIBANGUN 2026-11-05 22:29 WIB~~ — irisan display-only:
+fungsi murni `pasarMingguan` di `sumberdaya.ts` (hari kelipatan 7 =
+hari pasar, H-1 = besok, sisanya hitung mundur; tempat mengikuti
+bangunan berdiri: Balai -> Paviliun Makan -> tengah kampung) + satu
+baris "🛖 Pasar Minggu …" di kartu menu di bawah Kronik + 18 tes
+penjaga. Display-only, tanpa ubah sim, tanpa fetch baru, tanpa
+janji ekonomi (belum ada jual-beli). SISA: pengumuman kabar H-1
+(butuh sim/kabar), warga berkumpul visual di balai/paviliun di
+hari H, pesanan desa berbonus versi sim.
 Sumber: My Village Story (haat tiap 7 hari + pesanan desa berbonus +
 telepon yang mengajukan pertanyaan yang tidak dijawab game) + Plai
 (festival *hram* mingguan). Masalah: hari-hari game terasa sama; tidak
@@ -643,6 +651,33 @@ ada momen yang ditunggu bersama (sudah dicatat di Ide 10). Cara kerja
 hari H; versi sim belakangan (pesanan desa berbonus ala haat). Tidak
 mengubah ekonomi di irisan pertama. Dampak sedang-tinggi, usaha sedang
 (display-only: kecil). Detail di research/2026-11-05-2029.md.
+
+## Ide 36 — Sisa busuk jadi pupuk ladang (dari riset 2026-11-05 22:29 WIB, sudut ekonomi/sim)
+
+Sumber: Medieval Dynasty (makanan busuk -> "Rot" -> pupuk di Barn;
+mengolah memulihkan kondisi 100%) + catatan Ide 31. Masalah: pangan
+di atas kapasitas membusuk 50%/hari dan lenyap tanpa jejak — terasa
+seperti hukuman pasif, bukan keputusan. Cara kerja (versi sim
+belakangan): sebagian pangan yang busuk dicatat sebagai "pupuk" yang
+mempercepat ladang/sawah satu musim; versi display-only dulu: baris
+kronik saat pangan busuk hari itu besar ("Sebagian pangan membusuk —
+andai saja bisa jadi pupuk…"). TIDAK mengubah ekonomi di irisan
+pertama. Dampak sedang, usaha sedang (sim) / kecil (display-only).
+Detail di research/2026-11-05-2229.md.
+
+## Ide 37 — Hidangan paviliun membusuk lebih lambat dari pangan mentah (dari riset 2026-11-05 22:29 WIB, sudut ekonomi/sim)
+
+Sumber: Vintage Story (memasak + wadah tersegel = umur simpan lebih
+panjang; tapi bahan yang sudah busuk tidak bisa diselamatkan).
+Masalah: pangan mentah dan hidangan paviliun membusuk dengan laju
+yang sama, jadi tidak ada alasan mengolah sebelum busuk. Cara kerja:
+hidangan paviliun membusuk lebih lambat dari pangan mentah (mis.
+separuh laju), sehingga juru masak jadi penjaga stok, bukan sekadar
+pengubah lapar. Perlu cek dulu apakah hidangan disimpan terpisah dari
+stok pangan di sim — bila tidak, irisan pertama hanya display (baris
+kronik saat hidangan dibuat). Aturan yang sama seperti sumbernya:
+hanya pangan segar yang bisa diolah jadi hidangan awet. Dampak
+sedang, usaha kecil-sedang. Detail di research/2026-11-05-2229.md.
 
 ## Ide 34 — Safe-area inset untuk klaster kontrol bawah (dari riset 2026-11-05 18:29 WIB, sudut UX)
 

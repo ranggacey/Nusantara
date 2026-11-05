@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, kronikKampung, type CuplikanKampung } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -693,6 +693,13 @@ export default function Page() {
                 tanpaTugas: (map?.warga ?? []).filter((w: J) => wargaTanpaTugas(w)).length,
                 tonggakBerikutnya: tg.berikutnya,
               });
+              // Pasar Minggu (2026-11-05, Ide 35): satu baris hitung
+              // mundur hari pasar tiap 7 hari game — tempat mengikuti
+              // bangunan yang berdiri. Display-only.
+              const pasar = pasarMingguan(
+                Number(world?.hari_total ?? 0),
+                (map?.placements ?? []).map((p: J) => String(p.kind))
+              );
               return (
                 <>
                   {pergi && (
@@ -764,6 +771,12 @@ export default function Page() {
                       tugas, tonggak), bukan karangan. Display-only. */}
                   <div className="menu-kronik">
                     <div className="menu-kronik-teks">📜 {kronik}</div>
+                  </div>
+                  {/* Pasar Minggu (2026-11-05, Ide 35): satu baris
+                      hitung mundur hari pasar tiap 7 hari game.
+                      Display-only, dari data poll yang sudah ada. */}
+                  <div className="menu-pasar">
+                    <div className="menu-pasar-teks">🛖 {pasar}</div>
                   </div>
                 </>
               );

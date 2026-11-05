@@ -348,6 +348,25 @@ export function kronikKampung(k: KeadaanKampung): string {
     : `Hari ${hari} di ${kampung} — ${pop} warga menjalani harinya.`;
 }
 
+// Pasar Minggu (2026-11-05, Ide 35 / riset fitur baru 20:29 +
+// ekonomi/sim 22:29): tiap hari game kelipatan 7 adalah hari pasar —
+// momen mingguan yang ditunggu bersama (haat My Village Story,
+// festival hram Plai). Fungsi MURNI, display-only, deterministik:
+// dari hari game + jenis bangunan yang berdiri saja. Hari ini ->
+// "Hari ini Pasar Minggu di …", H-1 -> "Besok …", sisanya hitung
+// mundur. Tempat mengikuti bangunan yang berdiri (Balai ->
+// Paviliun Makan -> tengah kampung). Tanpa ubah sim, tanpa fetch
+// baru, tanpa janji ekonomi (belum ada jual-beli di pasar).
+export function pasarMingguan(hari: number, jenisBerdiri: string[]): string {
+  const h = Number.isFinite(hari) ? Math.max(1, Math.floor(hari)) : 1;
+  const ada = (id: string) => (jenisBerdiri ?? []).includes(id);
+  const tempat = ada("balai") ? "Balai" : ada("paviliun_makan") ? "Paviliun Makan" : "tengah kampung";
+  const sisa = (7 - (h % 7)) % 7;
+  if (sisa === 0) return `Hari ini Pasar Minggu di ${tempat}.`;
+  if (sisa === 1) return `Besok Pasar Minggu di ${tempat}.`;
+  return `Pasar Minggu ${sisa} hari lagi di ${tempat}.`;
+}
+
 // Kekurangan stok untuk satu biaya: {resource: jumlah_kurang}.
 export function kurangDariBiaya(stok: Partial<Record<ResourceId, number>>, biaya: Partial<Record<ResourceId, number>>): Partial<Record<ResourceId, number>> {
   const kurang: Partial<Record<ResourceId, number>> = {};

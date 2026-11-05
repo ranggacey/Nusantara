@@ -420,6 +420,20 @@ canvas.game-canvas {
   line-height: 1.5;
   opacity: 0.9;
 }
+/* Pasar Minggu (2026-11-05, Ide 35): satu baris hitung mundur hari
+   pasar — gaya sama seperti kronik, display-only. */
+.menu-pasar {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.menu-pasar-teks {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
 /* "Selama kamu pergi" (2026-11-05, Ide 22): bingkai biru tenang,
    teks + tombol ✕ sebaris seperti tip; tanpa animasi (patuh
    reduced-motion r31). Maksimal 3 baris, display-only. */
