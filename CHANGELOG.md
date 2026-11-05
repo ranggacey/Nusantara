@@ -77,6 +77,21 @@ dan tanpa hadiah offline.
   dari kabar kampung masuk backlog. Tidak direkomendasikan:
   hadiah offline, simulasi ulang waktu pergi, dialog pemblokir.
 
+### Verifikasi live r39 (deploy auto dari main, commit 276d7e9)
+- /api/version: {"ok":true,"build":"r39"}. Homepage 200 dan ikon
+  /batu/icons/kayu.png 200.
+- /api/world ok: kampung Suka Maju, populasi 12, hari 365,
+  11.47 Siang, Cerah; stok kayu 149, batu 6, emas 1, besi 47,
+  pangan 0, kulit 92 — sama seperti sebelum deploy, tidak ada
+  regresi stok dari deploy ini. Pangan masih 0 (keadaan sebelum
+  deploy).
+- /api/map ok: 12 warga, 14 placements, 25 hewan.
+  /api/bangunan ok: katalog lengkap diawali Gubuk.
+- Blok "Selama kamu pergi" baru belum diverifikasi visual di
+  browser (butuh kunjungan kedua setelah hari game berlalu +
+  buka kartu menu); yang terverifikasi adalah kode + tesnya, dan
+  API tetap ok.
+
 ## 2026-11-05 — r38: perburuan yang benar-benar membunuh, semua warga bisa berburu, kumpul jalan lagi, satu sumber kebenaran petak (laporan user 2026-11-05 ~13:48 WIB, video + chat)
 
 Perubahan dalam 2 kalimat: pemburu kini aktif mencari mangsa
