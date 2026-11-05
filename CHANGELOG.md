@@ -69,7 +69,21 @@ ekonomi dan tanpa ubah sim.
   bukan area kosong; keseluruhan adegan gelap/kontras rendah
   (malam game) sehingga detail sulit dibaca.
 
-### Verifikasi live r37 (diisi setelah deploy)
+### Verifikasi live r37 (deploy auto dari main, commit 119438a)
+- /api/version: {"ok":true,"build":"r37"}. Homepage 200
+  (judul "Negara Emas — Zaman Batu" + cangkang "Memuat peta
+  3D…") dan ikon /batu/icons/kayu.png 200.
+- /api/world ok: kampung Suka Maju, populasi 12, hari 362,
+  11.50 Siang, Cerah; stok kayu 149/160, batu 6/130, emas 1/40,
+  besi 47/55, pangan 0/200, kulit 92/95 — semua di dalam
+  kapasitas, tidak ada regresi stok dari deploy ini.
+- /api/map ok: 12 warga, 14 placements. /api/bangunan ok:
+  katalog lengkap diawali Gubuk.
+- Baris tonggak baru belum diverifikasi visual di browser
+  (butuh buka kartu menu — observasi run ini hanya melihat
+  tanpa klik); yang terverifikasi adalah kode + tesnya, dan
+  pil "Versi baru tersedia" akan membedakan r37 dari r36.
+  Verifikasi visual menyusul observasi run berikut.
 
 
 Perubahan dalam 2 kalimat: `disposeGroup` di Map3D kini melewati
