@@ -1888,6 +1888,11 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     const harvestedLocalKeys = new Set<string>();
     let raf = 0;
     let last = performance.now();
+    // RONDE 49 (Ide 27) — penghitung baseline render: frame ke-120
+    // (~2 detik @60fps) baru sampel, supaya kompilasi shader/upload
+    // tekstur awal tidak masuk baseline; flag sekali saja.
+    let frameBaseline = 0;
+    let baselineTercatat = false;
     const vec = new THREE.Vector3();
     const loop = () => {
       raf = requestAnimationFrame(loop);
@@ -2935,6 +2940,32 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         }
       }
       renderer.render(scene, camera);
+
+      // RONDE 49 (Ide 27) — BASELINE draw call sekali saat scene mapan:
+      // `renderer.info` adalah pengukur resmi (hontran/Glitchless);
+      // dibaca TEPAT SETELAH render (info direset tiap render call,
+      // three 0.187) supaya angkanya milik frame yang baru di-render.
+      // Sampel setelah ~120 frame agar lonjakan awal (kompilasi shader,
+      // upload tekstur) tidak masuk baseline; flag di closure effect
+      // supaya tidak di-log ulang saat tab kembali dari hidden (Ide 9
+      // memulai ulang loop yang sama). Display-only: console.info saja,
+      // tanpa ubah render/sim; angka dicatat di CHANGELOG sebagai
+      // baseline sebelum instancing (Ide 28).
+      if (!baselineTercatat) {
+        frameBaseline++;
+        if (frameBaseline >= 120) {
+          baselineTercatat = true;
+          const info = renderer.info;
+          console.info("[Nusantara baseline render]", {
+            drawCalls: info.render.calls,
+            triangles: info.render.triangles,
+            geometries: info.memory.geometries,
+            textures: info.memory.textures,
+            programs: info.programs?.length ?? 0,
+            pixelRatio: renderer.getPixelRatio(),
+          });
+        }
+      }
     };
     raf = requestAnimationFrame(loop);
 

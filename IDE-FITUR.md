@@ -483,6 +483,18 @@ aktif karena fokus tenggelam di atas gambar peta. Cara kerja: aturan
 Uji dengan Tab/Shift+Tab/Escape.
 
 ## Ide 27 — Hitung draw call peta sebelum mengoptimalkan apa pun (dari riset 2026-11-04 22:29 WIB, sudut performa)
+~~DIBANGUN 2026-11-06 06:29 WIB (r49)~~ — log `console.info("[Nusantara
+baseline render]", { drawCalls, triangles, geometries, textures,
+programs, pixelRatio })` SEKALI setelah frame ke-120, dibaca tepat
+setelah `renderer.render()` (info direset tiap render call, three
+0.187) supaya angkanya milik frame yang baru di-render; penghitung +
+flag di closure effect (tidak di-log ulang saat tab kembali dari
+hidden). Display-only, tanpa ubah render/sim. KOREKSI CATATAN: brief
+research/2026-11-06-0429.md mengklaim ide ini "DIBANGUN run ini",
+tapi tree saat run 06:29 dimulai TIDAK berisi `renderer.info` sama
+sekali — klaim itu tidak tercermin di kode; yang benar dibangun di
+r49 ini. Angka baseline live dicatat di CHANGELOG r49 setelah
+verifikasi konsol. +14 tes penjaga (RONDE 49).
 
 Sumber: Simplified (draw call = bottleneck utama WebGL, target HP
 <50/frame) + Glitchless (`renderer.info` sebagai pengukur: draw
@@ -631,6 +643,30 @@ dikutip. Dampak sedang, usaha kecil. Tidak direkomendasikan dari riset
 ini: matchmaking/pernikahan ala Lakeburg, interaksi pemain-warga ala
 MCA, gosip karangan LLM, hadiah antar warga sebagai sistem ekonomi
 baru. Detail di research/2026-11-06-0629.md.
+
+## Ide 43 — Kandang/pagar sebagai zona hewan (dari riset 2026-11-06 08:29 WIB, sudut ekonomi/sim)
+
+Sumber: RimWorld (pen + pen marker menahan hewan ternak; tanpa pen
+mereka sesekali mencoba keluar peta) + Dwarf Fortress (padang/pasture
+berpagar + dwarves mengembalikan hewan yang keluar). Masalah: hewan
+jinak tetap bisa kabur jauh saat diusir atau dikejar; pemain tidak
+punya cara menahan mereka di satu tempat. Cara kerja: bangunan
+pagar/kandang baru — hewan jinak yang berada di dalamnya mendapat
+jangkar yang lebih ketat (sabuk kecil di sekitar kandang, bukan
+PUSAT). Butuh katalog bangunan + sim; bukan irisan kecil. Dampak
+sedang, usaha sedang-besar. Detail di research/2026-11-06-0829.md.
+
+## Ide 44 — Sabuk per spesies: mangsa dekat, predator jauh (dari riset 2026-11-06 08:29 WIB, sudut ekonomi/sim)
+
+Sumber: DayZ Deerisle (teritori mangsa 150–500m, predator 300–700m —
+predator punya teritori lebih besar). Masalah: sekarang semua spesies
+berbagi satu sabuk 45 — beruang dan serigala ikut berkumpul di dekat
+kampung, padahal mereka seharusnya terasa liar dan jauh. Cara kerja:
+sabuk jangkar + respawn berbeda per spesies — jinak (rusa/kelinci/
+ayam) tetap 45, buas (babi/serigala/beruang) lebih lebar (mis. 90).
+Hanya angka + satu parameter; tapi mengubah keseimbangan bahaya, jadi
+butuh observasi dulu setelah Ide 1 (r50) hidup. Dampak kecil-sedang,
+usaha kecil. Detail di research/2026-11-06-0829.md.
 
 ## Ide-ide berikutnya
 

@@ -483,6 +483,10 @@ export function damageSenjata(w: Warga): number {
 export const JARAK_KABUR_JINAK = 30; // tile/jam: kabur sekejap hewan jinak (rusa 120 -> 30)
 export const JARAK_CARI_MANGSA = 40; // tile: pemburu aktif mencari mangsa sejauh ini (dulu 6)
 export const JARAK_SERANG_OPORTUNIS = 3; // tile: warga non-pemburu menyerang hewan yang dekat
+// r50 — SABUK WILAYAH JELAJAH hewan (tile Manhattan dari PUSAT):
+// dipakai respawn r42 DAN jangkar mengembara r50 supaya satu angka
+// yang sama mengatur "dekat kampung" di kedua tempat.
+export const SABUK_HEWAN_MAKS = 45;
 export const PENGALI_KEJAR = 1.5; // pemburu berlari saat mengejar mangsa (bukan jalan biasa)
 
 // RONDE 15 — damage berburu per hit (sistem HP hewan): tombak iblis
@@ -1541,10 +1545,10 @@ export function lokasiRespawnHewan(
   for (let t = 0; t < 40; t++) {
     let cx: number, cy: number;
     if (r() < 0.8) {
-      cx = PUSAT.gx + Math.floor((r() * 2 - 1) * 45);
-      cy = PUSAT.gy + Math.floor((r() * 2 - 1) * 45);
+      cx = PUSAT.gx + Math.floor((r() * 2 - 1) * SABUK_HEWAN_MAKS);
+      cy = PUSAT.gy + Math.floor((r() * 2 - 1) * SABUK_HEWAN_MAKS);
       const d = Math.abs(cx - PUSAT.gx) + Math.abs(cy - PUSAT.gy);
-      if (d < 12 || d > 45) continue;
+      if (d < 12 || d > SABUK_HEWAN_MAKS) continue;
     } else {
       cx = 10 + Math.floor(r() * 180);
       cy = 10 + Math.floor(r() * 180);
@@ -2781,10 +2785,37 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
   // katalog (def.kecepatan) tetap 120/150 — yang dibatasi hanya
   // gerakan tenang per jam; hewan buas yang MENDEKATI warga tetap
   // berlari sekencang-kencangnya di cabang atas.
-  const arah = Math.floor(Math.random() * 4);
-  const dx = arah === 0 ? 1 : arah === 1 ? -1 : 0;
-  const dy = arah === 2 ? 1 : arah === 3 ? -1 : 0;
-  const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, { gx: h.gx - dx, gy: h.gy - dy }, Math.min(def.kecepatan, JARAK_KABUR_JINAK), ctx.rintangan);
+  // r50 — WILAYAH JELAJAH (home range): hewan di LUAR sabuk 45 dari
+  // PUSAT mengembara PULANG ke pusat, bukan acak. Jalan acak 30
+  // tile/jam tanpa jangkar adalah difusi (~147 tile/hari): hewan hidup
+  // menjauh sampai 60-300+ tile dari kampung (observasi r49 — dari 26
+  // ekor hanya 3 dalam ~30 unit dari pusat) dan pemburu yang mencari
+  // dalam radius 40 praktis tak pernah menemukannya, padahal respawn
+  // r42 sudah dibias ke sabuk. Di DALAM sabuk tetap acak; kecepatan
+  // langkah tetap (maks 30 tile/jam) — dari 300 tile butuh ~1 hari
+  // game untuk pulang, bukan teleport. Cabang kabur/mendekat di atas
+  // TIDAK disentuh: reaksi menang atas wilayah (pola RimWorld —
+  // hewan kabur mengabaikan zona).
+  const dPusat = Math.abs(h.gx - PUSAT.gx) + Math.abs(h.gy - PUSAT.gy);
+  let dx: number;
+  let dy: number;
+  let langkah = Math.min(def.kecepatan, JARAK_KABUR_JINAK);
+  if (dPusat > SABUK_HEWAN_MAKS) {
+    dx = Math.sign(PUSAT.gx - h.gx);
+    dy = Math.sign(PUSAT.gy - h.gy);
+    // Jangan lewati sumbu pusat: langkah dibatasi sisa jarak sumbu
+    // utama supaya hewan berhenti TEPAT di garis pusat. Tanpa ini,
+    // langkah 30 tile mengayun melewati pusat tiap jam — (120,300)
+    // -> (90,300) -> (120,300) selamanya, sumbu lain tak pernah
+    // disentuh (osilasi ini yang ditemukan tes r50 sebelum perbaikan).
+    const sisaSumbu = h.gx !== PUSAT.gx ? Math.abs(h.gx - PUSAT.gx) : Math.abs(h.gy - PUSAT.gy);
+    langkah = Math.min(langkah, sisaSumbu);
+  } else {
+    const arah = Math.floor(Math.random() * 4);
+    dx = arah === 0 ? 1 : arah === 1 ? -1 : 0;
+    dy = arah === 2 ? 1 : arah === 3 ? -1 : 0;
+  }
+  const p = gerakMenjauh({ gx: h.gx, gy: h.gy }, { gx: h.gx - dx, gy: h.gy - dy }, langkah, ctx.rintangan);
   h.gx = p.gx;
   h.gy = p.gy;
 }
