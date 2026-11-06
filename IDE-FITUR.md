@@ -306,6 +306,13 @@ pilihan label karakter; default mengikuti toggle lama. Dampak
 sedang, usaha kecil.
 
 ## Ide 17 — Jeda poll data saat tab hidden (dari riset 2026-11-04 10:29 WIB, sudut performa)
+~~DIBANGUN 2026-11-04 (r21, commit ed82341) — dicatat di sini 2026-11-06
+karena baru ketahuan belum pernah ditandai~~ — efek di `page.tsx`:
+`muat()` awal + `mulaiPoll()` (interval 3 detik); `visibilitychange`:
+hidden -> clearInterval + `pollRef.current = null`, visible -> `muat()`
+segar + `mulaiPoll()` lagi; cleanup melepas listener + interval.
+Interval lokal 1 detik untuk label jam TIDAK dijeda (murah, label jam
+harus tetap benar saat kembali).
 
 Sumber: Spicy Yoghurt + Codrops (lihat research/2026-11-04-1029.md).
 Masalah: poll `/api/world` dkk. tetap jalan (meski di-throttle
@@ -579,6 +586,52 @@ Tidak direkomendasikan dari riset ini: cap keras ala FreeCol
 stok ala Utopia (menggerus stok dalam kapasitas yang dinyatakan
 aman). Detail di research/2026-11-05-0829.md.
 
+## Ide 38 — Label hewan meredup saat tidak diburu (dari riset 2026-11-06 00:29 WIB, sudut UX)
+
+Sumber: forum WoW (transparansi 20% untuk nameplate bukan target di
+luar combat). Masalah: 13-17 hewan berlabel sekaligus menambah
+kebisingan visual di pusat kampung. Cara kerja (display-only): label
+hewan yang tidak sedang diburu tampil dengan opacity lebih rendah;
+yang sedang diburu tetap penuh + bar HP seperti sekarang. Dampak
+kecil-sedang, usaha kecil. Detail di research/2026-11-06-0029.md.
+
+## Ide 39 — Label warga terpilih selalu paling depan (dari riset 2026-11-06 00:29 WIB, sudut UX)
+
+Sumber: forum WoW ("current target shifted into the foreground").
+Masalah: label warga yang sedang dipilih (`.sel`) bisa tergeser ke
+bawah antrean dan tertutup label lain. Cara kerja (display-only):
+dalam antrean gabungan, entri terpilih dijamin tidak digeser oleh
+entri lain (ditempatkan terakhir / di depan). Dampak kecil, usaha
+kecil. Detail di research/2026-11-06-0029.md.
+
+## Ide 41 — Baris "Sering bersama" di Papan Warga (dari riset 2026-11-06 06:29 WIB, sudut sosial/QoL)
+
+Sumber: Lakeburg Legacies (jurnal mencatat semua pertemuan, sapaan,
+ambivalensi) + MCA Reborn (panel warga satu layar: nama, profesi, mood,
+kepribadian, hati hubungan, analisis interaksi terakhir). Masalah:
+obrolan warga sudah ada tapi tidak meninggalkan jejak — pemain tidak
+tahu siapa dekat dengan siapa (sudah dicatat Ide 11). Cara kerja
+(display-only): bila sim menyimpan pasangan ngobrol secara terstruktur,
+tiap baris Papan Warga menampilkan satu nama teman terdekat ("Sering
+bersama: Ys"); bila data tidak terstruktur, irisan pertama mundur ke
+baris kroniknya saja (Ide 23 sudah hidup). WAJIB cek struktur data dulu
+sebelum menghitung pasangan. Dampak sedang, usaha kecil-sedang.
+Detail di research/2026-11-06-0629.md.
+
+## Ide 42 — Rumor berguna ber-atribusi di kabar (dari riset 2026-11-06 06:29 WIB, sudut sosial/QoL)
+
+Sumber: MCA Reborn ("Rumors": warga memberi info struktur + koordinat,
+atau mengaku belum dengar apa-apa). Masalah: kabar kampung daftar
+panjang yang mudah tenggelam; info berguna tidak punya pembawa. Cara
+kerja (display-only): satu baris kabar sesekali ber-atribusi ("Kata
+Budi: lumbung sudah penuh…") yang isinya HANYA fakta dari data poll
+yang sudah ada — tanpa karangan (aturan Ide 23). Belum diputuskan:
+frekuensi (biar tidak membanjiri kabar) + sumber fakta mana yang boleh
+dikutip. Dampak sedang, usaha kecil. Tidak direkomendasikan dari riset
+ini: matchmaking/pernikahan ala Lakeburg, interaksi pemain-warga ala
+MCA, gosip karangan LLM, hadiah antar warga sebagai sistem ekonomi
+baru. Detail di research/2026-11-06-0629.md.
+
 ## Ide-ide berikutnya
 
 Diisi dari riset web tiap run cron (fitur baru yang fresh,
@@ -619,7 +672,20 @@ musik latar penuh sebagai langkah pertama. Detail di
 research/2026-11-05-1629.md.
 
 ## Ide 33 — Label hewan ikut antrean rapikan (dari riset 2026-11-05 18:29 WIB, sudut UX)
-
+~~DIBANGUN 2026-11-06 00:29 WIB (r48)~~ — satu antrean gabungan
+(warga + hewan) lewat `rapikanLabelBertumpuk` yang sama: loop hewan
+mendorong `{ label, bubble: null, sx, sy }` ke `labelAntre`; blok
+penerapan rapikan pindah ke setelah loop hewan (satu titik penerapan
+transform, dijaga `if (!a.bubble) return;`); tipe antrean mengizinkan
+`bubble: null`. Display-only, tanpa ubah sim; fungsi rapikannya tidak
+berubah. +11 tes (kontrak antrean gabungan + audit sumber Map3D).
+CATATAN KEJUJURAN: observasi live run ini tidak melihat satu pun
+hewan (13 ekor di data, tidak tampak di tampilan apa pun — pengulangan
+observasi r47), jadi perbaikan tumpukan label hewan vs warga BELUM
+terverifikasi secara visual; yang terverifikasi adalah tes offline +
+tidak ada regresi build/API. Verifikasi visual ditunda sampai hewan
+terlihat lagi (kandidat run berikutnya: pan lebih luas / cek posisi
+hewan dari /api/map).
 Sumber: Wandr (kurangi, bukan padatkan) + audit kode Map3D.
 Masalah: label hewan diposisikan langsung di loop hewan, tidak
 pernah lewat `rapikanLabelBertumpuk` — hanya label warga yang

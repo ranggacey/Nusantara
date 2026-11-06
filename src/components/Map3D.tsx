@@ -2048,7 +2048,11 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
       let selFound = false;
       // RONDE 22 — antre label warga untuk dirapikan (tumpuk) setelah
       // loop, supaya nama tidak saling menutupi saat warga berkerumun.
-      const labelAntre: { label: HTMLDivElement; bubble: HTMLDivElement; sx: number; sy: number; bubbleText: string; isSelectedW: boolean }[] = [];
+      // RONDE 48 (Ide 33): label HEWAN ikut antrean yang sama — dulu
+      // diposisi langsung di loop hewan, jadi bisa menumpuk di atas
+      // label warga yang sudah dirapikan di pusat kampung. Entri hewan
+      // tidak punya bubble (bubble: null).
+      const labelAntre: { label: HTMLDivElement; bubble: HTMLDivElement | null; sx: number; sy: number; bubbleText: string; isSelectedW: boolean }[] = [];
       const wRect = wrap.getBoundingClientRect();
       const camDist = camera.position.distanceTo(controls.target);
       const jamNow = jamRef.current;
@@ -2619,24 +2623,10 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
         }
       }
       if (!selFound) ring.visible = false;
-      // RONDE 22 — rapikan label bertumpuk: label warga yang berkerumun
-      // digeser ke bawah supaya semua nama tetap terbaca; bubble ikut
-      // labelnya (tetap di atas label).
-      if (labelAntre.length > 0) {
-        const syBaru = rapikanLabelBertumpuk(labelAntre.map((a) => ({ x: a.sx, y: a.sy })));
-        labelAntre.forEach((a, i) => {
-          const syA = syBaru[i];
-          a.label.style.transform = `translate(-50%, -100%) translate(${a.sx.toFixed(1)}px, ${syA.toFixed(1)}px)`;
-          if (a.bubbleText) {
-            a.bubble.style.display = "block";
-            if (a.bubble.textContent !== a.bubbleText) a.bubble.textContent = a.bubbleText;
-            const bubbleOffsetY = a.isSelectedW ? 54 : 32;
-            a.bubble.style.transform = `translate(-50%, -100%) translate(${a.sx.toFixed(1)}px, ${(syA - bubbleOffsetY).toFixed(1)}px)`;
-          } else {
-            a.bubble.style.display = "none";
-          }
-        });
-      }
+      // RONDE 48 (Ide 33): penerapan rapikan PINDAH ke setelah loop
+      // hewan — label hewan ikut antrean yang sama sebelum dirapikan,
+      // supaya satu panggilan rapikanLabelBertumpuk menata warga +
+      // hewan sekaligus. (Dulu blok ini langsung setelah loop warga.)
 
       // Hewan: dead reckoning sama + ANIMASI (ronde 3/4): kaki gaya
       // diagonal terikat jarak tempuh, kepala mengangguk/merumput saat diam,
@@ -2755,7 +2745,11 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           cur.label.style.display = "block";
           const sx = (vec.x * 0.5 + 0.5) * wRect.width;
           const sy = (-vec.y * 0.5 + 0.5) * wRect.height;
-          cur.label.style.transform = `translate(-50%, -100%) translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`;
+          // RONDE 48 (Ide 33): label hewan TIDAK diposisi langsung —
+          // masuk antrean yang sama dengan label warga; transform
+          // diterapkan sekali setelah loop hewan (blok rapikan di
+          // bawah), supaya hewan + warga dirapikan bersama.
+          labelAntre.push({ label: cur.label, bubble: null, sx, sy, bubbleText: "", isSelectedW: false });
           // RONDE 15 — bar HP hewan: tampil saat terluka (hp < maks)
           // atau sedang diburu; warna hijau >50%, kuning >25%, merah.
           const pctHp = lebarBarHp(cur.hp, cur.hpMax);
@@ -2766,6 +2760,27 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
             cur.hpFill.style.background = pctHp > 50 ? "#4ade80" : pctHp > 25 ? "#facc15" : "#ef4444";
           }
         }
+      }
+
+      // RONDE 22 — rapikan label bertumpuk (r48: antrean kini gabungan
+      // warga + hewan): label yang berkerumun digeser ke bawah supaya
+      // semua nama tetap terbaca; bubble ikut labelnya (tetap di atas
+      // label). Entri hewan tidak punya bubble — dijaga null.
+      if (labelAntre.length > 0) {
+        const syBaru = rapikanLabelBertumpuk(labelAntre.map((a) => ({ x: a.sx, y: a.sy })));
+        labelAntre.forEach((a, i) => {
+          const syA = syBaru[i];
+          a.label.style.transform = `translate(-50%, -100%) translate(${a.sx.toFixed(1)}px, ${syA.toFixed(1)}px)`;
+          if (!a.bubble) return;
+          if (a.bubbleText) {
+            a.bubble.style.display = "block";
+            if (a.bubble.textContent !== a.bubbleText) a.bubble.textContent = a.bubbleText;
+            const bubbleOffsetY = a.isSelectedW ? 54 : 32;
+            a.bubble.style.transform = `translate(-50%, -100%) translate(${a.sx.toFixed(1)}px, ${(syA - bubbleOffsetY).toFixed(1)}px)`;
+          } else {
+            a.bubble.style.display = "none";
+          }
+        });
       }
 
       // RONDE 10 — hewan jatuh: rebah + tenggelam 1,2 detik lalu hapus.
