@@ -241,6 +241,37 @@ export function tonggakKampung(populasi: number, jenisBerdiri: string[]): Tongga
   return { daftar, tercapai, total: daftar.length, berikutnya };
 }
 
+// ── Kilas "Tonggak baru!" (2026-11-06, Ide 54 / riset onboarding
+// 20:29): perayaan pencapaian yang dituntut dua sumber riset run ini
+// — PocketGamer ("celebrate their accomplishments — each goal
+// achieved") dan WizusLabs ("first win ... reacts, immediately and
+// generously"). Fungsi MURNI, display-only: membandingkan cuplikan
+// kunjungan terakhir dengan keadaan poll terbaru lewat
+// tonggakKampung yang sudah ada, lalu mengembalikan NAMA tonggak
+// yang baru tercapai sejak cuplikan itu, dalam urutan kanonik.
+// Format cuplikan TIDAK perlu diubah: ketujuh tonggak diturunkan
+// dari populasi + jenis bangunan berdiri, dan keduanya sudah ada di
+// CuplikanKampung. [] bila tidak ada cuplikan / tidak ada yang baru.
+// Kilas hilang sendiri begitu cuplikan dimajukan (✕ blok pergi atau
+// simpan otomatis saat tab ditutup) — tanpa hadiah ekonomi, tanpa
+// ubah sim, tanpa fetch baru.
+export function tonggakBaru(
+  sebelum: CuplikanKampung | null | undefined,
+  sekarang: { populasi: number; bangunan: string[] }
+): string[] {
+  if (!sebelum) return [];
+  const lalu = tonggakKampung(
+    Number.isFinite(sebelum.populasi) ? Math.max(0, Math.floor(sebelum.populasi)) : 0,
+    Array.isArray(sebelum.bangunan) ? sebelum.bangunan.map(String) : []
+  );
+  const kini = tonggakKampung(
+    Number.isFinite(sekarang.populasi) ? Math.max(0, Math.floor(sekarang.populasi)) : 0,
+    Array.isArray(sekarang.bangunan) ? sekarang.bangunan.map(String) : []
+  );
+  const tercapaiLalu = new Set(lalu.daftar.filter((t) => t.tercapai).map((t) => t.id));
+  return kini.daftar.filter((t) => t.tercapai && !tercapaiLalu.has(t.id)).map((t) => t.nama);
+}
+
 // ── "Selama kamu pergi" (2026-11-05, Ide 22 / riset kembali bermain)
 // Fungsi MURNI, display-only: membandingkan cuplikan kampung dari
 // kunjungan terakhir (localStorage, ditulis saat tab disembunyikan /

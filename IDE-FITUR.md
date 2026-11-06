@@ -800,19 +800,25 @@ sudah ada. Dampak sedang, usaha kecil. Detail di
 research/2026-11-06-1829.md.
 
 ## Ide 54 — Kilas "Tonggak baru!" sejak kunjungan terakhir (dari riset 2026-11-06 18:29 WIB, sudut kembali bermain)
-
-Sumber: gamedesign.gg (return = seremoni kecil; tunjukkan apa yang
-tercapai) + SISA Ide 29. Masalah: tonggak tercapai saat pemain
-pergi hanya tercatat diam di baris "N dari 7" — tidak ada momen
-"ini baru saja tercapai". Cara kerja (display-only): bandingkan
-cuplikan kunjungan terakhir (localStorage, pola yang sama dengan
-Ide 22) dengan daftar tonggak sekarang; bila ada tonggak yang baru
-tercapai sejak kunjungan itu, baris Tonggak menampilkan namanya
-("🏅 Baru: Balai berdiri!"). Tanpa hadiah ekonomi, tanpa ubah sim.
-Dampak sedang, usaha kecil-sedang. Perhatian: cuplikan harus
-menyimpan daftar tonggak tercapai, bukan hanya bangunan — cek dulu
-bentuk `ne_kunjungan_terakhir` sebelum membangun. Detail di
-research/2026-11-06-1829.md.
+~~DIBANGUN 2026-11-06 20:29 WIB (r56)~~ — fungsi murni `tonggakBaru`
+di `sumberdaya.ts` (membandingkan cuplikan kunjungan terakhir
+dengan keadaan poll terbaru lewat `tonggakKampung` yang sudah ada;
+format cuplikan TIDAK perlu diubah — ketujuh tonggak diturunkan
+dari populasi + jenis bangunan yang sudah tersimpan) + satu baris
+"✨ Baru: …" di dalam blok Tonggak di `page.tsx` (hilang bila tidak
+ada yang baru; BUKAN baris ke-4 blok pergi — kontrak "maksimal 3
+baris" `selamaKamuPergi` dijaga tes) + CSS `.menu-tonggak-baru`
+tanpa animasi (patuh reduced-motion). Display-only, tanpa hadiah
+ekonomi, tanpa ubah sim, tanpa fetch baru. BUILD_ID r55 -> r56 +
+24 tes penjaga (RONDE 56). CATATAN JUJUR: dunia live saat deploy
+sudah "7 dari 7" (semua tonggak tercapai), jadi kilas ini TIDAK
+akan tampil di Suka Maju sampai ada dunia/kampung baru yang
+mencapai tonggak — itu perilaku benar, verifikasi visual menyusul
+di dunia baru; yang terverifikasi adalah tes offline + tidak ada
+regresi build/API. Penguat riset run ini: PocketGamer ("celebrate
+their accomplishments — each goal achieved") + WizusLabs ("first
+win ... reacts, immediately and generously") + Second Screen
+("a short pop-up for real milestones").
 
 ## Ide 55 — Jurnal kembali: kabar sejak kunjungan terakhir (dari riset 2026-11-06 18:29 WIB, sudut kembali bermain)
 

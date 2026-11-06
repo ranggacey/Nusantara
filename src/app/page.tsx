@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, tonggakBaru, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -666,6 +666,14 @@ export default function Page() {
                 world?.populasi ?? 0,
                 (map?.placements ?? []).map((p: J) => String(p.kind))
               );
+              // Kilas "Tonggak baru!" (2026-11-06, Ide 54): tonggak
+              // yang tercapai sejak cuplikan kunjungan terakhir —
+              // dihitung dari cuplikanLalu yang sama dengan blok
+              // "Selama kamu pergi", tanpa fetch baru.
+              const baru = tonggakBaru(cuplikanLalu, {
+                populasi: Number(world?.populasi ?? 0),
+                bangunan: (map?.placements ?? []).map((p: J) => String(p.kind)),
+              });
               // "Yang menunggu" (2026-11-06, Ide 53): bangunan sedang
               // dibangun + warga tanpa tugas, dari data poll yang sudah
               // ada — dipakai kronik DAN baris handoff blok "Selama kamu
@@ -777,6 +785,13 @@ export default function Page() {
                         <> — Semua tonggak tercapai!</>
                       )}
                     </div>
+                    {/* Kilas "Tonggak baru!" (2026-11-06, Ide 54):
+                        perayaan satu baris saat ada tonggak yang baru
+                        tercapai sejak kunjungan terakhir; hilang bila
+                        tidak ada yang baru. Display-only. */}
+                    {baru.length > 0 && (
+                      <div className="menu-tonggak-baru">✨ Baru: {baru.join(" · ")}</div>
+                    )}
                   </div>
                   {/* Kronik kampung (2026-11-05, Ide 23): satu baris
                       "cerita hari ini" — kalimatnya berasal dari data

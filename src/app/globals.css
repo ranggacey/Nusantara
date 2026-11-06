@@ -405,6 +405,15 @@ canvas.game-canvas {
   line-height: 1.5;
   opacity: 0.9;
 }
+/* Kilas "Tonggak baru!" (2026-11-06, Ide 54): satu baris perayaan di
+   dalam bingkai tonggak — teks tegas tanpa animasi (patuh
+   reduced-motion r31), supaya momennya terbaca tanpa berkedip. */
+.menu-tonggak-baru {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  margin-top: 4px;
+}
 /* Kronik kampung (2026-11-05, Ide 23): satu baris "cerita hari ini",
    bingkai netral senada tonggak, tanpa animasi (patuh reduced-motion
    r31). Teksnya berasal dari data poll, bukan karangan. */
