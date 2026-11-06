@@ -250,6 +250,24 @@ export function opacityLabelHewan(relevan: boolean): number {
   return relevan ? 1 : OPACITY_LABEL_HEWAN_TENANG;
 }
 
+// RONDE 53 — label hewan memudar dengan jarak kamera (Ide 48, riset UX
+// 2026-11-06 12:29: pola WoW "dozens of floating nameplates from afar").
+// Kamera membingkai kampung di jarak ~80 (frameAnim Map3D: toP = pusat +
+// arah * 80); label disembunyikan bila camDist > 130. Di antara keduanya
+// opacity memudar linear supaya label tidak hilang mendadak saat zoom
+// keluar — dikali dengan opacity relevansi r52 (diburu/terluka vs tenang),
+// jadi hewan yang diburu tetap paling menonjol di jarak berapa pun, dan
+// bar HP-nya tetap tampil sebagai sinyal kedua. Murni + dites.
+export const JARAK_LABEL_HEWAN_PENUH = 80;
+export const JARAK_LABEL_HEWAN_HILANG = 130;
+export function opacityLabelHewanJarak(relevan: boolean, camDist: number): number {
+  const dasar = opacityLabelHewan(relevan);
+  if (!(camDist > JARAK_LABEL_HEWAN_PENUH)) return dasar;
+  if (camDist >= JARAK_LABEL_HEWAN_HILANG) return 0;
+  const faktor = 1 - (camDist - JARAK_LABEL_HEWAN_PENUH) / (JARAK_LABEL_HEWAN_HILANG - JARAK_LABEL_HEWAN_PENUH);
+  return dasar * faktor;
+}
+
 // RONDE 13 — teks bubble EVENT-ONLY (murni, dites tanpa WebGL).
 // Hanya interaksi sim yang aktif yang menghasilkan bubble; segala yang
 // lain (dialog ambient, tidur) menghasilkan string kosong = bubble

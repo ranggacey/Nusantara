@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { GUBUK_DINDING, GUBUK_ATAP, POHON_BATANG } from "@/lib/batu/skala";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, opacityLabelHewanJarak, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
 import { durasiJamMs } from "@/lib/clock";
 import { buatTombakIblis } from "@/lib/batu/senjataIblis";
 import { updateAudioScene, SFX_PERKAKAS } from "@/lib/audio";
@@ -2760,9 +2760,14 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           // RONDE 52 (Ide 38): label hewan ikut kondisi yang sama —
           // yang diburu/terluka tampil penuh, yang tenang meredup
           // (0.45) supaya tidak menenggelamkan label warga.
+          // RONDE 53 (Ide 48): opacity itu dikali faktor jarak —
+          // penuh sampai camDist 80, memudar ke 0 di 130.
           const pctHp = lebarBarHp(cur.hp, cur.hpMax);
           const showHp = cur.hp < cur.hpMax || diburu.has(cur.id);
-          cur.label.style.opacity = String(opacityLabelHewan(showHp));
+          // RONDE 53 (Ide 48): opacity label hewan kini juga ikut jarak
+          // kamera — penuh sampai 80 (jarak bingkai normal), memudar
+          // linear ke 0 di 130 (tempat label memang disembunyikan).
+          cur.label.style.opacity = String(opacityLabelHewanJarak(showHp, camDist));
           cur.hpBar.style.display = showHp ? "block" : "none";
           if (showHp) {
             cur.hpFill.style.width = `${pctHp}%`;

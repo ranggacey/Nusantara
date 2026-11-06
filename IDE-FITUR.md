@@ -639,7 +639,18 @@ entri lain (ditempatkan terakhir / di depan). Dampak kecil, usaha
 kecil. Detail di research/2026-11-06-0029.md.
 
 ## Ide 48 — Label hewan memudar dengan jarak kamera (dari riset 2026-11-06 12:29 WIB, sudut UX)
-
+~~DIBANGUN 2026-11-06 14:29 WIB (r53)~~ — helper murni
+`opacityLabelHewanJarak(relevan, camDist)` di `tampil.ts` (penuh sampai
+80 = jarak bingkai normal Map3D, memudar linear ke 0 di 130 = ambang
+sembunyi label, dikali opacity relevansi r52; NaN jatuh ke dasar) +
+satu baris di loop hewan Map3D (`opacityLabelHewanJarak(showHp,
+camDist)`). Display-only, tanpa ubah sim, label warga tidak disentuh.
++28 tes (RONDE 53: nilai tengah 105, monoton turun, fallback NaN,
+penjaga Ide 38). Prasyarat observasi terpenuhi (hewan terlihat, label
+menumpuk di pusat, zoom bekerja) + verifikasi visual r52 terkonfirmasi
+run ini (label tenang pucat vs ber-bar HP penuh). Verifikasi VISUAL
+efek r53 (label benar-benar memudar saat zoom keluar) menyusul —
+butuh perbandingan zoom dekat vs jauh di layar.
 Sumber: forum WoW (OP: "I will see dozens of floating nameplates
 from afar" — puluhan nameplate dari kejauhan) + PUNCHEV (minimize
 clutter). Masalah: dari kejauhan (zoom out), puluhan label kecil
@@ -652,6 +663,53 @@ menjauh, sebelum hilang total di 130. Mulai dari hewan dulu
 usaha kecil. CATATAN: jangan digabung dengan Ide 38 dalam satu
 run — dua perubahan opacity sekaligus membuat efek
 masing-masing tidak terukur. Detail di research/2026-11-06-1229.md.
+
+## Ide 49 — Musik adaptif berlapis mengikuti fase & cuaca (dari riset 2026-11-06 14:29 WIB, sudut audio)
+
+Sumber: DepartureMusic (vertical layering untuk game cozy: stem
+berbagi tempo/kunci/panjang loop yang sama; satu parameter kontinu
+0–1 + lerp mengalahkan saklar diskrit; pad selalu bunyi, melodi saat
+menjelajah, perkusi saat crafting, aksen saat momen bermakna).
+Masalah: kampung bisu secara musikal — siang terasa sama dengan
+malam, pasar dan hujan tidak terdengar bedanya, padahal fase, cuaca,
+dan momen (pasar mingguan, tonggak) sudah ada di data poll. Cara
+kerja: SATU parameter kontinu `intensitas` (0–1) dari data poll yang
+sudah ada (fase siang/malam + cuaca + hari pasar/momen) → gain tiga
+lapis prosedural (pad selalu bunyi; melodi masuk saat warga ramai/
+aktif; aksen saat momen) dengan crossfade lerp, mengikuti toggle
+Suara + gate gestur, tanpa aset, tanpa fetch baru, tanpa ubah sim.
+Irisan pertama: fungsi murni `lapisanMusik(fase, cuaca, momen)` →
+gain + tes; bunyinya belakangan setelah Ide 32 (ambien) hidup,
+supaya satu infrastruktur audio. Dampak sedang-tinggi, usaha sedang.
+Tidak direkomendasikan dari riset ini: FMOD/Wwise (middleware berat,
+bukan web), generate AI on-device, satu loop statis (cara tercepat
+merusak imersi game cozy). Detail di research/2026-11-06-1429.md.
+
+## Ide 50 — Keluarga bunyi UI: konfirmasi, batal, gagal, terkunci (dari riset 2026-11-06 14:29 WIB, sudut audio)
+
+Sumber: FlutuMusic (bunyi UI = desain umpan balik, bukan dekorasi;
+tiap bunyi dinamai dari EVENT-nya; konfirmasi vs error beda BENTUK
+bukan cuma volume; bunyi rutin pendek + variasi kecil; sonic
+grammar; cooldown/voice-limit untuk ketukan cepat) + RouteNote
+(petakan semua state antarmuka dulu; pisahkan focus dari
+confirmation). Masalah: menu Nusantara (10 tombol + modal + papan)
+tidak memberi umpan balik suara sama sekali — pemain hanya
+mengandalkan visual untuk tahu ketukannya terdaftar, ditolak, atau
+terkunci; padahal toggle Suara sudah ada. Cara kerja: satu keluarga
+cue prosedural (osilator/filter dari infrastruktur `audio.ts` yang
+sama) dengan bentuk berbeda per event — konfirmasi (naik, bersih),
+batal (turun, pendek), gagal/terkunci (nada rendah, terputus,
+dikenali tanpa menghukum) — pendek + variasi kecil + cooldown/
+voice-limit untuk ketukan cepat; hanya memperkuat visual, bukan
+menggantikan sinyal visual; ikut toggle Suara + gate gestur. Irisan
+pertama: fungsi murni pemetaan event → spesifikasi cue + satu helper
+osilator di `audio.ts` + tes. Mulai dari 4 event dulu (buka/tutup,
+konfirmasi, batal, terkunci), bukan 15 sekaligus. Dampak sedang,
+usaha kecil-sedang. Tidak direkomendasikan dari riset ini: bunyi di
+tiap hover/animasi (bila tidak menjawab timing/konfirmasi/keadaan/
+perhatian, diam lebih baik), bunyi sinematik untuk aksi rutin,
+sukses/gagal hanya beda volume. Detail di
+research/2026-11-06-1429.md.
 
 ## Ide 41 — Baris "Sering bersama" di Papan Warga (dari riset 2026-11-06 06:29 WIB, sudut sosial/QoL)
 
