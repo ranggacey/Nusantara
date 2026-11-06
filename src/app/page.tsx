@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, tonggakBaru, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, tonggakBaru, tonggakBaruBelumDilihat, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -190,6 +190,10 @@ export default function Page() {
   // 1 tombol kanan-atas (menu-fab) yang membuka kartu modal menu.
   // TIDAK ADA tombol gacha (keputusan user masih menunggu — ronde 2).
   const [menuOpen, setMenuOpen] = useState(false);
+  // Penanda tonggak baru (2026-11-06, Ide 56): nama tonggak baru yang
+  // sudah dilihat pemain (ditandai saat menu dibuka) — titik di tombol
+  // ☰ hanya untuk yang belum dilihat, satu kali per tonggak lalu diam.
+  const [tonggakDilihat, setTonggakDilihat] = useState<string[]>([]);
   // Papan Warga (2026-11-04, Ide 18): daftar seluruh warga dari data
   // peta yang sudah diambil — tanpa fetch baru, tanpa ubah sim.
   const [showPapanWarga, setShowPapanWarga] = useState(false);
@@ -608,6 +612,24 @@ export default function Page() {
     hewanAgg[String(h.jenis)] = (hewanAgg[String(h.jenis)] ?? 0) + 1;
   }
 
+  // Kilas "Tonggak baru!" (2026-11-06, Ide 54) + penanda tombol menu
+  // (Ide 56): tonggak yang tercapai sejak cuplikan kunjungan terakhir,
+  // dihitung SEKALI di sini supaya dipakai FAB (titik penanda) DAN
+  // baris kilas di kartu menu — tanpa fetch baru, tanpa ubah sim.
+  const baruTonggak = tonggakBaru(cuplikanLalu, {
+    populasi: Number(world?.populasi ?? 0),
+    bangunan: (map?.placements ?? []).map((p: J) => String(p.kind)),
+  });
+  const baruBelumDilihat = tonggakBaruBelumDilihat(baruTonggak, tonggakDilihat);
+  // Membuka menu menandai tonggak baru saat ini sebagai dilihat —
+  // titik di tombol ☰ berhenti, satu kali per tonggak lalu diam.
+  const bukaMenu = () => {
+    if (baruTonggak.length > 0) {
+      setTonggakDilihat((d) => Array.from(new Set([...d, ...baruTonggak])));
+    }
+    setMenuOpen(true);
+  };
+
   return (
     <div className={`game-root${orientasi === "landscape" ? " landscape-mode" : ""}`}>
       {/* Menu kampung (2026-11-04, permintaan user): topbar DIHAPUS,
@@ -615,8 +637,13 @@ export default function Page() {
           Semua tombol lama pindah ke sini, masing-masing dengan ikon,
           nama, dan penjelasan fungsinya. Info kampung + resource ikut
           di atas kartu supaya tidak ada info yang hilang. */}
-      <button className="menu-fab" title="Menu Kampung" onClick={() => setMenuOpen(true)} aria-label="Buka menu kampung">
+      <button className="menu-fab" title={baruBelumDilihat.length > 0 ? "Menu Kampung — ada tonggak baru!" : "Menu Kampung"} onClick={bukaMenu} aria-label={baruBelumDilihat.length > 0 ? "Buka menu kampung, ada tonggak baru" : "Buka menu kampung"}>
         <span>☰</span>
+        {/* Penanda tonggak baru (2026-11-06, Ide 56): titik merah kecil
+            di sudut tombol saat ada tonggak baru yang belum dilihat —
+            denyut terbatas (CSS, 3x lalu diam), titik statis di bawah
+            reduced-motion. aria-hidden: sinyalnya ada di aria-label. */}
+        {baruBelumDilihat.length > 0 && <span className="menu-fab-dot" aria-hidden="true" />}
       </button>
       {menuOpen && (
         <div className="overlay-full" onClick={() => setMenuOpen(false)}>
@@ -666,14 +693,11 @@ export default function Page() {
                 world?.populasi ?? 0,
                 (map?.placements ?? []).map((p: J) => String(p.kind))
               );
-              // Kilas "Tonggak baru!" (2026-11-06, Ide 54): tonggak
-              // yang tercapai sejak cuplikan kunjungan terakhir —
-              // dihitung dari cuplikanLalu yang sama dengan blok
-              // "Selama kamu pergi", tanpa fetch baru.
-              const baru = tonggakBaru(cuplikanLalu, {
-                populasi: Number(world?.populasi ?? 0),
-                bangunan: (map?.placements ?? []).map((p: J) => String(p.kind)),
-              });
+              // Kilas "Tonggak baru!" (2026-11-06, Ide 54): dipakai
+              // dari `baruTonggak` yang dihitung sekali sebelum return
+              // (dipakai juga titik penanda FAB, Ide 56) — dihitung
+              // dari cuplikanLalu yang sama dengan blok "Selama kamu
+              // pergi", tanpa fetch baru.
               // "Yang menunggu" (2026-11-06, Ide 53): bangunan sedang
               // dibangun + warga tanpa tugas, dari data poll yang sudah
               // ada — dipakai kronik DAN baris handoff blok "Selama kamu
@@ -789,8 +813,8 @@ export default function Page() {
                         perayaan satu baris saat ada tonggak yang baru
                         tercapai sejak kunjungan terakhir; hilang bila
                         tidak ada yang baru. Display-only. */}
-                    {baru.length > 0 && (
-                      <div className="menu-tonggak-baru">✨ Baru: {baru.join(" · ")}</div>
+                    {baruTonggak.length > 0 && (
+                      <div className="menu-tonggak-baru">✨ Baru: {baruTonggak.join(" · ")}</div>
                     )}
                   </div>
                   {/* Kronik kampung (2026-11-05, Ide 23): satu baris

@@ -272,6 +272,21 @@ export function tonggakBaru(
   return kini.daftar.filter((t) => t.tercapai && !tercapaiLalu.has(t.id)).map((t) => t.nama);
 }
 
+// ── Penanda tonggak baru di tombol menu (2026-11-06, Ide 56 / riset UX)
+// Fungsi MURNI, display-only: dari daftar nama tonggak baru (hasil
+// tonggakBaru) dan daftar nama yang sudah dilihat pemain, kembalikan
+// yang BELUM dilihat — itulah yang ditandai titik di tombol ☰.
+// Non-array/null/undefined -> [] (tidak ada yang ditandai); entri
+// bukan string atau kosong dilewati; urutan `baru` dipertahankan.
+export function tonggakBaruBelumDilihat(
+  baru: string[] | null | undefined,
+  dilihat: string[] | null | undefined
+): string[] {
+  if (!Array.isArray(baru)) return [];
+  const sudah = new Set(Array.isArray(dilihat) ? dilihat : []);
+  return baru.filter((n) => typeof n === "string" && n.length > 0 && !sudah.has(n));
+}
+
 // ── "Selama kamu pergi" (2026-11-05, Ide 22 / riset kembali bermain)
 // Fungsi MURNI, display-only: membandingkan cuplikan kampung dari
 // kunjungan terakhir (localStorage, ditulis saat tab disembunyikan /

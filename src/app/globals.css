@@ -272,6 +272,31 @@ canvas.game-canvas {
 .menu-fab:active {
   transform: scale(0.95);
 }
+/* Penanda tonggak baru di tombol menu (2026-11-06, Ide 56): titik
+   merah kecil di sudut kanan-atas ☰ saat ada tonggak baru yang belum
+   dilihat — denyut TERBATAS (3x, ~2,4 detik) lalu diam jadi titik
+   statis, bukan loop tak berujung (WCAG 2.2.2 pause/stop/hide;
+   Braze: lencana yang selalu berdenyut kehilangan dampak).
+   Garis putih supaya tetap terlihat di atas FAB kuning. Di bawah
+   prefers-reduced-motion, denyut diganti titik statis (blok di bawah). */
+.menu-fab-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #dc2626;
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+  pointer-events: none;
+  animation: denyutFabDot 0.8s ease-out 3;
+}
+@keyframes denyutFabDot {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55); }
+  70% { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
 .menu-card {
   background: rgba(11, 24, 46, 0.98);
   border: 1.5px solid rgba(250, 204, 21, 0.4);
@@ -1168,6 +1193,12 @@ canvas.game-canvas {
   .hud-full-dot {
     animation: none !important;
     opacity: 1;
+  }
+  /* Penanda tonggak baru (Ide 56): denyut dimatikan, titik merah
+     statis tetap tampil — sinyalnya (ada yang baru) tetap ada,
+     geraknya tidak (alternatif statis ala Pope Tech). */
+  .menu-fab-dot {
+    animation: none !important;
   }
   .map3d-float-badge {
     animation-name: floatFadeTenang;

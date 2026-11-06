@@ -834,6 +834,63 @@ per entri — bila hanya teks bebas tanpa hari, ide ini mundur ke
 pengecekan struktur data dulu (seperti catatan Ide 41/45). Detail
 di research/2026-11-06-1829.md.
 
+## Ide 56 — Denyut sekali + titik statis di tombol menu saat tonggak baru (dari riset 2026-11-06 20:29 WIB, sudut onboarding)
+~~DIBANGUN 2026-11-06 22:29 WIB (r57)~~ — helper murni
+`tonggakBaruBelumDilihat` di `sumberdaya.ts` (yang belum dilihat dari
+`baru` vs `dilihat`; non-array -> [], entri kosong/bukan-string
+dilewati) + state `tonggakDilihat` di `page.tsx` + hitungan
+`tonggakBaru` di-hoist sekali sebelum return (`baruTonggak`, dipakai
+FAB DAN kilas r56 — tidak ada dua hitungan) + handler `bukaMenu`
+(menandai tonggak saat ini sebagai dilihat, lalu buka menu) +
+`<span className="menu-fab-dot">` di FAB bila ada yang belum dilihat
++ CSS `.menu-fab-dot` (titik merah 12px, garis putih 2px,
+`pointer-events: none`, denyut `denyutFabDot 0.8s ease-out 3` =
+TERBATAS lalu diam jadi titik statis) + override reduced-motion
+(`animation: none`, titik statis tetap tampil) + aria-label FAB
+menyebut "ada tonggak baru" (screen reader). Display-only, tanpa
+ubah sim, tanpa fetch baru, tanpa bunyi. BUILD_ID r56 -> r57 + 33
+tes penjaga (RONDE 57; 3 asersi call-site r56 diperbarui ke
+`baruTonggak`). CATATAN JUJUR: dunia live "7 dari 7", jadi titik
+ini TIDAK akan tampil di Suka Maju sampai ada tonggak baru di
+dunia/kampung baru — perilaku benar, verifikasi visual menyusul.
+Sumber: Braze (red-dot blindness: lencana harus langka, bila selalu
+ada ia kehilangan dampak; badge = pesan Low/pasif) + Pope Tech
+(animasi status seperti pulsing dot butuh alternatif statis di bawah
+reduced-motion; animasi otomatis >5 detik harus bisa dijeda, WCAG
+2.2.2). Masalah: kilas "✨ Baru: …" (Ide 54) hanya terlihat bila
+pemain membuka kartu menu. Cara kerja: lihat di atas. Dampak
+kecil-sedang, usaha kecil. Detail di research/2026-11-06-2229.md.
+
+## Ide 57 — Orientasi menyebut pekerjaan pemain dalam satu kalimat (dari riset 2026-11-06 20:29 WIB, sudut onboarding)
+
+Sumber: WizusLabs (orientasi menjawab "di mana saya, ini apa, apa
+yang saya sentuh?" dalam sekali lirik; instruksi menjawab
+pertanyaan yang belum ditanyakan). Masalah: panel Orientasi yang
+ada belum tentu menjawab ketiganya dalam sekali lirik untuk pemain
+yang benar-benar baru. Cara kerja (display-only): audit panel
+Orientasi + baris tip (Ide 14) terhadap tiga pertanyaan itu; bila
+ada yang belum terjawab sekali lirik, perbaiki KALIMATNYA saja
+(mis. "Kamu menonton kampung Suka Maju. Warga bekerja sendiri; arah
+diputuskan lewat Musyawarah. Ketuk warga untuk mengikutinya.").
+Tanpa ubah sim, tanpa panel baru, tanpa tutorial multi-langkah.
+Dampak kecil, usaha kecil. Perhatian: ini audit teks, bukan
+pembangunan fitur — kerjakan hanya bila observasi menunjukkan
+pemain baru sungguh tersesat di satu pertanyaan. Detail di
+research/2026-11-06-2029.md.
+
+## Ide 58 — Denyut sekali pada tombol ＋ Tambah karakter saat populasi jadi penghambat (dari riset 2026-11-06 22:29 WIB, sudut UX/perhatian)
+
+Sumber: Braze (red-dot blindness) + pola Ide 56. Masalah: bila
+"Kampung menginginkan" berkata populasi kurang — satu-satunya
+kekurangan yang bisa diatasi pemain langsung (Ide 12) — tombol ＋
+Tambah karakter tidak memberi sinyal apa pun di luar menu. Cara
+kerja (display-only): pola titik + denyut terbatas yang sama seperti
+Ide 56, di tombol ＋. Perhatian: ATURAN SATU PENANDA — bila titik
+tonggak (Ide 56) sedang tampil, titik ini TIDAK tampil bersamaan;
+dua titik sekaligus adalah awal red-dot blindness. Prioritas:
+tonggak baru dulu, populasi sesudah titik tonggak dilihat. Dampak
+kecil, usaha kecil. Detail di research/2026-11-06-2229.md.
+
 ## Ide 41 — Baris "Sering bersama" di Papan Warga (dari riset 2026-11-06 06:29 WIB, sudut sosial/QoL)
 
 Sumber: Lakeburg Legacies (jurnal mencatat semua pertemuan, sapaan,
