@@ -879,7 +879,27 @@ pemain baru sungguh tersesat di satu pertanyaan. Detail di
 research/2026-11-06-2029.md.
 
 ## Ide 58 — Denyut sekali pada tombol ＋ Tambah karakter saat populasi jadi penghambat (dari riset 2026-11-06 22:29 WIB, sudut UX/perhatian)
-
+~~DIBANGUN 2026-11-07 00:29 WIB (r58)~~ — fungsi murni
+`dotTambahAktif(butuhTambah, adaTonggakBelumDilihat)` di
+`sumberdaya.ts` (true hanya bila butuh tambah DAN tidak ada tonggak
+baru yang belum dilihat — ATURAN SATU PENANDA) + `kb`/`aksi`
+di-hoist sekali sebelum return di `page.tsx` (dipakai baris "Mulai
+dari sini" DAN penanda; tidak ada dua hitungan) + prop
+`tandaPopulasi` di `TambahKarakter` (titik `.tk-fab-dot` di sudut
+tombol ＋, denyut terbatas 3x lalu diam, titik statis di bawah
+reduced-motion, aria-label menyebut "kampung masih kurang warga")
++ CSS `.tk-fab-dot` memakai keyframes `denyutFabDot` yang sama
+dengan titik tonggak (tidak diduplikat). Display-only, tanpa ubah
+sim, tanpa fetch baru, tanpa bunyi. BUILD_ID r57 -> r58 + 32 tes
+penjaga (RONDE 58; 1 asersi lama diperbarui: `<TambahKarakter />`
+-> `<TambahKarakter tandaPopulasi={dotTambah} />`). CATATAN JUJUR:
+kondisi live saat deploy MEMENUHI (populasi 12 < 20, tonggak 7/7
+tanpa yang baru) — jadi titik ini SEHARUSNYA tampil di Suka Maju
+begitu r58 live; verifikasi visual dilakukan run ini setelah
+deploy (berbeda dari r56/r57 yang tidak bisa tampil di dunia ini).
+Titik hilang sendiri begitu populasi mencapai 20 (aksi pertama
+bukan lagi "tambah") — tidak ada state "dilihat" seperti titik
+tonggak, karena ini sinyal keadaan, bukan sinyal "baru".
 Sumber: Braze (red-dot blindness) + pola Ide 56. Masalah: bila
 "Kampung menginginkan" berkata populasi kurang — satu-satunya
 kekurangan yang bisa diatasi pemain langsung (Ide 12) — tombol ＋
@@ -1007,6 +1027,130 @@ research/2026-11-06-1029.md.
 Diisi dari riset web tiap run cron (fitur baru yang fresh,
 optimalisasi, dan lain-lain). Tiap ide ditulis dengan: masalah
 pemain, cara kerja singkat, dan perkiraan dampak vs usaha.
+
+## Ide 59 — Pesta yang membesar (dari riset 2026-11-07 00:29 WIB, sudut fitur baru; lanjutan Ide 10/35)
+
+Sumber: Foundation Harvest Festival DLC ("Every celebration can
+outshine the last": makin dikenal sebuah festival, makin banyak
+dekorasi dan bagian festival yang terbuka, tamu makin bergengsi —
+puncaknya kunjungan Raja; Aspiration baru sebagai garis tujuan).
+Masalah: Pesta Panen (Ide 10) + Pasar Minggu (Ide 35) adalah acara
+sekali jalan — tidak ada alasan menanti edisi berikutnya, tidak ada
+yang terbuka setelah pesta pertama. Cara kerja: tiap pesta
+menaikkan "pengakuan" kampung (display-only dulu: kronik + baris
+Pasar menyebut "Pesta ke-N" dan apa yang baru — hiasan di sekitar
+balai/paviliun, tamu kehormatan = warga bernama yang hadir);
+versi sim belakangan (pengakuan membuka dekorasi). Dampak
+sedang-tinggi, usaha kecil (display) / sedang (sim). Perhatian:
+jangan janji hadiah ekonomi di irisan display-only. Detail di
+research/2026-11-07-0029.md.
+
+## Ide 60 — Buku Kampung / Kompendium (dari riset 2026-11-07 00:29 WIB, sudut fitur baru)
+
+Sumber: Foundation (Compendium: ensiklopedia dalam game untuk resep
+dan mekanisme, supaya pemain mudah melacak sistem yang sudah
+terbuka). Masalah: aturan main (cap kumpul 15/hari, busuk pangan
+50%, peran, tonggak) tersebar di kabar/menu — pemain baru tidak
+punya satu tempat bertanya "ini gimana cara kerjanya?". Cara kerja:
+entri "📖 Buku Kampung" di kartu menu membuka modal berisi
+penjelasan singkat sistem yang sudah ada (teks statis dari
+DESAIN-EKONOMI.md + angka live dari poll: cap, kapasitas,
+pembusukan) — display-only, tanpa ubah sim, tanpa fetch baru.
+Dampak sedang, usaha kecil-sedang. Perhatian: isi harus berasal
+dari aturan yang benar-benar hidup di kode, bukan karangan. Detail
+di research/2026-11-07-0029.md.
+
+## Ide 61 — Penemuan pertama dirayakan di kronik (dari riset 2026-11-07 00:29 WIB, sudut fitur baru)
+
+Sumber: Spiritstead (35 spirit bernama yang hanya muncul lewat
+interaksi dunia tertentu; "Each discovery removes a slice of
+repetitive clicking" — rasa penemuan yang diingat pemain).
+Masalah: hal pertama kali (besi pertama, ikan pertama, warga
+ke-10, bangunan tingkat baru) lewat tanpa jejak. Cara kerja
+(display-only): kronik merayakan sekali saat suatu tonggak/data
+pertama kali muncul dibanding cuplikan kunjungan terakhir
+(memakai snapshot localStorage yang sudah ada untuk Ide 54/56) —
+mis. "🎉 Besi pertama terkumpul!" Bukan sistem otomasi baru
+(Nusantara sudah otomatis; pola spirit mentah TIDAK cocok) dan
+bukan hadiah ekonomi. Dampak kecil-sedang, usaha kecil. Detail di
+research/2026-11-07-0029.md.
+
+## Ide 62 — "Duo paling kompak" dari obrolan yang sudah ada (dari riset 2026-11-07 02:29 WIB, sudut sosial/QoL; lanjutan Ide 11/41)
+
+Sumber: Starsand Island (Game Rant, wawancara produser Golton Gao:
+NPC dipengaruhi hubungan mereka SATU SAMA LAIN, bukan hanya oleh
+pemain; hubungan yang dalam dirayakan seluruh kota; NPC yang dekat
+membantu pekerjaan). Masalah: obrolan warga sudah ada di sim tapi
+tidak meninggalkan jejak — pemain tidak tahu siapa dekat dengan
+siapa. Cara kerja (display-only): SATU baris di kronik ("Duo paling
+kompak: X & Y") dari pasangan ngobrol yang paling sering muncul,
+BILA kabar menyimpan pasangan secara terstruktur. Bila hanya teks
+bebas, irisan pertama mundur ke pengecekan struktur data dulu
+(catatan yang sama seperti Ide 11/41). Dampak sedang, usaha
+kecil-sedang. Detail di research/2026-11-07-0229.md.
+
+## Ide 63 — Bakat warga terlihat di Papan Warga (dari riset 2026-11-07 02:29 WIB, sudut sosial/QoL)
+
+Sumber: Village in the Shade (Noisy Pixel: suka/tidak suka tiap
+warga TERLIHAT LANGSUNG, tanpa trial-and-error — dipuji sebagai
+QoL). Masalah: untuk tahu siapa jago apa, pemain harus mengetuk
+warga satu per satu; Papan Warga hanya menampilkan nama + peran.
+Cara kerja (display-only): tiap baris Papan Warga menampilkan
+bakat/keunggulan warga itu (mis. "berbakat menebang") dari data
+poll yang sudah ada, BILA bakat ikut terkirim di /api/map. Bila
+tidak, irisan pertama adalah cek struktur data dulu. Dampak sedang,
+usaha kecil. Detail di research/2026-11-07-0229.md.
+
+## Ide 64 — "Yang diminta warga" sebagai baris kronik (dari riset 2026-11-07 02:29 WIB, sudut sosial/QoL)
+
+Sumber: Village in the Shade (tiket tugas warga SEKALIGUS membuka
+blueprint/sistem baru — tugas receh punya alasan) + Ide 42 (rumor
+ber-atribusi). Masalah: warga punya kebutuhan (stok penuh, peran
+kosong) tapi tidak pernah "meminta" apa-apa — kampung terasa pasif.
+Cara kerja (display-only): kronik sesekali menampilkan satu
+permintaan warga yang berasal dari FAKTA poll (mis. "Budi: lumbung
+sudah penuh…"). BUKAN tugas yang bisa diselesaikan pemain (ia
+pengamat), jadi kalimatnya harus berupa kabar, bukan perintah.
+Perhatian: jangan sampai terbaca sebagai janji ("lakukan X")
+padahal pemain tidak bisa berbuat apa-apa — itu frustrasi, bukan
+fitur. Dampak kecil-sedang, usaha kecil. Detail di
+research/2026-11-07-0229.md.
+
+## Ide 65 — Gelembung naik mengikuti tinggi label (dari riset 2026-11-07 04:29 WIB, sudut UX; lanjutan observasi r58/r02:29)
+
+Sumber: jMonkeyEngine (offset eksplisit mengalahkan urutan gambar;
+tumpang tindih transparan = soal posisi, bukan z-index) + AnchorKit
+(dorong pelat yang bertumpuk supaya tetap terbaca). Masalah: gelembung
+bicara menutupi label aksi warga ("🛡️ Menghalau Hewan!" + persen)
+sampai nama tidak terbaca — terkonfirmasi dua run berturut-turut.
+Mekanisme kode: `bubbleOffsetY` tetap 32 (54 bila terpilih) di
+`Map3D.tsx:2807`, sementara label ber-aksi ~48px tingginya (pil
+biasa ~19px) — dasar gelembung jatuh 16px di dalam label. Cara kerja:
+fungsi murni `tinggiLabelWarga(adaAksi, terpilih)` di `tampil.ts` +
+`bubbleOffsetY` dari tinggi itu + celah 13px (ber-aksi -> ~61).
+Dampak sedang, usaha kecil. Detail di research/2026-11-07-0429.md.
+
+## Ide 66 — Gelembung ikut antrean rapikan (dari riset 2026-11-07 04:29 WIB, sudut UX; lanjutan Ide 65)
+
+Sumber: Mapbox US10460495B1 (grid index + bounding geometry untuk
+deteksi tabrakan label) + AnchorKit (overlap separation). Masalah:
+Ide 65 hanya menjauhkan gelembung dari labelnya SENDIRI — dua
+gelembung dari dua warga berdekatan masih bisa saling menutupi.
+Cara kerja: entri `labelAntre` membawa tinggi gelembungnya, dan
+`rapikanLabelBertumpuk` menata gelembung seperti label. Dikerjakan
+SETELAH Ide 65, bukan bersamaan, supaya efek masing-masing terukur.
+Dampak sedang, usaha sedang. Detail di research/2026-11-07-0429.md.
+
+## Ide 67 — Label + gelembung terpilih selalu paling depan (dari riset 2026-11-07 04:29 WIB, sudut UX; lanjutan Ide 39)
+
+Sumber: AFS_UI_Labels (label tampil saat relevan/interaksi) +
+jMonkeyEngine (satu node induk untuk bubble + teks). Masalah: saat
+klaster ramai, label warga yang sedang dipilih bisa kalah dengan
+label/gelembung tetangga. Cara kerja: `.sel` SUDAH z-index 25
+(dijaga tes r52); irisan ini menambahkan aturan yang sama untuk
+gelembung milik warga terpilih + memastikan rapikan tidak menggeser
+entri terpilih ke bawah antrean. Display-only, tanpa ubah sim.
+Dampak kecil, usaha kecil. Detail di research/2026-11-07-0429.md.
 
 ## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
 

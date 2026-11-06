@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, tonggakBaru, tonggakBaruBelumDilihat, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, dotTambahAktif, tonggakKampung, tonggakBaru, tonggakBaruBelumDilihat, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -621,6 +621,20 @@ export default function Page() {
     bangunan: (map?.placements ?? []).map((p: J) => String(p.kind)),
   });
   const baruBelumDilihat = tonggakBaruBelumDilihat(baruTonggak, tonggakDilihat);
+  // Kebutuhan kampung + aksi pertama (Ide 6 + Ide 12): dihitung SEKALI
+  // di sini supaya dipakai baris "Mulai dari sini" di kartu menu DAN
+  // penanda populasi di tombol ＋ (Ide 58) — tanpa hitung dua kali,
+  // tanpa fetch baru, tanpa ubah sim.
+  const kbBerikutnya = kebutuhanKampungBerikutnya(
+    world?.populasi ?? 0,
+    (map?.placements ?? []).map((p: J) => String(p.kind)),
+    (map?.warga ?? []).some((w: J) => String(w.peran) === "penambang")
+  );
+  const aksiPertama = aksiPertamaBerikutnya(kbBerikutnya);
+  // Penanda populasi (2026-11-07, Ide 58): titik di tombol ＋ hanya
+  // bila populasi penghambat DAN titik tonggak sedang tidak tampil
+  // (Aturan Satu Penanda — tonggak baru didahulukan).
+  const dotTambah = dotTambahAktif(aksiPertama?.aksi === "tambah", baruBelumDilihat.length > 0);
   // Membuka menu menandai tonggak baru saat ini sebagai dilihat —
   // titik di tombol ☰ berhenti, satu kali per tonggak lalu diam.
   const bukaMenu = () => {
@@ -683,12 +697,10 @@ export default function Page() {
                 1 tingkat berikutnya dari tangga DESAIN-EKONOMI §2. TIDAK
                 mengunci bangunan apa pun — hanya memberi tahu target. */}
             {(() => {
-              const kb = kebutuhanKampungBerikutnya(
-                world?.populasi ?? 0,
-                (map?.placements ?? []).map((p: J) => String(p.kind)),
-                (map?.warga ?? []).some((w: J) => String(w.peran) === "penambang")
-              );
-              const aksi = aksiPertamaBerikutnya(kb);
+              // Kebutuhan + aksi pertama dipakai dari hitungan sekali
+              // sebelum return (dipakai juga penanda populasi Ide 58).
+              const kb = kbBerikutnya;
+              const aksi = aksiPertama;
               const tg = tonggakKampung(
                 world?.populasi ?? 0,
                 (map?.placements ?? []).map((p: J) => String(p.kind))
@@ -1040,7 +1052,7 @@ export default function Page() {
           />
         </div>
 
-        <TambahKarakter />
+        <TambahKarakter tandaPopulasi={dotTambah} />
 
         {followId && (() => {
           const w = (map?.warga ?? []).find((x: J) => x.id === followId);

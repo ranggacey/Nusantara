@@ -1,4 +1,163 @@
-## 2026-11-06 ~22:29 WIB — r57: titik penanda tonggak baru di tombol menu ☰ (Ide 56, riset UX/perhatian)
+## 2026-11-07 ~04:29 WIB — r58: deploy SESUNGGUHNYA (Ide 58) + riset UX label/gelembung
+
+KOREKSI ATAS ENTRI 02:29: klaim "men-deploy-nya" di entri itu TIDAK
+terjadi — saat run ini mulai, remote main masih `3f742b6e` (r57) dan
+live `/api/version` = r57. Tidak ada commit baru di remote, dan build
+live tidak berubah. Run ini men-deploy r58 yang sesungguhnya (kode
+yang sama persis seperti dideskripsikan entri 00:29, tanpa perubahan
+kode tambahan), supaya satu perubahan tetap satu deploy.
+
+Perubahan dalam 2 kalimat: tombol ＋ Tambah karakter kini membawa
+titik merah kecil di sudutnya saat populasi jadi penghambat tingkat
+berikutnya — titik berdenyut terbatas (3x, ~2,4 detik) lalu diam
+menjadi titik statis, dan hilang sendiri begitu populasi mencapai
+angka yang dibutuhkan; bila titik tonggak baru (Ide 56) sedang
+tampil, titik ini TIDAK tampil bersamaan (Aturan Satu Penanda).
+Dokumen run ini (riset UX 0429, Ide 65–67) dan dokumen run 02:29
+(riset 0229, Ide 62–64) ikut dalam commit yang sama — hanya dokumen,
+tanpa perubahan kode tambahan.
+
+- Verifikasi ulang tree sebelum deploy: `npx tsx tests/batu.test.ts`
+  = 8337 lolos / 637 gagal (sama persis dengan klaim run 00:29 dan
+  02:29; 637 gagal = baseline yang sudah dikenal, ekor FAIL r18
+  identik); `npm run build` hijau (exit 0). Sinkronisasi: local HEAD
+  = remote head = `3f742b6e` (r57); 8 file terlacak yang berubah
+  berbasis r57 tanpa divergensi; 3 brief riset (0029/0229/0429)
+  adalah penambahan baru yang belum ada di remote.
+
+### Observasi live pra-deploy (browser, hanya melihat, 04:35–04:43 WIB — masih r57)
+- Muat pertama: layar gelap "Memuat peta 3D…" tanpa persen, desa
+  tampil utuh <30 detik — tidak macet, tanpa error/blank.
+- Warga: 10 nama terlihat (populasi 12). Hampir semua berlabel
+  "🛡️ Menghalau Hewan!" dengan persen naik lalu RESET berulang
+  (48% -> 67% -> reset 0% -> 42% -> 54% -> 83%) — pola siklus yang
+  sama seperti dicatat r55–r58, belum diputuskan defect atau
+  perilaku sim. Posisi berubah antar tangkapan (Renata pusat ->
+  timur jauh, Siti ke utara) tapi langkah jalan tidak terverifikasi
+  jelas (figur kecil, tertutup bangunan/label).
+- Hewan: TERLIHAT (Beruang, Babi Hutan, Serigala, Rusa, Kelinci,
+  Ayam Hutan). Label dua gaya: terang + bar HP, dan pudar tanpa bar.
+  Di beberapa tempat label pudar se-spesies duduk TEPAT DI BAWAH
+  label terang tanpa hewan kedua yang jelas terlihat (contoh: Babi
+  Hutan di tepi utara); di tempat lain label pudar jelas milik hewan
+  jauh. Bukti CAMPURAN — belum diputuskan duplikat atau hewan kedua.
+  Catatan kode run ini: tiap hewan punya TEPAT SATU elemen label
+  (bar HP adalah anak di dalam label yang sama), jadi "duplikat"
+  kemungkinan besar label hewan kedua yang berdiri rapat (satu
+  pudar karena opacity tenang r52 = 0.45) — butuh konfirmasi visual
+  ulang, JANGAN dibangun "hapus duplikat" tanpa bukti itu.
+- Gelembung vs label — TERKONFIRMASI LAGI: "Tolong! Ada hewan
+  buas!" menutupi tepi atas pil nama reja auditore + label
+  "Menghalau Hewan!" di belakangnya. BARU: label warga juga saling
+  menutupi di klaster — pil nama terpotong ("reja audit…"), pil
+  "Figo" sebagian tersembunyi di balik label aksi lain. Kandidat
+  run berikutnya: Ide 65 (offset gelembung ikut tinggi label) +
+  selidiki kenapa rapikan tidak memisahkan pil yang bertumpuk itu.
+- Tombol/panel: menu ☰ buka-tutup normal; zoom ▼ merespons tanpa
+  jank; geser peta (drag) menggeser desa tanpa freeze (halus
+  antar-gerak tidak terverifikasi — drag dieksekusi program piksel).
+  "＋ Tambah karakter" TIDAK punya titik merah (crop perbesaran,
+  sesuai harapan pra-deploy r58). Menu bisa di-scroll ("Tata Kota"
+  sebagian di bawah lipatan) + header membungkus "H-517" ke baris
+  kedua — tampak seperti wrapping/scroll normal, bukan rusak.
+- Keadaan game (dari menu, ~04:39): Suka Maju (12), H-517, jam game
+  12.50 -> 12.56 (Siang, jam berjalan), Cerah. Stok: Kayu 160/160,
+  Batu 130/130, Emas 2/40, Besi 47/55, Pangan 200/200, Kulit 95/95.
+  "Selama kamu pergi: Hari 493 → 517 (24 hari berlalu)" — TANPA
+  baris "Yang menunggu" (benar: tidak ada bangunan sedang dibangun).
+  "Tonggak kampung: 7 dari 7". "Kampung menginginkan: Zaman besi &
+  monumen — masih kurang populasi 20 (sekarang 12)". "Mulai dari
+  sini: Tambah karakter — masih kurang populasi 20 (sekarang 12)".
+  "Besok Pasar Minggu di Balai." — KONFIRMASI LANGSUNG kondisi
+  pemicu Ide 58: titik merah SEHARUSNYA tampil begitu r58 live.
+
+### Riset + backlog (brief research/2026-11-07-0429.md)
+- Sudut: UX / LABEL & GELEMBUNG (rotasi dari sosial/QoL 02:29).
+  Sumber dibaca penuh: utas jMonkeyEngine "Billboard overlap
+  problem, text gets behind speechbubble" (pspeed: bubble + teks
+  di bawah satu node, offset eksplisit; urutan gambar transparan
+  itu tebakan back-to-front; tumpang tindih = soal posisi, bukan
+  z-index) + dokumen AFS_UI_Labels (label tampil saat
+  interaksi/hover; sembunyi jarak dengan deadzone 10% anti-kedip;
+  leader spline + panah mengikat label ke jangkarnya). Cuplikan
+  hasil cari: AnchorKit (overlap separation — dorong pelat yang
+  bertumpuk; distance LOD — makin jauh makin ringkas) + paten
+  Mapbox US10460495B1 (grid index + bounding circle untuk deteksi
+  tabrakan; satu label terbaca > dua yang saling menutupi).
+- Mekanisme kode terkonfirmasi: `bubbleOffsetY` tetap 32 (54 bila
+  terpilih) di `Map3D.tsx:2807`, label ber-aksi ~48px vs pil biasa
+  ~19px — dasar gelembung jatuh 16px DI DALAM label aksi; bubble
+  z-index 30 > label, jadi yang tertutup adalah teks labelnya.
+- Yang DIBANGUN run ini adalah Ide 58 dari backlog (penyelesaian
+  deploy run 00:29 — prioritas backlog di atas ide riset terbaru).
+  Ide riset run ini yang masuk backlog: Ide 65 (gelembung naik
+  mengikuti tinggi label — fungsi murni + satu baris call-site),
+  Ide 66 (gelembung ikut antrean rapikan, SETELAH Ide 65), Ide 67
+  (label + gelembung terpilih selalu paling depan). Tidak
+  direkomendasikan: sembunyikan gelembung saat ramai (menghapus
+  peringatan "Tolong!"), gabung teks gelembung ke elemen label
+  (dua siklus hidup berbeda), perkecil font (melawan Ide 20),
+  perbaikan z-index saja (masalahnya posisi), hapus "duplikat label
+  hewan" tanpa bukti visual (kode: satu label per hewan).
+
+### Verifikasi live r58 (diisi setelah deploy — catatan ini ditulis di working tree dan ikut commit run berikutnya, supaya tidak memicu redeploy sia-sia hanya untuk CHANGELOG)
+
+## 2026-11-07 ~02:29 WIB — r58: deploy tertunda selesai (Ide 58) + riset sosial/QoL
+
+Perubahan dalam 2 kalimat: run 00:29 ternyata menyelesaikan semua kode r58 (titik penanda populasi di tombol ＋ Tambah karakter) tapi TIDAK sempat commit/push — tree ditemukan berisi seluruh kerja r58 tanpa commit, sementara remote main masih di r57; run ini memverifikasi ulang tree itu (tes + build hijau), lalu men-deploy-nya apa adanya tanpa menambah perubahan kode, supaya satu perubahan tetap satu deploy.
+
+- Pemulihan: `git fetch` memastikan remote main = `3f742b6e` (r57, sama dengan HEAD lokal); diff tree = 8 file r58 persis seperti dideskripsikan entri 00:29 (sumberdaya.ts `dotTambahAktif`, page.tsx hoist `kbBerikutnya`/`aksiPertama` + `dotTambah`, TambahKarakter `tandaPopulasi`, globals.css `.tk-fab-dot`, version.ts r58, tests RONDE 58, CHANGELOG + IDE-FITUR + research/2026-11-07-0029.md).
+- Verifikasi ulang tree sebelum deploy: `npx tsx tests/batu.test.ts` = 8337 lolos / 637 gagal (sama persis dengan klaim run 00:29; 637 gagal = baseline yang sudah dikenal, ekor FAIL yang terlihat identik: r11/r14/r15/r18); `npm run build` hijau (exit 0).
+- Entri run ini (CHANGELOG + IDE-FITUR Ide 62–64 + research/2026-11-07-0229.md) ikut dalam commit yang sama — hanya dokumen, tanpa perubahan kode tambahan.
+- Pembukuan backlog: Ide 58 DIBANGUN (oleh run 00:29, di-deploy run ini). Ide 62 ("Duo paling kompak" dari obrolan, lanjutan Ide 11/41), Ide 63 (bakat warga terlihat di Papan Warga), Ide 64 ("Yang diminta warga" sebagai baris kronik) masuk IDE-FITUR.md dari riset run ini.
+
+### Observasi live (browser, hanya melihat, 02:33–02:40 WIB — pra-deploy, masih r57)
+- Muat pertama: layar gelap "Memuat peta 3D..." / "Memuat Dunia...", desa tampil utuh dalam <15 detik — tidak macet, tanpa error/blank.
+- Warga: 12 nama terlihat. Hanya 4 yang berlabel aktivitas, semuanya sama: "🛡️ Menghalau Hewan!" (Ys, Figo, ribran gakabuming, Renata) — bergerak sebagai kelompok rapat (selatan desa lalu pusat); 8 lainnya hanya pil nama, mengembara sendiri-sendiri (Miners ke barat, Siti + Nera ke utara). Persen "Menghalau Hewan!" NAIK lalu RESET berulang, keempatnya SELALU tersinkron (10% -> 79–99% -> reset ~14% -> 58–78% -> ~99% -> reset 12–14% -> 43–61% -> reset 12% -> 32%; minimal 3 siklus penuh) — pola yang sama seperti dicatat r55–r58, belum diputuskan defect atau perilaku sim (butuh bukti sim, bukan tebak).
+- Hewan: TERLIHAT, 22 label di layar (Rusa 5, Beruang 6, Babi Hutan 4, Kelinci 4, Serigala 1, Ayam Hutan 1 + satu label terpotong "Sengala"). TEMUAN BARU: tiap hewan tampak membawa DUA label — satu terang dan satu pudar/duplikat tepat di bawahnya — sehingga jumlah label di layar melebihi jumlah figur hewan. Belum diputuskan apakah itu duplikat elemen label atau efek opacity r52/r53; kandidat cek kode run berikutnya, bukan klaim defect.
+- Tombol/panel: menu ☰ dibuka dan bekerja; zoom ▲/▼ mulus tanpa jank (3x ▼ tepat setelah muat tidak mengubah apa-apa — kamera sudah di batas zoom terdekat, bukan defect). "Panduan Kontrol" + joystick terlihat tapi tidak dites (observasi saja).
+- Tombol ＋ Tambah karakter: TIDAK punya titik merah (terkonfirmasi lewat crop perbesaran 3x — pil kuning polos), sesuai harapan pra-deploy r58.
+- Gelembung vs label — TERKONFIRMASI KUAT: gelembung "Ayo duduk sebentar, Miners. Kakiku pegal." menutupi pil "Menghalau Hewan!" Ys sampai hanya serpihan terlihat; "Tolong! Ada hewan buas!" berulang di atas klaster penghalau; di pusat desa, satu pil nama penghalau TERTUTUP TOTAL di belakang pil ribran gakabuming (hanya tepi gelap yang mengintip) — nama itu tidak terbaca. Berbeda dari snapshot r58 (tiga pil aksi bertumpuk vertikal tapi masing-masing terbaca): posisi warga bergerak, jadi tumpukan berubah dari momen ke momen — kadang terbaca, kadang tertutup total. KANDIDAT RUN BERIKUTNYA: offset gelembung ikut tinggi label (label ber-aksi -> gelembung lebih tinggi) dan/atau gelembung ikut antrean rapikan; plus cek apakah pil nama ikut rapikan saat bertumpuk.
+- Keadaan game (dari menu, ~02:37): Suka Maju (12), H-509, jam game 10.46 -> 10.55 (Siang), Cerah. Stok: Kayu 160/160, Batu 130/130, Emas 1/40, Besi 47/55, Pangan 192/200, Kulit 95/95. "Selama kamu pergi: Hari 493 → 509" — TANPA baris "Yang menunggu" (benar: tidak ada bangunan sedang dibangun). "Tonggak kampung: 7 dari 7". "Kampung menginginkan: Zaman besi & monumen — masih kurang populasi 20 (sekarang 12)". "Mulai dari sini: Tambah karakter — masih kurang populasi 20 (sekarang 12)". "Pasar Minggu 2 hari lagi di Balai".
+- Tidak ada area blank/error lain; semua tombol yang dicoba merespons.
+
+### Riset + backlog (brief research/2026-11-07-0229.md)
+- Sudut: SOSIAL / QoL (rotasi dari fitur baru 00:29). Sumber dibaca penuh: Game Rant "How The Sims Inspired Starsand Island's Reactive And Layered Relationship System" (1 Agu 2025, wawancara produser Golton Gao: NPC dipengaruhi hubungan antar-NPC; "Everything is Interactable" + "Dynamic Interaction Adaptability"; hubungan membesar alami; NPC dekat membantu pekerjaan; pendalaman dirayakan kota; tanpa pernikahan formal) + Noisy Pixel ulasan Village in the Shade (warga awalnya tidak mau bicara; kepercayaan lewat interaksi + tiket tugas yang SEKALIGUS membuka sistem; suka/tidak suka terlihat langsung dipuji sebagai QoL; festival di kalender; Notebook yang awalnya dicemooh jadi sahabat saat proyek menumpuk; pembukaan lambat 8 jam dikritik).
+- Yang DIBANGUN run ini adalah Ide 58 dari backlog (penyelesaian deploy run 00:29 — prioritas backlog di atas ide riset terbaru). Ide riset run ini yang masuk backlog: Ide 62 (duo paling kompak) + Ide 63 (bakat di Papan Warga) + Ide 64 ("yang diminta warga" di kronik). Tidak direkomendasikan: romance/pernikahan antar-warga (tidak ada avatar pemain; belum ada data hubungan), NPC memulai aksi ke arah pemain (tidak ada "pemain" yang menerima di game pengamat), tugas warga yang membuka sistem (pemain tidak bisa mengerjakan tugas), angka hati 0-5 per pasangan (tanpa data pasangan terstruktur, angka itu karangan — melanggar aturan kronik Ide 23).
+
+### Verifikasi live r58 (PENDING — diisi setelah deploy)
+
+## 2026-11-07 ~00:29 WIB — r58: titik penanda populasi di tombol ＋ Tambah karakter (Ide 58, riset fitur baru)
+
+Perubahan dalam 2 kalimat: tombol ＋ Tambah karakter kini membawa titik merah kecil di sudutnya saat populasi jadi penghambat tingkat berikutnya — titik berdenyut terbatas (3x, ~2,4 detik) lalu diam menjadi titik statis, dan hilang sendiri begitu populasi mencapai angka yang dibutuhkan; bila titik tonggak baru (Ide 56) sedang tampil, titik ini TIDAK tampil bersamaan (Aturan Satu Penanda), supaya satu sinyal tetap berarti satu hal.
+
+- `src/lib/batu/sumberdaya.ts`: fungsi murni baru `dotTambahAktif(butuhTambah, adaTonggakBelumDilihat)` — true hanya bila butuh tambah DAN tidak ada tonggak baru yang belum dilihat; komentar mengutip Aturan Satu Penanda (Braze: red-dot blindness).
+- `src/app/page.tsx`: `kb`/`aksi` di-hoist sekali sebelum return menjadi `kbBerikutnya`/`aksiPertama` (dipakai baris "Mulai dari sini" di kartu menu DAN penanda populasi — tidak ada dua hitungan, dijaga tes); `dotTambah = dotTambahAktif(aksiPertama?.aksi === "tambah", baruBelumDilihat.length > 0)`; IIFE menu memakai `const kb = kbBerikutnya; const aksi = aksiPertama;` (hitungan lokal lama dihapus); `<TambahKarakter tandaPopulasi={dotTambah} />`.
+- `src/components/TambahKarakter.tsx`: prop baru `tandaPopulasi` (default false); tombol merender `<span className="tk-fab-dot" aria-hidden="true" />` hanya bila true, dan aria-label/title-nya menyebut "kampung masih kurang warga" bila titik tampil (screen reader).
+- `src/app/globals.css`: `.tk-fab-dot` (titik merah 12px `#dc2626`, garis putih 2px, `pointer-events: none`, denyut `denyutFabDot 0.8s ease-out 3` = TERBATAS lalu diam) memakai keyframes `denyutFabDot` yang SAMA dengan titik tonggak (tidak diduplikat, dijaga tes) + override di blok `@media (prefers-reduced-motion: reduce)` (`animation: none`, titik statis tetap tampil).
+- `src/lib/version.ts`: `BUILD_ID` r57 -> r58 (29 pin versi di tes ikut naik; label ronde lama tetap).
+- Tes: blok RONDE 58 baru, 32 asersi — helper (4 kombinasi, termasuk tonggak didahulukan); call site (impor, hoist sekali, IIFE memakai hoist, prop ke TambahKarakter, hitungan `kebutuhanKampungBerikutnya(`/`aksiPertamaBerikutnya(` masing-masing sekali); komponen (prop default, titik kondisional, aria-label); CSS (titik ada, denyut 3x bukan infinite, merah, garis putih, pointer-events none, keyframes tidak diduplikat, reduced-motion mematikan denyut); penjaga (keadaan live pop 12 -> aksi "tambah" -> titik tampil; + tonggak baru -> titik populasi kalah; pop 20 -> ujung tangga, tidak ada aksi; `tonggakBaruBelumDilihat` tidak berubah); audit versi. 1 asersi lama diperbarui (perilaku sama, hanya prop baru): "page: tombol TambahKarakter dirender" kini memeriksa `<TambahKarakter tandaPopulasi={dotTambah} />`. Total: 8337 lolos / 637 gagal vs baseline 8305/637 — daftar gagal IDENTIK baseline; +32 asersi baru hijau semua. Build Next.js hijau.
+- Pembukuan backlog: Ide 58 DIBANGUN. Ide 59 (pesta yang membesar, Foundation), Ide 60 (Buku Kampung / Kompendium, Foundation), Ide 61 (penemuan pertama dirayakan di kronik, Spiritstead) masuk IDE-FITUR.md dari riset run ini.
+- CATATAN KEJUJURAN (efek live): kondisi live saat run ini MEMENUHI syarat titik (populasi 12 < 20, tonggak 7/7 tanpa yang baru — terverifikasi observasi 00:37–00:45 WIB) — jadi titik ini SEHARUSNYA tampil di Suka Maju begitu r58 live; verifikasi visual dilakukan run ini setelah deploy. Titik hilang sendiri begitu populasi mencapai 20 (aksi pertama bukan lagi "tambah") — tidak ada state "dilihat" seperti titik tonggak, karena ini sinyal keadaan, bukan sinyal "baru".
+
+### Observasi live (browser, hanya melihat, 00:37–00:45 WIB)
+- Muat pertama: layar gelap "Memuat peta 3D..." lalu desa tampil utuh dalam <20 detik — tidak macet, tanpa error/blank.
+- Warga: 3 penghalau (Ys, ribran gakabuming, Figo) berkerumun di pusat selama sesi, progres "🛡️ Menghalau Hewan!" bersiklus berulang (22% -> 43% -> 60% -> 77% -> 82–96% -> reset 5–8% lalu naik lagi) — pola yang sama seperti dicatat r55–r57, belum diputuskan defect atau perilaku sim (butuh bukti sim, bukan tebak). Ketiga label SELALU di persentase yang sama (tersinkron) — konsisten dengan progres display berbasis jam dinding `(now/1000) % durasi` yang sama untuk semua warga dengan jenis aksi yang sama (sudah diketahui dari kode, bukan temuan baru). Warga lain (Miners, Nera, Praboti, Evos dyroth, Budi, Siti, Go Younjung, Renata, reja auditore) tetap di titik barat-daya/selatan yang sama antar tangkapan, hanya bergeser sedikit — tidak ada warga yang terlihat berjalan bertujuan dalam tangkapan sesi ini (catatan snapshot, bukan bukti diam permanen; run sebelumnya melihat pergerakan).
+- Label aktivitas: tiga label "🛡️ Menghalau Hewan!" TERTUMPUK VERTIKAL tapi MASING-MASING TERBACA dengan bar progres sendiri — TIDAK menumpuk persis di atas satu sama lain. Jadi hipotesis r57 (jarak rapikan 28px vs tinggi label aksi ~48px) TIDAK terkonfirmasi sebagai tumpukan label-vs-label. YANG TERKONFIRMASI: gelembung bicara menutupi label — "Ayo kita gotong royong..." menutupi sebagian label tengah (hanya "...ewan! 60%" terlihat) dan "Tolong! Ada hewan buas!" duduk di antara label kedua dan ketiga sampai menutupi nama warga ketiga. Mekanisme dari kode: bubble diposisikan `syA - 32` sementara label ber-aksi tingginya ~48px, jadi dasar bubble jatuh DI DALAM rentang label (bukan 13px di atas puncaknya seperti label biasa 19px). KANDIDAT RUN BERIKUTNYA: offset bubble ikut tinggi label (label ber-aksi -> bubble lebih tinggi) dan/atau bubble ikut antrean rapikan — dengan verifikasi visual tumpukan gelembung vs label.
+- Hewan: TERLIHAT, 23 label (Beruang 6, Babi Hutan 5, Rusa 5, Kelinci 5, Serigala 1, Ayam Hutan 1); ~15 terlihat sekaligus di zoom jauh, sisanya di tepi utara/luar layar; antar tangkapan sebagian besar tampak diam.
+- Tombol/panel: menu ☰ dibuka dua kali dan bekerja. "Mulai dari sini": "Tambah warga dulu — masih kurang populasi 20 (sekarang 12). Tombolnya ＋ di kanan-bawah layar." — KONFIRMASI LANGSUNG kondisi pemicu Ide 58. "Kampung menginginkan": "Zaman besi & monumen: Bengkel Besi, Tugu Leluhur Agung (rencana). Masih kurang: populasi 20 (sekarang 12)." Blok "Selama kamu pergi" MUNCUL dengan satu baris "• Hari 493 → 501" — TANPA baris "Yang menunggu" (benar: tidak ada bangunan sedang dibangun). Tombol ＋ Tambah karakter TIDAK punya titik merah (terkonfirmasi lewat crop perbesaran — pil kuning polos, sesuai harapan pra-deploy r58). Zoom ▲/▼ merespons langsung tanpa jank (3x ▼ lalu 3x ▲). Geser peta (joystick) TIDAK terverifikasi: dua percobaan drag tool browser tidak tereksekusi (satu timeout, satu tanpa input native) dan framing tidak berubah — TIDAK ada lag/error yang terlihat, tapi responsivitas pan tetap belum terkonfirmasi (keterbatasan perkakas, bukan bukti rusak).
+- Keadaan game (dari menu, 00:40 dan 00:43): Suka Maju (12), H-501, jam game 14.21 -> 17.11 (Siang -> Sore), Cerah. Stok: Kayu 160/160, Batu 130/130, Emas 1/40, Besi 47/55, Pangan 189/200, Kulit 95/95. "Tonggak kampung: 7 dari 7".
+- KOREKSI ATAS LAPORAN OBSERVER — "HUD atas hilang": TIDAK diperlakukan sebagai defect, sama seperti resolusi r56/r57. Bukti kode: topbar DIHAPUS atas permintaan user 2026-11-04 (page.tsx, globals.css) dan strip sumber hanya hidup di dalam kartu menu — tidak ada HUD atas di tree ini. Penjelasan paling masuk akal: observer salah baca header kartu menu / layar muat sebagai HUD atas. Run berikutnya JANGAN lagi melaporkan HUD atas sebagai hilang/defect tanpa bukti kode yang cocok.
+- CATATAN TANPA KLAIM DEFECT: glyph ☰ tampil sebagai kotak kosong (□) di screenshot task browser — sama seperti catatan r56/r57, kemungkinan besar artefak font lingkungan screenshot headless, bukan defect game; tombolnya tetap berfungsi; belum terkonfirmasi di perangkat user, TIDAK diperbaiki run ini.
+- Tidak ada area blank/error lain; menu, label, dan kontrol semua ter-render.
+
+### Riset + backlog (brief research/2026-11-07-0029.md)
+- Sudut: FITUR BARU (rotasi dari UX/perhatian 22:29). Sumber dibaca penuh: Foundation "Harvest Festival" DLC (9 Okt 2026, siaran pers: Festival Grounds — tiap perayaan bisa melampaui sebelumnya, pengakuan membuka dekorasi + tamu bergengsi sampai Raja; Aspiration baru; Drying Kiln/Cider House mengolah panen jadi barang + sistem resep; Compendium — ensiklopedia resep/mekanisme dalam game; Dawn — waktu baru cahaya hangat) + Spiritstead (gamehowto.com: 35 spirit bernama hanya lewat interaksi dunia, masing-masing mengotomasi satu pekerjaan membosankan; tombol F pindah bangunan gratis dipuji ulasan; bangun moral SEBELUM lonjakan perumahan; pasar berperan ganda ekonomi + moral; jual saat gudang penuh). Penguat dari hasil cari: My Village Story v1.1.5 (haat mingguan + toko kelontong; benih/pakan tidak lagi tanpa batas), Outcity (otomasi NPC: alat menentukan pekerjaan; 140+ upgrade), Cozy Builder (co-op).
+- Yang DIBANGUN run ini adalah Ide 58 dari backlog (prioritas backlog di atas ide riset terbaru — dan riset run ini menguatkannya dari arah lain: Foundation/Spiritstead menunjukkan sinyal tepat waktu lebih berharga dari sekadar info). Ide riset run ini yang masuk backlog: Ide 59 (pesta yang membesar) + Ide 60 (Buku Kampung / Kompendium) + Ide 61 (penemuan pertama dirayakan di kronik). Tidak direkomendasikan: co-op/multiplayer (mengubah arsitektur), pindah bangunan bebas tanpa musyawarah (merusak peran pengamat), rantai olahan penuh sebagai sim dalam satu run (terlalu besar; irisan display-only dulu), hadiah ekonomi untuk pesta/penemuan (dilarang DESAIN-EKONOMI), spirit/otomasi baru sebagai sistem (Nusantara tidak punya klik berulang yang perlu dihapus).
+
+### Verifikasi live r58 (PENDING — diisi setelah deploy)
+
+
 
 Perubahan dalam 2 kalimat: tombol menu ☰ kini membawa titik merah kecil di sudutnya saat ada tonggak baru sejak kunjungan terakhir yang belum dilihat — titik berdenyut terbatas (3x, ~2,4 detik) lalu diam menjadi titik statis, dan hilang begitu menu dibuka sekali; di bawah prefers-reduced-motion denyut diganti titik statis langsung, supaya sinyalnya tetap ada tanpa gerak.
 
@@ -24,7 +183,16 @@ Perubahan dalam 2 kalimat: tombol menu ☰ kini membawa titik merah kecil di sud
 - Sudut: UX / PERHATIAN — penanda tonggak baru (rotasi dari onboarding 20:29). Sumber dibaca penuh: Braze "Red Dot Blindness" (otak mengenali merah sebagai "perhatikan aku"; lencana itu panggilan tanpa kata yang murah dan efektif — TAPI bila ada di mana-mana ia kehilangan dampak, "If it's always there, it might as well not be there at all"; badge = pesan Low/pasif, bukan darurat; hati-hati dark pattern clickbait) + Pope Tech "Design accessible animation and movement" (animasi status seperti pulsing dot harus diganti alternatif STATIS di bawah reduced-motion, bukan sekadar dimatikan; WCAG 2.2.2: animasi otomatis >5 detik dan tidak esensial harus bisa dijeda/dihentikan/disembunyikan untuk SEMUA pemain). Penguat dari hasil cari: Setproduct Badge UI (dot-only bila yang penting "ada yang baru" bukan jumlahnya; stroke warna permukaan supaya terlihat di atas latar apa pun; titik saja tidak terbaca screen reader — aria-label harus menyebutnya) + iOS Tab Bar Badge ("a gentle pulse or a brief scaling effect, can draw attention without being overly distracting").
 - Yang DIBANGUN run ini adalah Ide 56 dari backlog (prioritas backlog di atas ide riset terbaru — dan riset run ini justru menguatkannya dari dua sumber sekaligus). Ide riset run ini yang masuk backlog: Ide 58 (denyut sekali pada tombol ＋ Tambah karakter saat populasi jadi penghambat, ATURAN SATU PENANDA). Tidak direkomendasikan: denyut/animasi tak berujung (WCAG 2.2.2; lonceng yang tidak pernah diam kehilangan dampak), titik di BANYAK tombol sekaligus (red-dot blindness), angka hitung di dalam titik (jumlah + nama sudah ada di baris Tonggak + kilas ✨), bunyi lonceng tiap tonggak (pesan Low sebaiknya tanpa suara; keluarga bunyi UI Ide 50 dicadangkan untuk konfirmasi/batal/gagal/terkunci), titik tanpa alternatif statis di bawah reduced-motion, modal/pop-up tiap tonggak (interupsi paksa untuk info pasif).
 
-### Verifikasi live r57 (PENDING — diisi setelah deploy)
+### Verifikasi live r57 (curl langsung, 22:47–22:48 WIB)
+- `/api/version` = `{"ok":true,"build":"r57"}` (cek pertama 22:47 WIB — auto-deploy Vercel dari push main sudah READY).
+- Homepage 200 (8.287 B), favicon 200.
+- `/api/world` ok: Suka Maju, populasi 12, hari_total 494, hari 130 / tahun 2, 06.29 Pagi, Hujan; kayu 160/160, batu 130/130, pangan 189/200, kulit 95/95, emas 1/40, besi 47/55 — konsisten dengan r56 (pangan 185 -> 189, sim hidup, BUKAN regresi).
+- `/api/bangunan` ok: katalog 26, antrean 14 — SEMUA "selesai" (tidak ada bangunan sedang dibangun, jadi baris "Yang menunggu" r55 juga benar bila tidak tampil malam ini).
+- `/api/map` ok: grid 600, 37 placements, 12 warga, 25 hewan — identik dengan r56 (sim hidup, BUKAN regresi).
+- Deployment: push ke main commit `3f742b6e` (GitHub, tercatat di sync record); Vercel auto-deploy. Daftar deployment TIDAK dibaca run ini (list_deployments 403 di r55, scope tim butuh otorisasi user); kelangsungan live dibuktikan lewat `/api/version` = r57. Deploy manual TIDAK dipakai. Tree lokal disinkronkan ke `3f742b6e` (fetch + reset --hard; isi 8 file terverifikasi identik dengan commit itu sebelum reset).
+- VERIFIKASI VISUAL titik merah di tombol ☰ BELUM bisa dilakukan: dunia live sudah "7 dari 7" (semua tonggak tercapai) — tidak ada tonggak baru yang bisa memunculkan titik di Suka Maju. Tes offline membuktikan titik muncul saat ada tonggak baru yang belum dilihat dan hilang setelah menu dibuka; verifikasi visual menyusul di dunia/kampung baru.
+- Tidak ada regresi API: semua route yang ok tetap ok, isi respons konsisten dengan r56.
+- Catatan: bagian verifikasi ini ditulis SETELAH push (pola yang sama seperti r56) — ikut ter-commit pada push run berikutnya, bukan pada commit `3f742b6e`.
 
 ## 2026-11-06 ~20:29 WIB — r56: kilas "Tonggak baru!" di baris Tonggak (Ide 54, riset onboarding)
 

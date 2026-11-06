@@ -68,7 +68,13 @@ function StatBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-export default function TambahKarakter() {
+// Penanda populasi (2026-11-07, Ide 58): `tandaPopulasi` = true bila
+// populasi sedang jadi penghambat tingkat berikutnya (satu-satunya
+// kekurangan yang bisa diatasi pemain langsung) DAN titik tonggak
+// (Ide 56) sedang tidak tampil — Aturan Satu Penanda. Titiknya
+// berdenyut terbatas lalu diam (CSS), hilang sendiri begitu populasi
+// mencapai angka yang dibutuhkan; tanpa ubah sim, tanpa bunyi.
+export default function TambahKarakter({ tandaPopulasi = false }: { tandaPopulasi?: boolean }) {
   const [buka, setBuka] = useState(false);
   const [step, setStep] = useState<"form" | "roll" | "done">("form");
   const [nama, setNama] = useState("");
@@ -148,8 +154,13 @@ export default function TambahKarakter() {
 
   return (
     <>
-      <button className="tk-fab" title="Tambah karakter" aria-label="Tambah karakter" onClick={() => setBuka(true)}>
+      <button className="tk-fab" title={tandaPopulasi ? "Tambah karakter — kampung masih kurang warga!" : "Tambah karakter"} aria-label={tandaPopulasi ? "Tambah karakter, kampung masih kurang warga" : "Tambah karakter"} onClick={() => setBuka(true)}>
         ＋ Tambah karakter
+        {/* Penanda populasi (2026-11-07, Ide 58): titik merah kecil di
+            sudut tombol saat populasi jadi penghambat — denyut terbatas
+            (CSS, 3x lalu diam), titik statis di bawah reduced-motion.
+            aria-hidden: sinyalnya ada di aria-label. */}
+        {tandaPopulasi && <span className="tk-fab-dot" aria-hidden="true" />}
       </button>
 
       {buka && (

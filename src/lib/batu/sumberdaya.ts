@@ -199,6 +199,20 @@ export function aksiPertamaBerikutnya(kb: KebutuhanKampung): AksiPertama | null 
   };
 }
 
+// Penanda populasi di tombol ＋ (2026-11-07, Ide 58): ATURAN SATU
+// PENANDA (Braze: red-dot blindness — bila semua tombol bertitik,
+// tidak ada yang penting). Titik di tombol ＋ hanya tampil bila
+// populasi memang penghambat (aksi pertama = "tambah", satu-satunya
+// kekurangan yang bisa diatasi pemain langsung) DAN titik tonggak
+// (Ide 56) sedang TIDAK tampil — tonggak baru didahulukan, populasi
+// sesudah titik tonggak dilihat. Display-only, tanpa ubah sim:
+// titiknya hilang sendiri begitu populasi mencapai angka yang
+// dibutuhkan (aksi pertama bukan lagi "tambah").
+// Fungsi MURNI supaya aturannya bisa dites tanpa render.
+export function dotTambahAktif(butuhTambah: boolean, adaTonggakBelumDilihat: boolean): boolean {
+  return butuhTambah === true && adaTonggakBelumDilihat === false;
+}
+
 // Tonggak kampung (2026-11-05, Ide 29): rekam kemajuan kumulatif,
 // display-only, TANPA hadiah ekonomi (dunia bersama — hadiah klaim
 // bisa digandakan lintas perangkat, dan DESAIN-EKONOMI.md melarang

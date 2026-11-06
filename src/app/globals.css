@@ -297,6 +297,25 @@ canvas.game-canvas {
   70% { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
+/* Penanda populasi di tombol ＋ (2026-11-07, Ide 58): titik yang sama
+   persis seperti .menu-fab-dot (ukuran, warna, garis putih, denyut
+   TERBATAS 3x lalu diam — keyframes denyutFabDot dipakai bersama),
+   di sudut kanan-atas pil kuning "＋ Tambah karakter". Aturan Satu
+   Penanda: titik ini TIDAK pernah tampil bersamaan dengan titik
+   tonggak (lihat dotTambahAktif di sumberdaya.ts). */
+.tk-fab-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #dc2626;
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+  pointer-events: none;
+  animation: denyutFabDot 0.8s ease-out 3;
+}
 .menu-card {
   background: rgba(11, 24, 46, 0.98);
   border: 1.5px solid rgba(250, 204, 21, 0.4);
@@ -1198,6 +1217,11 @@ canvas.game-canvas {
      statis tetap tampil — sinyalnya (ada yang baru) tetap ada,
      geraknya tidak (alternatif statis ala Pope Tech). */
   .menu-fab-dot {
+    animation: none !important;
+  }
+  /* Penanda populasi (Ide 58): sama — denyut dimatikan, titik statis
+     tetap tampil. */
+  .tk-fab-dot {
     animation: none !important;
   }
   .map3d-float-badge {
