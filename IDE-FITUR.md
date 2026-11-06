@@ -777,6 +777,57 @@ bila perlu. Mulai dari satu jenis dulu + ukur segitiga
 sebelum/sesudah. Dampak kecil-sedang, usaha sedang. Bukan
 prioritas sebelum Ide 51. Detail di research/2026-11-06-1629.md.
 
+## Ide 53 — Baris "Yang menunggu" di blok "Selama kamu pergi" (dari riset 2026-11-06 18:29 WIB, sudut kembali bermain)
+~~DIBANGUN 2026-11-06 18:29 WIB (r55)~~ — fungsi murni
+`barisYangMenunggu` di `sumberdaya.ts` (bangunan sedang dibangun
+progres terbesar + "dan N lagi", dijepit 0..100; jumlah warga tanpa
+tugas; gabung " · "; null bila kosong) + satu baris "⏳ Yang
+menunggu: …" di dalam blok `{pergi && (...)}` di `page.tsx`
+(`dibangunList` + `tanpaTugasCount` dihitung sekali, dipakai kronik
+dan baris ini). Display-only, tanpa ubah sim, tanpa fetch baru,
+tanpa hadiah offline; kontrak `selamaKamuPergi` tetap maksimal 3
+baris perubahan. +29 tes (RONDE 55). CATATAN JUJUR: antrean live
+saat deploy semuanya selesai, jadi baris ini kemungkinan tidak
+tampil sampai ada bangunan baru dibangun / warga tanpa tugas —
+itu perilaku benar, verifikasi visual menyusul.
+Sumber: gamedesign.gg (handoff return screen: "immediately point
+the player at what ... to do next") + Strike-Command ("TODAY'S 3
+THINGS"). Masalah: blok "Selama kamu pergi" berhenti di "apa yang
+berubah" (observasi run ini: hanya "Hari 470 → 477"), pemain
+kembali tetap tidak tahu apa yang butuh perhatian sekarang. Cara
+kerja: satu baris tambahan di blok yang sama dari data poll yang
+sudah ada. Dampak sedang, usaha kecil. Detail di
+research/2026-11-06-1829.md.
+
+## Ide 54 — Kilas "Tonggak baru!" sejak kunjungan terakhir (dari riset 2026-11-06 18:29 WIB, sudut kembali bermain)
+
+Sumber: gamedesign.gg (return = seremoni kecil; tunjukkan apa yang
+tercapai) + SISA Ide 29. Masalah: tonggak tercapai saat pemain
+pergi hanya tercatat diam di baris "N dari 7" — tidak ada momen
+"ini baru saja tercapai". Cara kerja (display-only): bandingkan
+cuplikan kunjungan terakhir (localStorage, pola yang sama dengan
+Ide 22) dengan daftar tonggak sekarang; bila ada tonggak yang baru
+tercapai sejak kunjungan itu, baris Tonggak menampilkan namanya
+("🏅 Baru: Balai berdiri!"). Tanpa hadiah ekonomi, tanpa ubah sim.
+Dampak sedang, usaha kecil-sedang. Perhatian: cuplikan harus
+menyimpan daftar tonggak tercapai, bukan hanya bangunan — cek dulu
+bentuk `ne_kunjungan_terakhir` sebelum membangun. Detail di
+research/2026-11-06-1829.md.
+
+## Ide 55 — Jurnal kembali: kabar sejak kunjungan terakhir (dari riset 2026-11-06 18:29 WIB, sudut kembali bermain)
+
+Sumber: Monotony Idle (laporan 24 jam saat kembali) + SISA Ide 22
+bagian kedua. Masalah: kabar kampung adalah daftar panjang yang
+tenggelam; pemain yang kembali tidak bisa menyaring "apa yang
+terjadi selama saya pergi". Cara kerja (display-only): bila data
+poll sudah membawa kabar dengan penanda waktu/hari, tampilkan
+tautan/jurnal ringkas dari blok "Selama kamu pergi" ke kabar yang
+terjadi setelah hari kunjungan terakhir. Dampak sedang, usaha
+sedang. Perhatian: cek dulu apakah kabar di poll membawa hari game
+per entri — bila hanya teks bebas tanpa hari, ide ini mundur ke
+pengecekan struktur data dulu (seperti catatan Ide 41/45). Detail
+di research/2026-11-06-1829.md.
+
 ## Ide 41 — Baris "Sering bersama" di Papan Warga (dari riset 2026-11-06 06:29 WIB, sudut sosial/QoL)
 
 Sumber: Lakeburg Legacies (jurnal mencatat semua pertemuan, sapaan,

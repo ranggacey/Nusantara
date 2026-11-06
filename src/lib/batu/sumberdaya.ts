@@ -281,6 +281,34 @@ export function selamaKamuPergi(
   return baris.slice(0, 3);
 }
 
+// ── Baris "Yang menunggu" di blok "Selama kamu pergi" (2026-11-06,
+// Ide 53 / riset kembali bermain 18:29): handoff riset gamedesign.gg —
+// blok kembali-bermain jangan berhenti di "apa yang berubah", tapi
+// tunjuk "apa yang menunggu" supaya check-in berubah jadi sesi.
+// Fungsi MURNI, display-only, dari data poll yang sudah ada:
+// bangunan sedang dibangun (progres terbesar, maks 1 nama +
+// "dan N lagi") + jumlah warga tanpa tugas. Null bila tidak ada yang
+// menunggu. Tanpa fetch baru, tanpa ubah sim, tanpa hadiah offline.
+// Sengaja BUKAN baris ke-4 selamaKamuPergi: kontrak "maksimal 3
+// baris perubahan" fungsi itu tidak berubah.
+export function barisYangMenunggu(
+  dibangun: BangunanDibangun[] | null | undefined,
+  tanpaTugas: number | null | undefined
+): string | null {
+  const bagian: string[] = [];
+  const daftar = (dibangun ?? []).filter((b) => b && String(b.label ?? "").trim() !== "");
+  if (daftar.length > 0) {
+    const b = [...daftar].sort((a, b2) => (Number(b2.progres ?? 0) - Number(a.progres ?? 0)))[0];
+    const prog = Number.isFinite(b.progres) ? Math.max(0, Math.min(100, Math.round(b.progres))) : 0;
+    const sisa = daftar.length - 1;
+    bagian.push(`${String(b.label).trim()} ${prog}%${sisa > 0 ? ` dan ${sisa} lagi` : ""}`);
+  }
+  const tanpa = Number.isFinite(tanpaTugas) ? Math.max(0, Math.floor(Number(tanpaTugas))) : 0;
+  if (tanpa > 0) bagian.push(`${tanpa} warga tanpa tugas`);
+  if (bagian.length === 0) return null;
+  return `Yang menunggu: ${bagian.join(" · ")}`;
+}
+
 // Kronik kampung (2026-11-05, Ide 23 / riset fitur baru run ini): satu
 // baris "cerita hari ini" di kartu menu — pola kronik satu baris Plai:
 // Village Tale (ticker lakonis yang bereaksi pada keadaan game).

@@ -40,7 +40,7 @@ const Map3D = dynamic(() => import("@/components/Map3D"), {
 });
 import { Warga3DPreview } from "@/components/Warga3DPreview";
 import { MusyawarahModal } from "@/components/MusyawarahModal";
-import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
+import { bangunanById, biayaUpgradeBangunan, refundBongkarBangunan, cukupBiaya, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, tonggakKampung, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, type CuplikanKampung } from "@/lib/batu/sumberdaya";
 import { wargaTanpaTugas } from "@/lib/batu/tampil";
 
 type J = Record<string, any>;
@@ -666,6 +666,14 @@ export default function Page() {
                 world?.populasi ?? 0,
                 (map?.placements ?? []).map((p: J) => String(p.kind))
               );
+              // "Yang menunggu" (2026-11-06, Ide 53): bangunan sedang
+              // dibangun + warga tanpa tugas, dari data poll yang sudah
+              // ada — dipakai kronik DAN baris handoff blok "Selama kamu
+              // pergi", supaya tidak dihitung dua kali.
+              const dibangunList = (bangunan?.antrean ?? [])
+                .filter((b: J) => String(b.status ?? "") === "dibangun")
+                .map((b: J) => ({ label: String(b.label ?? b.tipe ?? ""), progres: Number(b.progres ?? 0) }));
+              const tanpaTugasCount = (map?.warga ?? []).filter((w: J) => wargaTanpaTugas(w)).length;
               // "Selama kamu pergi" (2026-11-05, Ide 22): ringkasan
               // kunjungan terakhir vs poll terbaru — maksimal 3 baris,
               // hanya bila hari game sudah maju. Display-only.
@@ -676,6 +684,10 @@ export default function Page() {
                     populasi: Number(world?.populasi ?? 0),
                     bangunan: (map?.placements ?? []).map((p: J) => String(p.kind)),
                   });
+              // Baris handoff Ide 53: di dalam blok pergi yang sama,
+              // satu baris "apa yang menunggu" (bangunan + warga tanpa
+              // tugas) — hilang bila tidak ada yang menunggu.
+              const menunggu = barisYangMenunggu(dibangunList, tanpaTugasCount);
               // Kronik kampung (2026-11-05, Ide 23): satu baris "cerita
               // hari ini" dari data poll yang sudah ada — aturan
               // prioritas di kronikKampung, bukan karangan. Display-only.
@@ -687,10 +699,8 @@ export default function Page() {
                 cuaca: labelCuaca(cuaca),
                 stok: stok as Partial<Record<string, number>>,
                 kapasitas: kapasitas as Partial<Record<string, number>>,
-                dibangun: (bangunan?.antrean ?? [])
-                  .filter((b: J) => String(b.status ?? "") === "dibangun")
-                  .map((b: J) => ({ label: String(b.label ?? b.tipe ?? ""), progres: Number(b.progres ?? 0) })),
-                tanpaTugas: (map?.warga ?? []).filter((w: J) => wargaTanpaTugas(w)).length,
+                dibangun: dibangunList,
+                tanpaTugas: tanpaTugasCount,
                 tonggakBerikutnya: tg.berikutnya,
               });
               // Pasar Minggu (2026-11-05, Ide 35): satu baris hitung
@@ -709,6 +719,9 @@ export default function Page() {
                         {pergi.map((b) => (
                           <div key={b} className="menu-pergi-baris">• {b}</div>
                         ))}
+                        {menunggu && (
+                          <div className="menu-pergi-baris">⏳ {menunggu}</div>
+                        )}
                       </div>
                       <button className="menu-pergi-tutup" title="Tutup ringkasan (muncul lagi bila ada hari baru berlalu)" aria-label="Tutup ringkasan Selama kamu pergi" onClick={tutupPergi}>
                         ✕
