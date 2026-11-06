@@ -268,6 +268,32 @@ export function opacityLabelHewanJarak(relevan: boolean, camDist: number): numbe
   return dasar * faktor;
 }
 
+// RONDE 54 — tata letak rumpun padi sawah (Ide 28, riset performa
+// 2026-11-06 16:29: pola InstancedMesh Glitchless + Aetumi). Murni +
+// dites tanpa WebGL. Salinan PERSIS loop lama di createSawahLuas
+// (Map3D) — posisi, rotasi, dan warna yang sama — supaya yang berubah
+// hanya CARA gambarnya (satu InstancedMesh, bukan satu Mesh per rumpun),
+// bukan tampilannya. Pematang silang di tengah tetap kosong
+// (|ix| < 0.3 atau |iz| < 0.3 dilewati). y = 0.7 mengikuti alas sawah.
+export const PADI_WARNA = [0x84cc16, 0xeab308, 0x65a30d, 0xfacc15];
+export type RumpunPadi = { x: number; y: number; z: number; rotY: number; warna: number };
+export function rumpunPadi(w: number, h: number): RumpunPadi[] {
+  const out: RumpunPadi[] = [];
+  for (let ix = -w / 2 + 0.6; ix < w / 2 - 0.4; ix += 0.65) {
+    for (let iz = -h / 2 + 0.6; iz < h / 2 - 0.4; iz += 0.65) {
+      if (Math.abs(ix) < 0.3 || Math.abs(iz) < 0.3) continue; // jangan di atas pematang
+      out.push({
+        x: ix,
+        y: 0.7,
+        z: iz,
+        rotY: Math.sin(ix + iz) * Math.PI,
+        warna: PADI_WARNA[Math.floor(Math.abs(ix * 7 + iz * 13)) % PADI_WARNA.length],
+      });
+    }
+  }
+  return out;
+}
+
 // RONDE 13 — teks bubble EVENT-ONLY (murni, dites tanpa WebGL).
 // Hanya interaksi sim yang aktif yang menghasilkan bubble; segala yang
 // lain (dialog ambient, tidur) menghasilkan string kosong = bubble

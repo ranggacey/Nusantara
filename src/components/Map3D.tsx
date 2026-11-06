@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { GUBUK_DINDING, GUBUK_ATAP, POHON_BATANG } from "@/lib/batu/skala";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, opacityLabelHewanJarak, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, opacityLabelHewanJarak, rumpunPadi, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
 import { durasiJamMs } from "@/lib/clock";
 import { buatTombakIblis } from "@/lib/batu/senjataIblis";
 import { updateAudioScene, SFX_PERKAKAS } from "@/lib/audio";
@@ -410,17 +410,32 @@ function createSawahLuas(w: number, h: number): THREE.Group {
   pematangZ.position.y = 0.21;
   g.add(pematangZ);
 
-  // Rumpun batang padi (kuning keemasan dan hijau subur berselang-seling)
-  const padiColors = [0x84cc16, 0xeab308, 0x65a30d, 0xfacc15];
-  for (let ix = -w / 2 + 0.6; ix < w / 2 - 0.4; ix += 0.65) {
-    for (let iz = -h / 2 + 0.6; iz < h / 2 - 0.4; iz += 0.65) {
-      if (Math.abs(ix) < 0.3 || Math.abs(iz) < 0.3) continue; // jangan di atas pematang
-      const col = padiColors[Math.floor(Math.abs(ix * 7 + iz * 13)) % padiColors.length];
-      const padi = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.65, 5), new THREE.MeshLambertMaterial({ color: col }));
-      padi.position.set(ix, 0.7, iz);
-      padi.rotation.y = Math.sin(ix + iz) * Math.PI;
-      g.add(padi);
-    }
+  // Rumpun batang padi (kuning keemasan dan hijau subur berselang-seling).
+  // RONDE 54 (Ide 28, riset performa 2026-11-06 16:29): SATU InstancedMesh
+  // (1 geometri + 1 material + 1 draw call per sawah), bukan satu Mesh +
+  // geometri + material baru per rumpun (16 draw call per sawah 4x4).
+  // Posisi/rotasi/warna dari rumpunPadi() — salinan persis loop lama, jadi
+  // tampilan tidak berubah; warna per rumpun via setColorAt (pola Aetumi).
+  // computeBoundingSphere() supaya culling instanced (all-or-nothing)
+  // memakai batas plot yang benar, bukan batas satu kerucut.
+  const rumpun = rumpunPadi(w, h);
+  if (rumpun.length > 0) {
+    const padiGeo = new THREE.ConeGeometry(0.18, 0.65, 5);
+    const padiMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const padi = new THREE.InstancedMesh(padiGeo, padiMat, rumpun.length);
+    const dummy = new THREE.Object3D();
+    const warna = new THREE.Color();
+    rumpun.forEach((r, i) => {
+      dummy.position.set(r.x, r.y, r.z);
+      dummy.rotation.set(0, r.rotY, 0);
+      dummy.updateMatrix();
+      padi.setMatrixAt(i, dummy.matrix);
+      padi.setColorAt(i, warna.setHex(r.warna));
+    });
+    padi.instanceMatrix.needsUpdate = true;
+    if (padi.instanceColor) padi.instanceColor.needsUpdate = true;
+    padi.computeBoundingSphere();
+    g.add(padi);
   }
 
   // Saung bambu penjaga sawah di sudut

@@ -156,6 +156,14 @@ halaman ringan tampil dulu. Dampak sedang-tinggi, usaha sedang
 (perlu uji ukuran chunk build).
 
 ## Ide 8 — Cap DPR kanvas di HP + culling luar viewport (dari riset 2026-11-04 02:29 WIB, sudut performa)
+~~SEBAGIAN SUDAH ADA — ditemukan run 2026-11-06 16:29 WIB~~ — cap DPR
+SUDAH di kode (`renderer.setPixelRatio(Math.min(
+window.devicePixelRatio, 2))`, Map3D baris 1122); Glitchless run ini
+menyarankan 1.5, tapi tanpa angka live TIDAK diturunkan. SISA:
+culling luar viewport (three sudah frustum-cull per mesh; instanced
+= all-or-nothing per bounding volume, jadi butuh
+computeBoundingSphere per batch — pola yang dipakai r54 untuk
+padi).
 
 Sumber: Playgama (batasi DPR ke 1-2) + ulasan Idle City Builder
 (pemain minta sembunyikan bagian peta yang tak terlihat).
@@ -506,6 +514,31 @@ mengubah render apa pun. Display-only, tanpa ubah sim. Dampak
 sedang (membuat optimasi berikutnya terukur), usaha kecil.
 
 ## Ide 28 — Instancing untuk pohon/batu yang berulang di peta (dari riset 2026-11-04 22:29 WIB, sudut performa)
+~~SEBAGIAN DIBANGUN 2026-11-06 16:29 WIB (r54) — JENIS PERTAMA: PADI
+SAWAH~~ — helper murni `rumpunPadi(w, h)` di `tampil.ts` (salinan
+persis loop lama: posisi/rotasi/warna sama) + `createSawahLuas`
+kini memakai SATU `InstancedMesh` (1 ConeGeometry + 1 material
+putih + warna per rumpun via `setColorAt` + `computeBoundingSphere`
+supaya culling tetap benar) — 16 draw call -> 1 per sawah 4x4.
+CATATAN JUJUR: observasi live run ini (37 placements, /api/map
+16:32 WIB) menemukan sawah_luas = 0 di desa — jadi draw call live
+TIDAK berubah hari ini; efeknya hidup begitu sawah pertama
+dibangun (balai + dapur umum sudah berdiri). +24 tes (RONDE 54).
+SISA jenis: tiang pagar peternakan (~18 Mesh per peternakan),
+rumpun rempah perkebunan, geometri per placement (Ide 51).
+
+Sumber: Simplified + Glitchless (InstancedMesh: banyak salinan
+geometri sama = 1 draw call; jangan buat geometri/material per
+objek). Masalah: desa ramai = ratusan objek berulang yang
+masing-masing satu draw call, pola yang kedua sumber sebut
+penyebab utama ngelag HP. Cara kerja: kelompokkan mesh statis
+berulang (pohon, batu, semak) per jenis menjadi InstancedMesh,
+mulai dari satu jenis dulu, ukur draw call sebelum/sesudah
+(Ide 27), pastikan klik/raycast tetap benar. Dampak
+sedang-tinggi, usaha sedang. Bukan untuk satu run tanpa baseline
+Ide 27 dulu. Tidak direkomendasikan dari riset ini: migrasi
+WebGPU (perombakan renderer, risiko kompatibilitas) dan cap pixel
+ratio membabi buta tanpa baseline + cek label.
 
 Sumber: Simplified + Glitchless (InstancedMesh: banyak salinan
 geometri sama = 1 draw call; jangan buat geometri/material per
@@ -710,6 +743,39 @@ tiap hover/animasi (bila tidak menjawab timing/konfirmasi/keadaan/
 perhatian, diam lebih baik), bunyi sinematik untuk aksi rutin,
 sukses/gagal hanya beda volume. Detail di
 research/2026-11-06-1429.md.
+
+## Ide 51 — BatchedMesh / bagi geometri untuk bangunan yang berulang (dari riset 2026-11-06 16:29 WIB, sudut performa)
+
+Sumber: Aetumi ("Choose merging for frozen scenery and
+`BatchedMesh` for distinct-but-batched objects; choose
+`InstancedMesh` when the geometry is identical") + Glitchless
+("Share one geometry and one material between copies; never
+create them per object"). Masalah: audit Ide 30 menyisakan
+"geometri per placement belum dibagi" — gubuk ada 6 di desa live
+(/api/map 16:32 WIB), tiap gubuk membuat geometrinya sendiri;
+begitu pula balai x3, menara jaga x3. Cara kerja: bagi
+geometri/material per jenis bangunan (cache module-level seperti
+material desa) ATAU `BatchedMesh` untuk jenis yang geometrinya
+beda-beda tapi materialnya sama. Mulai dari satu jenis (gubuk),
+ukur `renderer.info` sebelum/sesudah — jangan mulai sebelum angka
+baseline live r49 terbaca. Dampak sedang, usaha sedang.
+Perhatian: dispose jangan buang geometri bersama saat rebuild +
+raycast tap tetap ke grup placement. Detail di
+research/2026-11-06-1629.md.
+
+## Ide 52 — LOD / detail meredup untuk objek kecil saat kamera jauh (dari riset 2026-11-06 16:29 WIB, sudut performa)
+
+Sumber: Aetumi (LOD menukar versi murah saat objek jauh; "LOD
+operates per object, so it does not combine with a single
+InstancedMesh out of the box" — untuk field instanced, pisah jadi
+tier per jarak). Masalah: rumpun padi, tiang pagar, herba — detail
+kecil yang tetap digambar penuh segitiganya saat kamera jauh (zoom
+keluar), padahal menutupi beberapa piksel saja. Cara kerja: untuk
+objek UNIK (bukan instanced), pakai `THREE.LOD` dengan versi murah
+di jarak jauh; untuk field instanced, pisah jadi tier per jarak
+bila perlu. Mulai dari satu jenis dulu + ukur segitiga
+sebelum/sesudah. Dampak kecil-sedang, usaha sedang. Bukan
+prioritas sebelum Ide 51. Detail di research/2026-11-06-1629.md.
 
 ## Ide 41 — Baris "Sering bersama" di Papan Warga (dari riset 2026-11-06 06:29 WIB, sudut sosial/QoL)
 
