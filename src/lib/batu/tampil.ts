@@ -238,6 +238,18 @@ export function lebarBarHp(hp: number, hpMax: number): number {
   return Math.max(0, Math.min(100, Math.round((hp / hpMax) * 100)));
 }
 
+// RONDE 52 — opacity label hewan (Ide 38, riset UX 2026-11-06 12:29).
+// Hewan yang sedang diburu / terluka tampil penuh (bar HP-nya juga
+// tampil pada kondisi yang sama), hewan yang tenang meredup supaya
+// label warga + hewan yang relevan yang menonjol. Pola WoW (nameplate
+// non-target 20% alpha di luar combat) diadaptasi ke 0.45: label 10px
+// di atas kanvas 3D yang terang akan hampir tak terbaca di 20%
+// (aturan keterbacaan PUNCHEV). Murni + dites.
+export const OPACITY_LABEL_HEWAN_TENANG = 0.45;
+export function opacityLabelHewan(relevan: boolean): number {
+  return relevan ? 1 : OPACITY_LABEL_HEWAN_TENANG;
+}
+
 // RONDE 13 — teks bubble EVENT-ONLY (murni, dites tanpa WebGL).
 // Hanya interaksi sim yang aktif yang menghasilkan bubble; segala yang
 // lain (dialog ambient, tidur) menghasilkan string kosong = bubble

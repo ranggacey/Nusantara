@@ -599,7 +599,19 @@ stok ala Utopia (menggerus stok dalam kapasitas yang dinyatakan
 aman). Detail di research/2026-11-05-0829.md.
 
 ## Ide 38 — Label hewan meredup saat tidak diburu (dari riset 2026-11-06 00:29 WIB, sudut UX)
-
+~~DIBANGUN 2026-11-06 12:29 WIB (r52)~~ — helper murni
+`opacityLabelHewan` di `tampil.ts` (relevan -> 1, tenang -> 0.45)
++ satu baris di loop hewan Map3D (`cur.label.style.opacity` dari
+`showHp`, kondisi yang sama dengan tampilnya bar HP: terluka ATAU
+diburu). Nilai 0.45 adalah adaptasi jujur dari 20% WoW: label 10px
+di atas kanvas 3D terang akan hampir tak terbaca di 20% (aturan
+keterbacaan PUNCHEV). Display-only, tanpa ubah sim, tanpa ubah
+antrean rapikan. +17 tes (RONDE 52: helper + call site + kelas
+dasar + penjaga Ide 39 + audit versi). Observasi run ini (26–28
+label hewan, menumpuk dengan label warga di pusat) adalah
+prasyarat yang dipenuhi. Verifikasi visual (label hewan tenang
+benar-benar meredup di layar) menyusul — browser task run ini
+hanya mengamati sebelum deploy.
 Sumber: forum WoW (transparansi 20% untuk nameplate bukan target di
 luar combat). Masalah: 13-17 hewan berlabel sekaligus menambah
 kebisingan visual di pusat kampung. Cara kerja (display-only): label
@@ -608,13 +620,38 @@ yang sedang diburu tetap penuh + bar HP seperti sekarang. Dampak
 kecil-sedang, usaha kecil. Detail di research/2026-11-06-0029.md.
 
 ## Ide 39 — Label warga terpilih selalu paling depan (dari riset 2026-11-06 00:29 WIB, sudut UX)
-
+~~SUDAH ADA — dicek run 2026-11-06 12:29 WIB, TIDAK dibangun ulang~~ —
+`.map3d-label.sel` di `globals.css` SUDAH punya `z-index: 25`
+(commit af5cdfa), jadi label warga yang dipilih sudah menang atas
+label lain (z-index auto) karena semua label adalah sibling di
+`.map3d-labels`. Yang ditulis ide ini ("tergeser ke bawah antrean")
+adalah soal posisi Y dari `rapikanLabelBertumpuk` (menggeser ke
+bawah, bukan menumpuk), bukan soal tertutup. Dijaga tes RONDE 52
+(asersi `.sel` mengandung `z-index: 25;`) supaya pembersihan CSS
+masa depan tidak menghapusnya diam-diam. Bila observasi menemukan
+label `.sel` benar-benar tertutup, itu defect baru dengan bukti
+visual, bukan Ide 39.
 Sumber: forum WoW ("current target shifted into the foreground").
 Masalah: label warga yang sedang dipilih (`.sel`) bisa tergeser ke
 bawah antrean dan tertutup label lain. Cara kerja (display-only):
 dalam antrean gabungan, entri terpilih dijamin tidak digeser oleh
 entri lain (ditempatkan terakhir / di depan). Dampak kecil, usaha
 kecil. Detail di research/2026-11-06-0029.md.
+
+## Ide 48 — Label hewan memudar dengan jarak kamera (dari riset 2026-11-06 12:29 WIB, sudut UX)
+
+Sumber: forum WoW (OP: "I will see dozens of floating nameplates
+from afar" — puluhan nameplate dari kejauhan) + PUNCHEV (minimize
+clutter). Masalah: dari kejauhan (zoom out), puluhan label kecil
+menjadi bintik-bintik teks yang tidak terbaca tapi tetap memenuhi
+layar. Cara kerja (display-only): opacity label hewan ikut jarak
+kamera (`camDist` sudah ada di loop Map3D; label sudah
+disembunyikan bila `camDist > 130`) — meredup bertahap saat kamera
+menjauh, sebelum hilang total di 130. Mulai dari hewan dulu
+(karena jumlahnya paling banyak), bukan warga. Dampak kecil,
+usaha kecil. CATATAN: jangan digabung dengan Ide 38 dalam satu
+run — dua perubahan opacity sekaligus membuat efek
+masing-masing tidak terukur. Detail di research/2026-11-06-1229.md.
 
 ## Ide 41 — Baris "Sering bersama" di Papan Warga (dari riset 2026-11-06 06:29 WIB, sudut sosial/QoL)
 
