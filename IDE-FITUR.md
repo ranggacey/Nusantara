@@ -657,6 +657,15 @@ PUSAT). Butuh katalog bangunan + sim; bukan irisan kecil. Dampak
 sedang, usaha sedang-besar. Detail di research/2026-11-06-0829.md.
 
 ## Ide 44 — Sabuk per spesies: mangsa dekat, predator jauh (dari riset 2026-11-06 08:29 WIB, sudut ekonomi/sim)
+~~DIBANGUN 2026-11-06 10:29 WIB (r51)~~ — helper `sabukHewan(jenis)`
+di `sim.ts` (jinak 45, buas 90, tak dikenal 45) dipakai respawn
+(`lokasiRespawnHewan`, parameter jenis ke-3, default "rusa") DAN
+jangkar pulang `stepHewan`; kedua call site meneruskan `sp.id`.
+Tes RONDE 51 (26 asersi: pemetaan, respawn 200 titik per spesies,
+jangkar deterministik, reaksi menang atas wilayah) + blok r50 (d)/(f)
+diperbarui ke sabuk buas. Observasi run ini (hewan kembali dekat
+kampung, predator masih tercampur) adalah prasyarat yang dipenuhi.
+Detail di research/2026-11-06-0829.md.
 
 Sumber: DayZ Deerisle (teritori mangsa 150–500m, predator 300–700m —
 predator punya teritori lebih besar). Masalah: sekarang semua spesies
@@ -667,6 +676,56 @@ ayam) tetap 45, buas (babi/serigala/beruang) lebih lebar (mis. 90).
 Hanya angka + satu parameter; tapi mengubah keseimbangan bahaya, jadi
 butuh observasi dulu setelah Ide 1 (r50) hidup. Dampak kecil-sedang,
 usaha kecil. Detail di research/2026-11-06-0829.md.
+
+## Ide 45 — Pengelana tanpa rumah: tag di Papan Warga (dari riset 2026-11-06 10:29 WIB, sudut fitur baru)
+
+Sumber: Pocket Isle (pendatang tanpa tempat tidur datang sebagai
+pengelana — berjalan-jalan, mengintip rumah, main gitar di api unggun
+pada malam hari; kehidupan ambien tanpa peran). Masalah: warga yang
+belum punya rumah tidak terlihat bedanya dari warga lain — mereka
+hanya "tidur" entah di mana, padahal r42 sudah menyembunyikan warga
+tidur di dalam rumah saat malam. Cara kerja (display-only): bila sim
+menyimpan penugasan rumah per warga secara terstruktur, baris Papan
+Warga warga tanpa rumah diberi tag "🎒 pengelana" + satu baris ringkas
+di kronik ("3 warga belum punya rumah"). Bila data tidak terstruktur,
+irisan pertama mundur ke pengecekan struktur data dulu (seperti
+catatan Ide 41). Tanpa ubah sim. Dampak kecil-sedang, usaha
+kecil-sedang. Detail di research/2026-11-06-1029.md.
+
+## Ide 46 — Lampu senja di sekitar balai/paviliun (dari riset 2026-11-06 10:29 WIB, sudut fitur baru)
+
+Sumber: My Village Story ("Mornings turn into afternoons, dusk and
+night, and the lamps come on") + Ide 2 (lampu lentera hangat
+restoran). Masalah: malam di kampung gelap merata; tidak ada penanda
+visual "pusat kampung masih hidup" saat senja, padahal fase malam
+sudah ada di sim dan Ide 2 sudah meminta lampu hangat di restoran.
+Cara kerja (visual saja): titik cahaya hangat murah (sprite/emissive,
+bukan lampu dinamis per bangunan) di sekitar balai + paviliun makan
+yang hanya menyala pada fase malam/senja. Mulai dari dua bangunan
+itu, bukan semua bangunan. Dampak sedang, usaha sedang (butuh uji
+visual malam + cek performa). Detail di research/2026-11-06-1029.md.
+
+## Ide 47 — Sinyal "ujung rantai yang tipis" di kronik (dari riset 2026-11-06 10:29 WIB, sudut fitur baru)
+
+Sumber: Pocket Isle ("hands go to the thin end of the chain": tangan
+dialihkan ke ujung rantai yang paling tipis; urutan bangun tidak lagi
+menentukan). Masalah: peran kumpul yang kosong (tidak ada penebang /
+penambang / pemancing sama sekali) tidak terlihat — stok sumber itu
+berhenti bertambah tanpa penjelasan, padahal pemain pengamat tidak
+bisa menugaskan siapa pun; yang ia bisa hanya tahu dan menunggu
+musyawarah. Cara kerja (display-only, fungsi murni di
+`sumberdaya.ts`): dari data poll yang sudah ada (`map.warga` peran +
+stok dunia), bila satu peran kumpul tidak punya satu pun warga
+SEMENTARA stok sumbernya di bawah kapasitas, kronik menampilkan satu
+baris ("Tidak ada yang mengumpulkan kayu — stok tidak bertambah")
+dengan prioritas di bawah pangan habis/menipis tapi di atas stok
+penuh. Tanpa ubah sim, tanpa fetch baru, tanpa janji otomasi alokasi
+(pemain tetap pengamat; alokasi tetap urusan sim/musyawarah).
+DICEK LIVE 2026-11-06 10:29: ke-6 sumber saat ini PUNYA pengumpulnya
+(penebang Figo, penambang Miners, dst.), jadi cabang ini TIDAK akan
+menyala hari ini — disimpan sebagai penjaga, bukan dibangun sekarang.
+Dampak sedang, usaha kecil (satu cabang kronik + tes). Detail di
+research/2026-11-06-1029.md.
 
 ## Ide-ide berikutnya
 

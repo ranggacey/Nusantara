@@ -486,7 +486,17 @@ export const JARAK_SERANG_OPORTUNIS = 3; // tile: warga non-pemburu menyerang he
 // r50 — SABUK WILAYAH JELAJAH hewan (tile Manhattan dari PUSAT):
 // dipakai respawn r42 DAN jangkar mengembara r50 supaya satu angka
 // yang sama mengatur "dekat kampung" di kedua tempat.
+// r51 — SABUK PER SPESIES (Ide 44, pola DayZ: predator 300–700m vs
+// mangsa 150–500m): hewan BUAS (babi/serigala/beruang) punya wilayah
+// lebih lebar (90) dari jinak (45) — predator terasa liar dan jauh,
+// mangsa tetap berkumpul dekat kampung untuk diburu. Satu helper
+// sabukHewan dipakai respawn + jangkar supaya tidak ada dua angka
+// yang bisa bergeser sendiri.
 export const SABUK_HEWAN_MAKS = 45;
+export const SABUK_HEWAN_BUAS = 90;
+export function sabukHewan(jenis: string): number {
+  return hewanById(jenis)?.jinak === false ? SABUK_HEWAN_BUAS : SABUK_HEWAN_MAKS;
+}
 export const PENGALI_KEJAR = 1.5; // pemburu berlari saat mengejar mangsa (bukan jalan biasa)
 
 // RONDE 15 — damage berburu per hit (sistem HP hewan): tombak iblis
@@ -1534,21 +1544,24 @@ export function jadwalRegrow(jam: number, gx: number, gy: number): number {
 }
 
 // RONDE 22 — lokasi respawn hewan (r42): hewan lebih banyak DI DEKAT
-// kampung. 80% percobaan mengambil lokasi dalam sabuk Manhattan 12–45
-// dari PUSAT; sisanya memakai sebaran lama (seluruh area). Lokasi harus
-// darat (layak), >= 10 dari pusat, dan di dalam grid. Mengembalikan
-// null bila tidak ada lokasi layak dalam 40 percobaan.
+// kampung. 80% percobaan mengambil lokasi dalam sabuk Manhattan 12–
+// sabuk dari PUSAT (r51: jinak 45, buas 90 — sabukHewan(jenis)); sisanya
+// memakai sebaran lama (seluruh area). Lokasi harus darat (layak),
+// >= 10 dari pusat, dan di dalam grid. Mengembalikan null bila tidak
+// ada lokasi layak dalam 40 percobaan.
 export function lokasiRespawnHewan(
   r: () => number = Math.random,
   layak: (gx: number, gy: number) => boolean = (gx, gy) => !isWater(gx, gy),
+  jenis = "rusa",
 ): { gx: number; gy: number } | null {
+  const sabuk = sabukHewan(jenis);
   for (let t = 0; t < 40; t++) {
     let cx: number, cy: number;
     if (r() < 0.8) {
-      cx = PUSAT.gx + Math.floor((r() * 2 - 1) * SABUK_HEWAN_MAKS);
-      cy = PUSAT.gy + Math.floor((r() * 2 - 1) * SABUK_HEWAN_MAKS);
+      cx = PUSAT.gx + Math.floor((r() * 2 - 1) * sabuk);
+      cy = PUSAT.gy + Math.floor((r() * 2 - 1) * sabuk);
       const d = Math.abs(cx - PUSAT.gx) + Math.abs(cy - PUSAT.gy);
-      if (d < 12 || d > SABUK_HEWAN_MAKS) continue;
+      if (d < 12 || d > sabuk) continue;
     } else {
       cx = 10 + Math.floor(r() * 180);
       cy = 10 + Math.floor(r() * 180);
@@ -2796,11 +2809,14 @@ export function stepHewan(h: HewanDoc, jam: number, ctx: SimCtx): void {
   // game untuk pulang, bukan teleport. Cabang kabur/mendekat di atas
   // TIDAK disentuh: reaksi menang atas wilayah (pola RimWorld —
   // hewan kabur mengabaikan zona).
+  // r51 (Ide 44): ambang pulang = sabuk per spesies — buas baru
+  // pulang bila di luar 90, jinak bila di luar 45.
+  const sabuk = sabukHewan(h.jenis);
   const dPusat = Math.abs(h.gx - PUSAT.gx) + Math.abs(h.gy - PUSAT.gy);
   let dx: number;
   let dy: number;
   let langkah = Math.min(def.kecepatan, JARAK_KABUR_JINAK);
-  if (dPusat > SABUK_HEWAN_MAKS) {
+  if (dPusat > sabuk) {
     dx = Math.sign(PUSAT.gx - h.gx);
     dy = Math.sign(PUSAT.gy - h.gy);
     // Jangan lewati sumbu pusat: langkah dibatasi sisa jarak sumbu
@@ -3195,8 +3211,8 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
     for (const sp of HEWAN_AWAL) {
       for (let i = 0; i < sp.n; i++) {
         // RONDE 22: seed awal ikut bias dekat kampung (deterministik
-        // dari seed, bukan acak liar).
-        const lok = lokasiRespawnHewan(() => rnd(++s));
+        // dari seed, bukan acak liar). r51: sabuk per spesies.
+        const lok = lokasiRespawnHewan(() => rnd(++s), undefined, sp.id);
         const gx = lok?.gx ?? 100;
         const gy = lok?.gy ?? 100;
         docs.push({ _id: undefined as unknown, jenis: sp.id, gx, gy, hp: hewanById(sp.id)?.hp ?? 1 } as HewanDoc);
@@ -3370,11 +3386,12 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
       for (const sp of ctx.nodeSpawn) ctx.nodeTilesAll?.add(`${sp.gx},${sp.gy}`);
     }
     // Respawn hewan bila menipis (menuju ~25 ekor). RONDE 22: lokasi
-    // bias ke dekat kampung (lihat lokasiRespawnHewan).
+    // bias ke dekat kampung (lihat lokasiRespawnHewan). r51: sabuk per
+    // spesies — buas respawn lebih jauh dari jinak.
     const hidup = ctx.hewan.filter((h) => !ctx.hewanHilang.has(String(h._id))).length;
     if (butuhRespawnHewan(hidup) && Math.random() < peluangRespawnHewan(hidup)) {
       const sp = HEWAN_AWAL[Math.floor(Math.random() * HEWAN_AWAL.length)];
-      const lok = lokasiRespawnHewan();
+      const lok = lokasiRespawnHewan(undefined, undefined, sp.id);
       const gx = lok?.gx ?? 100;
       const gy = lok?.gy ?? 100;
       ctx.hewan.push({ _id: `baru-${hari}-${Math.floor(Math.random() * 1e9)}`, jenis: sp.id, gx, gy, hp: hewanById(sp.id)?.hp ?? 1 } as unknown as HewanDoc);
