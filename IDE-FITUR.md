@@ -1117,6 +1117,22 @@ fitur. Dampak kecil-sedang, usaha kecil. Detail di
 research/2026-11-07-0229.md.
 
 ## Ide 65 — Gelembung naik mengikuti tinggi label (dari riset 2026-11-07 04:29 WIB, sudut UX; lanjutan observasi r58/r02:29)
+~~DIBANGUN 2026-11-07 06:29 WIB (r59)~~ — fungsi murni
+`tinggiLabelWarga` + `offsetGelembungWarga` di `tampil.ts` (pil biasa
+19, terpilih 39, HP 9, aksi 30, bar 7, celah 13) + `bubbleOffsetY`
+di Map3D dari isi label antrean (dibaca dari inline style
+actionWrap/hpWrap/bar) — pil biasa tetap offset 32 (tanpa regresi),
+biasa+aksi 62, terpilih+aksi+HP 91. ADAPTASI JUJUR atas spesifikasi
+awal: fungsi tidak hanya 2 parameter (adaAksi, terpilih) — HP dan
+bar progres ikut dihitung, kalau tidak, warga terpilih yang sedang
+kumpul + ber-aksi masih tertutup 3px; dan angka pil terpilih
+dikoreksi 27 -> 39 karena baris peran ikut dihitung (spesifikasi
+awal lupa baris peran). Pips pentung TIDAK dihitung (0px): pips
+lepas dari DOM sejak rebuild label pertama (innerHTML="" tidak
+mengembalikannya) — defect lama yang dicatat, bukan diperbaiki run
+ini. +43 tes (RONDE 59; 2 asersi lama diperbarui: push hewan r48 +
+versi r47). Observasi run ini mengonfirmasi ulang: bubble "Tolong!
+Ada hewan buas!" memotong nama jadi "Go Youn...".
 
 Sumber: jMonkeyEngine (offset eksplisit mengalahkan urutan gambar;
 tumpang tindih transparan = soal posisi, bukan z-index) + AnchorKit
@@ -1151,6 +1167,46 @@ label/gelembung tetangga. Cara kerja: `.sel` SUDAH z-index 25
 gelembung milik warga terpilih + memastikan rapikan tidak menggeser
 entri terpilih ke bawah antrean. Display-only, tanpa ubah sim.
 Dampak kecil, usaha kecil. Detail di research/2026-11-07-0429.md.
+
+## Ide 68 — Musim visual dari hari game (dari riset 2026-11-07 06:29 WIB, sudut musim & cuaca; lanjutan Ide 19)
+
+Sumber: Mameya Seasons (satu peta, empat musim — ganti palet, bukan
+ganti peta) + Farming Season (musim murni visual tetap terasa sebagai
+hadiah, tanpa keuntungan gameplay) + ValheimSeasons (transisi
+bertahap, bukan saklar mendadak). Masalah: kampung terlihat sama
+sepanjang tahun game; tidak ada penanda waktu berlalu selain angka
+hari. Cara kerja: musim diturunkan dari hari game (mis. 30
+hari/musim, fungsi murni `musimDariHari`) — murni tampilan, TANPA
+efek ekonomi (aturan DESAIN-EKONOMI.md dijaga): rona tanah/daun
+berubah per musim + partikel ringan khas musim (kelopak di semi,
+daun gugur di gugur). Mulai dari SATU musim dulu (gugur: rona hangat
++ daun jatuh), bukan empat sekaligus. Dampak sedang, usaha sedang.
+Detail di research/2026-11-07-0629.md.
+
+## Ide 69 — Hujan terlihat di peta saat cuaca Hujan (dari riset 2026-11-07 06:29 WIB, sudut musim & cuaca)
+
+Sumber: RMCAD (cuaca menjelaskan keadaan game + sinkron dengan
+ambien) + Mameya Seasons (overlay di lapisan atas + tanah bereaksi).
+Masalah: cuaca "Hujan" hanya teks di menu — di peta tidak ada yang
+berubah, padahal hujan memotong hasil kumpul (pemain tidak
+"merasakan" kenapa hasil turun). Cara kerja: overlay hujan tipis di
+depan kamera (garis jatuh miring, spawn rate dibatasi, patuh
+reduced-motion + bisa dimatikan lewat Pengaturan) yang hanya aktif
+saat data poll menyebut cuaca Hujan; tanah di jalan jadi lebih gelap
+(reaksi tanah ala Mameya, versi murah: tint jalan). Display-only,
+tanpa ubah sim, tanpa ubah ekonomi hujan yang sudah ada. Dampak
+sedang, usaha kecil-sedang. Detail di research/2026-11-07-0629.md.
+
+## Ide 70 — Kronik menyebut pergantian musim/cuaca (dari riset 2026-11-07 06:29 WIB, sudut musim & cuaca)
+
+Sumber: RMCAD (peristiwa langka = momen yang diingat) + Valheim
+(transisi bertahap layak dirayakan). Masalah: pergantian musim/cuaca
+lewat tanpa jejak di kronik — pemain yang kembali tidak tahu musim
+apa sekarang. Cara kerja (display-only): satu baris kronik saat
+musim berganti dibanding cuplikan kunjungan terakhir ("Musim gugur
+tiba — daun berguguran") atau saat hujan pertama hari itu. Memakai
+snapshot localStorage yang sudah ada (Ide 54/56). Dampak kecil,
+usaha kecil. Detail di research/2026-11-07-0629.md.
 
 ## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
 

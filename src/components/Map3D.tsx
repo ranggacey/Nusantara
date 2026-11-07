@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { GUBUK_DINDING, GUBUK_ATAP, POHON_BATANG } from "@/lib/batu/skala";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, opacityLabelHewanJarak, rumpunPadi, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, opacityLabelHewanJarak, offsetGelembungWarga, rumpunPadi, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
 import { durasiJamMs } from "@/lib/clock";
 import { buatTombakIblis } from "@/lib/batu/senjataIblis";
 import { updateAudioScene, SFX_PERKAKAS } from "@/lib/audio";
@@ -2072,7 +2072,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
       // diposisi langsung di loop hewan, jadi bisa menumpuk di atas
       // label warga yang sudah dirapikan di pusat kampung. Entri hewan
       // tidak punya bubble (bubble: null).
-      const labelAntre: { label: HTMLDivElement; bubble: HTMLDivElement | null; sx: number; sy: number; bubbleText: string; isSelectedW: boolean }[] = [];
+      const labelAntre: { label: HTMLDivElement; bubble: HTMLDivElement | null; sx: number; sy: number; bubbleText: string; isSelectedW: boolean; adaAksi: boolean; hpTampil: boolean; barTampil: boolean }[] = [];
       const wRect = wrap.getBoundingClientRect();
       const camDist = camera.position.distanceTo(controls.target);
       const jamNow = jamRef.current;
@@ -2639,7 +2639,14 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           const sx = (vec.x * 0.5 + 0.5) * wRect.width;
           const sy = (-vec.y * 0.5 + 0.5) * wRect.height;
           cur.label.classList.toggle("sel", isSelectedW);
-          labelAntre.push({ label: cur.label, bubble: cur.bubble, sx, sy, bubbleText, isSelectedW });
+          // RONDE 59 (Ide 65): bawa isi label yang sedang tampil —
+          // offset gelembung dihitung dari tinggi NYATA label (bukan
+          // angka tetap). Dibaca dari inline style yang baru dipasang
+          // di atas (bukan computed style — tanpa layout thrash).
+          const adaAksi = cur.actionWrap.style.display === "flex";
+          const hpTampil = cur.hpWrap.style.display === "block";
+          const barTampil = cur.bar.style.display === "block";
+          labelAntre.push({ label: cur.label, bubble: cur.bubble, sx, sy, bubbleText, isSelectedW, adaAksi, hpTampil, barTampil });
         }
       }
       if (!selFound) ring.visible = false;
@@ -2769,7 +2776,7 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           // masuk antrean yang sama dengan label warga; transform
           // diterapkan sekali setelah loop hewan (blok rapikan di
           // bawah), supaya hewan + warga dirapikan bersama.
-          labelAntre.push({ label: cur.label, bubble: null, sx, sy, bubbleText: "", isSelectedW: false });
+          labelAntre.push({ label: cur.label, bubble: null, sx, sy, bubbleText: "", isSelectedW: false, adaAksi: false, hpTampil: false, barTampil: false });
           // RONDE 15 — bar HP hewan: tampil saat terluka (hp < maks)
           // atau sedang diburu; warna hijau >50%, kuning >25%, merah.
           // RONDE 52 (Ide 38): label hewan ikut kondisi yang sama —
@@ -2804,7 +2811,10 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
           if (a.bubbleText) {
             a.bubble.style.display = "block";
             if (a.bubble.textContent !== a.bubbleText) a.bubble.textContent = a.bubbleText;
-            const bubbleOffsetY = a.isSelectedW ? 54 : 32;
+            // RONDE 59 (Ide 65): offset gelembung = tinggi label NYATA
+            // + celah 13px — dulu 32/54 tetap, jadi gelembung jatuh di
+            // dalam label ber-aksi dan menutupi nama + teks aksi.
+            const bubbleOffsetY = offsetGelembungWarga({ terpilih: a.isSelectedW, adaAksi: a.adaAksi, hpTampil: a.hpTampil, barTampil: a.barTampil });
             a.bubble.style.transform = `translate(-50%, -100%) translate(${a.sx.toFixed(1)}px, ${(syA - bubbleOffsetY).toFixed(1)}px)`;
           } else {
             a.bubble.style.display = "none";

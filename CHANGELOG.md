@@ -1,3 +1,94 @@
+## 2026-11-07 ~06:29 WIB — r59: gelembung naik mengikuti tinggi label (Ide 65) + riset musim & cuaca
+
+Perubahan dalam 2 kalimat: gelembung bicara kini duduk di atas label
+warga setinggi label itu sendiri ditambah celah 13px — bukan lagi
+offset tetap 32/54 yang jatuh di dalam label ber-aksi; pil biasa
+tetap di offset 32 (tanpa perubahan visual), sementara warga yang
+sedang ber-aksi ("🛡️ Menghalau Hewan!") atau terpilih mendapat
+gelembung yang naik sampai 62–98px sesuai isi labelnya.
+
+### Observasi live pra-deploy (browser, hanya melihat, 06:30–06:37 WIB — masih r58)
+- Muat pertama: desa tampil utuh <25 detik dari layar "Memuat peta
+  3D…" — lebih cepat dari 60–90 detik di run-run lama; tidak macet,
+  tanpa error/blank.
+- Geser/zoom: klik zoom ▼ langsung merespons; drag peta dicoba tapi
+  tool browser timeout (pointer tertahan ~4,3 detik) sehingga
+  kelancaran drag kontinu TIDAK bisa dinilai penuh — kamera tetap
+  mengikuti drag dan scene me-render ulang tanpa tile kosong; tidak
+  ada jank yang terlihat di sederet pengamatan diam, termasuk saat
+  transisi siang → malam → siang.
+- Karakter: sebagian besar diam di posnya; 3 warga berkerumun di
+  pusat kampung di bawah label "🛡️ Menghalau Hewan!" yang
+  persennya berputar (42% → 21% → 10% → 0% → 79% …) tanpa pernah
+  tampak selesai — warga tampak berdiri di pos sambil beraksi,
+  bukan berjalan antar titik. Sesuai penjelasan menu ("Kamu
+  menonton, bukan mengatur"), tapi putaran persen yang tidak pernah
+  selesai itu dicatat untuk dicek sim-nya di run lain.
+- Hewan: terlihat jelas, ~30 label — Rusa, Babi Hutan, Beruang,
+  Kelinci, Ayam Hutan, Serigala, tersebar di dalam dan luar kampung,
+  bergeser pelan antar pengamatan (mengembara lambat).
+- Tombol/panel: ☰ membuka/menutup menu dengan cepat, tombol kamera
+  ▲/▼ merespons, tidak ada yang tertutup atau tidak merespons.
+  Satu-satunya masalah keterbacaan adalah tumpukan label itu
+  sendiri: tiga label "Menghalau Hewan!" menumpuk di pusat, dan
+  nama warga kadang terpotong di belakang gelembung ("Go Youn...").
+- Gelembung vs label (KONFIRMASI KETIGA): bubble "Tolong! Ada hewan
+  buas!" duduk DI DALAM kolom tumpukan label, di antara nama warga
+  ("ribran gakabuming") dan label aksi — memotong nama dan menutupi
+  sebagian tumpukan. Bubble kedua ("Ikut! Aku bawa keranjang
+  tambahan.") melayang di atas "Evos dyroth". Label aksi + bar
+  progresnya sendiri masih terbaca di bawahnya. Inilah yang
+  diperbaiki r59.
+- Titik merah ＋ Tambah karakter: MASIH ADA di tepi atas-kanan pil
+  kuning (tooltip "Tambah karakter — kampung masih kurang warga!").
+- Menu ☰ (~06:35 WIB): Suka Maju, 12 warga, 09.20 Pagi, Cerah,
+  H-525; stok Kayu 160/160 penuh, Batu 130/130 penuh, Emas 2/40,
+  Besi 47/55, Pangan 200/200 penuh, Kulit 95/95 penuh. Menu
+  menyebut kampung menginginkan Zaman Besi + monumen (Bengkel Besi,
+  Tugu Leluhur Agung), butuh populasi 20 (baru 12), 7/7 tonggak
+  tercapai, "Hari 524 → 525", "📣 Kabar Desa — Hari ini Pasar Minggu
+  di Balai." + "Kayu penuh (160/160) — lumbung tidak muat lagi,
+  waktunya membangun." Stok kini di angka kapasitas (bukan ratusan
+  ribu lagi) — pembusukan warisan bekerja.
+- TEMUAN BARU (defect, dicatat — BUKAN diperbaiki run ini): dua
+  label kanvas terbaca "Benuang" dan "Sengala" yang tidak ada di
+  teks halaman — diduga "Beruang"/"Serigala" yang terpotong atau
+  tertutup sebagian (perlu konfirmasi visual ulang, mungkin terkait
+  tumpukan label yang sama). TEMUAN KEDUA (dari audit kode saat
+  membangun r59): pips pentung kumpul SUDAH LEPAS dari DOM sejak
+  rebuild label pertama — `innerHTML=""` di Map3D tidak
+  mengembalikan `pips`, jadi pip tidak pernah terlihat setelah frame
+  pertama. Fungsi tinggi r59 sengaja menghitung pips = 0px; bila
+  pips dipasang lagi, fungsi itu harus ditambah 7px.
+
+### Riset + backlog (brief research/2026-11-07-0629.md)
+- Sudut: musim & cuaca visual (rotasi dari UX/label & gelembung
+  04:29). Sumber: Mameya Seasons (satu peta empat musim — ganti
+  palet, bukan ganti peta; overlay cuaca + tanah bereaksi) dan RMCAD
+  "The Art of Environmental Effects" (readability first, cuaca
+  menjelaskan keadaan game, sinkron audio-visual, aksesibilitas +
+  anggaran performa) + cuplikan Farming Season (musim murni visual
+  tetap terasa sebagai hadiah) dan ValheimSeasons (transisi bertahap).
+  Ide 68 (musim visual dari hari game), Ide 69 (hujan terlihat di
+  peta), Ide 70 (kronik menyebut pergantian musim) masuk IDE-FITUR.md.
+  Tidak direkomendasikan: cuaca/musim mengubah ekonomi (bertabrakan
+  dengan DESAIN-EKONOMI.md), gambar ulang empat musim penuh, kilat
+  flash layar (risiko fotosensitif), jejak salju persisten.
+- Koreksi jujur atas spesifikasi Ide 65: fungsi tidak hanya 2
+  parameter — HP dan bar progres ikut dihitung (kalau tidak, warga
+  terpilih yang kumpul + ber-aksi masih tertutup 3px); angka pil
+  terpilih dikoreksi 27 -> 39 karena baris peran ikut dihitung.
+
+### Verifikasi pra-deploy
+- `npx tsx tests/batu.test.ts` = 8380 lolos / 637 gagal (baseline
+  8337/637 — +43 asersi baru RONDE 59, NOL regresi baru; 2 asersi
+  lama diperbarui mengikuti string yang diubah: push hewan r48 +
+  cek versi r47). `npm run build` hijau (exit 0).
+- Sinkronisasi: local HEAD = remote head = `ce30741` (r58) saat run
+  dimulai; 6 file berubah + 1 brief riset baru + IDE-FITUR.md.
+
+### Verifikasi live r59 (diisi setelah deploy — catatan ini ditulis di working tree dan ikut commit run berikutnya, supaya tidak memicu redeploy sia-sia hanya untuk CHANGELOG)
+
 ## 2026-11-07 ~04:29 WIB — r58: deploy SESUNGGUHNYA (Ide 58) + riset UX label/gelembung
 
 KOREKSI ATAS ENTRI 02:29: klaim "men-deploy-nya" di entri itu TIDAK
@@ -100,7 +191,31 @@ tanpa perubahan kode tambahan.
   perbaikan z-index saja (masalahnya posisi), hapus "duplikat label
   hewan" tanpa bukti visual (kode: satu label per hewan).
 
-### Verifikasi live r58 (diisi setelah deploy — catatan ini ditulis di working tree dan ikut commit run berikutnya, supaya tidak memicu redeploy sia-sia hanya untuk CHANGELOG)
+### Verifikasi live r58 (06:17–06:23 WIB, setelah deploy)
+- Deployment production Vercel `dpl_DQAAnRgg8xcSAz2CAxYqxVFi4YNL`
+  READY dari commit `ce30741` (githubCommitSha cocok). `/api/version`
+  = r58. Homepage + satu ikon (`/batu/gubuk.png`, 128x128) termuat.
+- `/api/world`: ok:true, tanpa error — Suka Maju, zaman_batu, pop 12,
+  hari_total 524, jam 08.33 Pagi, Cerah; stok kayu 160, batu 130,
+  emas 2, besi 47, pangan 185, kulit 95 (kapasitas 160/130/40/55/
+  200/95). `/api/map`: ok:true, tanpa error — 12 warga (nama lengkap
+  cocok), 30 hewan (6 rusa, 3 ayam, 8 babi_hutan, 8 beruang, 4
+  kelinci, 1 serigala), grid 600x600, ikan 30, konstruksi [].
+  `/api/bangunan`: ok:true — katalog lengkap + antrean semuanya
+  status selesai progres 100. TIDAK ADA REGRESI: semua API yang
+  tadinya ok tetap ok dengan isi yang masuk akal. (Catatan: satu
+  fetch teks `/api/world` sempat timeout sebelum deploy — lewat
+  browser langsung termuat normal, jadi itu gangguan fetch, bukan
+  regresi.)
+- TITIK MERAH TERVERIFIKASI VISUAL: tombol ＋ Tambah karakter kini
+  membawa titik merah kecil (tepi atas-kanan pil kuning, terkonfirmasi
+  lewat crop perbesaran 3x), deskripsi tombol "Tambah karakter —
+  kampung masih kurang warga!". Keadaan live memenuhi syarat (pop
+  12/20, tonggak 7/7, H-524, 07.46 Pagi) — titik tetap tampil setelah
+  menu ditutup. Ini penanda pertama dari seri r56–r58 yang BENAR-BENAR
+  terlihat di Suka Maju (r56/r57 tidak bisa tampil di dunia ini).
+- Catatan ini ditulis di working tree dan ikut commit run berikutnya,
+  supaya tidak memicu redeploy sia-sia hanya untuk CHANGELOG.
 
 ## 2026-11-07 ~02:29 WIB — r58: deploy tertunda selesai (Ide 58) + riset sosial/QoL
 

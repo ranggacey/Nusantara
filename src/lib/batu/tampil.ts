@@ -268,6 +268,45 @@ export function opacityLabelHewanJarak(relevan: boolean, camDist: number): numbe
   return dasar * faktor;
 }
 
+// RONDE 59 — tinggi label warga + offset gelembung (Ide 65, riset UX
+// 2026-11-07 04:29: jMonkeyEngine "offset eksplisit mengalahkan urutan
+// gambar"). Gelembung dulu memakai offset TETAP 32 (54 bila terpilih),
+// padahal label ber-aksi jauh lebih tinggi — dasar gelembung jatuh DI
+// DALAM label dan menutupi nama + teks aksi ("🛡️ Menghalau Hewan!"),
+// terkonfirmasi observasi live r58 dan r59. Tinggi dihitung dari anak
+// label yang sedang tampil; semua angka dari globals.css (dibulatkan
+// ke bawah, jadi offset selalu >= tinggi nyata + celah):
+// - pil biasa 19: teks 11px x 1.2 = 13,2 + padding 2+2 + border 1+1.
+// - pil terpilih 39: nama 12px x 1.2 = 14,4 + peran 10px x 1,2 = 12 +
+//   padding 4+6 + border 1,5+1,5 (baris peran ikut dihitung).
+// - bar HP 9: margin 3 + tinggi 4 + border 2.
+// - bungkus aksi 30: margin 4 + padding 3+3 + teks 9,5px x 1,2 = 11,4 +
+//   gap 3 + bar 4 + border 2.
+// - bar progres 7: margin 3 + tinggi 4.
+// - pips pentung 0: SUDAH LEPAS dari DOM sejak rebuild label pertama
+//   (innerHTML="" di Map3D tidak mengembalikan pips) — jadi tidak
+//   menambah tinggi sampai defect itu diperbaiki (temuan observasi
+//   r59); bila pips dipasang lagi, tambah 7 di sini.
+// Celah 13px adalah gap yang sudah benar untuk pil biasa (32 - 19).
+// Murni + dites.
+export const TINGGI_LABEL_BIASA = 19;
+export const TINGGI_LABEL_TERPIILIH = 39;
+export const TINGGI_LABEL_HP = 9;
+export const TINGGI_LABEL_AKSI = 30;
+export const TINGGI_LABEL_BAR = 7;
+export const CELAH_GELEMBUNG = 13;
+export type IsiLabelWarga = { terpilih?: boolean; adaAksi?: boolean; hpTampil?: boolean; barTampil?: boolean };
+export function tinggiLabelWarga(isi: IsiLabelWarga = {}): number {
+  let t = isi.terpilih ? TINGGI_LABEL_TERPIILIH : TINGGI_LABEL_BIASA;
+  if (isi.hpTampil) t += TINGGI_LABEL_HP;
+  if (isi.adaAksi) t += TINGGI_LABEL_AKSI;
+  if (isi.barTampil) t += TINGGI_LABEL_BAR;
+  return t;
+}
+export function offsetGelembungWarga(isi: IsiLabelWarga = {}): number {
+  return tinggiLabelWarga(isi) + CELAH_GELEMBUNG;
+}
+
 // RONDE 54 — tata letak rumpun padi sawah (Ide 28, riset performa
 // 2026-11-06 16:29: pola InstancedMesh Glitchless + Aetumi). Murni +
 // dites tanpa WebGL. Salinan PERSIS loop lama di createSawahLuas
