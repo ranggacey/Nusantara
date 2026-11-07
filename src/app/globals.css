@@ -971,6 +971,47 @@ canvas.game-canvas {
   z-index: 6;
 }
 
+/* RONDE 60 — overlay hujan (Ide 69, riset musim & cuaca 06:29 +
+   riset aksesibilitas 08:29): garis hujan miring yang jatuh di atas
+   kanvas peta saat cuaca Hujan/Petir. DOM + animasi CSS saja (tanpa
+   draw call WebGL baru, tanpa partikel). z 4: di atas kanvas, DI
+   BAWAH label (z 5) supaya nama + teks aksi tetap terbaca
+   (readability-first, RMCAD); pointer-events none supaya tidak
+   menghalangi ketukan/drag peta; opasitas rendah supaya desa tetap
+   terlihat. Keyframes menggeser background-position tepat satu tile
+   (-120px, +240px) supaya loop-nya mulus tanpa lompatan. "deras"
+   (petir): garis lebih rapat + jatuh lebih cepat + sedikit lebih
+   pekat — TANPA kilat/flash (penjaga Ide 72, XAG 118 + ISO 9241-391).
+   Di bawah prefers-reduced-motion overlay DISEMBUNYIKAN (bukan
+   dibekukan jadi garis statis — garis diagonal diam terlihat seperti
+   goresan); sinyal cuaca tetap ada lewat teks "Hujan" di menu
+   (saluran kedua, XAG: tiap isyarat di lebih dari satu saluran).
+   Toggle matikan ada di Pengaturan (ne_efek_cuaca, XAG 117). */
+.hujan-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0.3;
+  background-image: repeating-linear-gradient(105deg, transparent 0 16px, rgba(174, 194, 224, 0.6) 16px 17px, transparent 17px 34px);
+  background-size: 120px 240px;
+  animation: hujanJatuh 0.8s linear infinite;
+}
+.hujan-overlay.deras {
+  opacity: 0.45;
+  background-size: 90px 180px;
+  animation: hujanJatuhDeras 0.5s linear infinite;
+}
+@keyframes hujanJatuh {
+  from { background-position: 0 0; }
+  to { background-position: -120px 240px; }
+}
+@keyframes hujanJatuhDeras {
+  from { background-position: 0 0; }
+  to { background-position: -90px 180px; }
+}
+
 /* === Rilis UI/UX 2 Nov 2026: peta FULLSCREEN + panel toggle + bubble. === */
 /* Wadah peta mengisi seluruh area game-main (bukan kartu 62vh lagi). */
 .fs-map .map3d-wrap {
@@ -1223,6 +1264,14 @@ canvas.game-canvas {
      tetap tampil. */
   .tk-fab-dot {
     animation: none !important;
+  }
+  /* Overlay hujan (Ide 69, r60): di bawah reduced-motion hujan
+     DISEMBUNYIKAN, bukan dibekukan — garis diagonal statis terlihat
+     seperti goresan di atas peta; sinyal cuaca tetap ada lewat teks
+     "Hujan" di menu. Toggle di Pengaturan mematikannya juga untuk
+     yang tidak memakai setelan OS ini. */
+  .hujan-overlay {
+    display: none !important;
   }
   .map3d-float-badge {
     animation-name: floatFadeTenang;

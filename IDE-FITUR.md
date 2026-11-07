@@ -1184,7 +1184,25 @@ daun gugur di gugur). Mulai dari SATU musim dulu (gugur: rona hangat
 Detail di research/2026-11-07-0629.md.
 
 ## Ide 69 — Hujan terlihat di peta saat cuaca Hujan (dari riset 2026-11-07 06:29 WIB, sudut musim & cuaca)
-
+~~DIBANGUN 2026-11-07 08:29 WIB (r60)~~ — fungsi murni
+`intensitasHujan` di `tampil.ts` (petir -> "deras", hujan ->
+"ringan", sisanya -> "") + overlay `.hujan-overlay` di `Map3D`
+(DOM + animasi CSS, garis miring 105°, tile 120x240, keyframes
+geser tepat satu tile; varian `.deras` tile 90x180 + 0,5 dtk) +
+prop `efekCuaca` (default true) + toggle di Pengaturan
+(`ne_efek_cuaca`, pola yang sama dengan toggle Label) + blok
+reduced-motion (overlay DISEMBUNYIKAN, bukan dibekukan — garis
+statis terlihat seperti goresan; sinyal cuaca tetap lewat teks
+"Hujan" di menu). Aturan aksesibilitas dari riset 08:29 (XAG 117):
+toggle matikan di dalam game + di bawah label (z 4 < 5) +
+opasitas 0,3/0,45 + TANPA kilat/flash. Display-only, tanpa ubah
+sim, tanpa draw call WebGL baru. +40 tes (RONDE 60: 31 audit versi
+lama diperbarui r59 -> r60). CATATAN JUJUR: observasi pra-deploy
+(H-533, Hujan) memastikan peta kering total — celah yang
+diperbaiki; verifikasi VISUAL hujan benar-benar jatuh di layar
+menyusul setelah deploy (tergantung cuaca hari game saat itu).
+SISA: reaksi tanah (jalan lebih gelap saat hujan, ala Mameya) +
+sinkron dengan ambien hujan (Ide 32) bila ambien hidup.
 Sumber: RMCAD (cuaca menjelaskan keadaan game + sinkron dengan
 ambien) + Mameya Seasons (overlay di lapisan atas + tanah bereaksi).
 Masalah: cuaca "Hujan" hanya teks di menu — di peta tidak ada yang
@@ -1207,6 +1225,50 @@ musim berganti dibanding cuplikan kunjungan terakhir ("Musim gugur
 tiba — daun berguguran") atau saat hujan pertama hari itu. Memakai
 snapshot localStorage yang sudah ada (Ide 54/56). Dampak kecil,
 usaha kecil. Detail di research/2026-11-07-0629.md.
+
+## Ide 71 — "Mode tenang": satu saklar gerakan di Pengaturan (dari riset 2026-11-07 08:29 WIB, sudut aksesibilitas)
+
+Sumber: XAG 117 (mekanisme penonaktifan konten bergerak DI DALAM
+game, bukan hanya setelan OS) + HyperDot ("Animate Background" off
+= latar jadi statis). Masalah: `prefers-reduced-motion` hanya
+membantu bila OS-nya mengaturnya; pemain yang sensitif gerak tapi
+OS-nya tidak disetel tidak punya jalan mematikan gerakan dari dalam
+game. Cara kerja: satu toggle "Kurangi gerakan" di Pengaturan
+(localStorage, pola yang sama dengan toggle Suara/Label) yang
+mematikan SEMUA gerakan non-inti sekaligus — overlay hujan (Ide
+69), denyut titik (Ide 56/58), badge melayang — kanvas 3D tetap
+jalan (inti permainan, seperti keputusan r31). Default mengikuti
+`prefers-reduced-motion` bila toggle belum pernah disentuh.
+Dampak sedang, usaha kecil-sedang. Detail di
+research/2026-11-07-0829.md.
+
+## Ide 72 — Kilat tanpa flash (dari riset 2026-11-07 08:29 WIB, sudut aksesibilitas; PENJAGA, bukan dibangun)
+
+Sumber: XAG 118 + ISO 9241-391 (ambang fotosensitif: >3 flash/detik
+di >25% layar, >5 detik) + Crimson Desert (Photosensitive Mode
+meredam kilat tanpa menghapusnya) + Subnautica (toggle kilat
+terpisah di Visual comfort). Masalah: suatu hari cuaca "petir"
+mungkin ingin efek kilat — kilat dengan flash putih layar penuh
+adalah pemicu fotosensitif klasik. Cara kerja (BUKAN dibangun
+sekarang, hanya penjaga): bila kilat divisualkan, pakai
+redup/terang perlahan (glow, bukan flash), frekuensi jauh di bawah
+ambang, dengan toggle sendiri di Pengaturan. Sampai ada yang
+membangunnya, "petir" tetap hujan deras tanpa kilat (keputusan
+r60). Dampak kecil (sebagai penjaga) / —. Detail di
+research/2026-11-07-0829.md.
+
+## Ide 73 — Teks di atas efek cuaca tetap terbaca (dari riset 2026-11-07 08:29 WIB, sudut aksesibilitas; audit)
+
+Sumber: XAG 117 (latar buram di belakang teks bila gerakan latar
+tidak bisa dihindari, contoh Sea of Thieves) + RMCAD
+(readability-first). Masalah: efek cuaca di atas peta bisa menutupi
+label/teks bila lapisannya salah. Cara kerja: aturan tertulis —
+overlay cuaca SELALU di bawah lapisan label (z < 5) dan opasitas
+rendah; bila suatu hari ada overlay yang harus di atas label,
+tambahkan scrim di belakang teks. Dijaga tes statis (z-index
+overlay < z-index `.map3d-labels`) — sudah dijaga tes RONDE 60
+untuk hujan. Dampak kecil, usaha kecil. Detail di
+research/2026-11-07-0829.md.
 
 ## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
 

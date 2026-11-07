@@ -211,6 +211,21 @@ export default function Page() {
       return next;
     });
   };
+  // Efek cuaca di peta (RONDE 60, Ide 69): default tampil; "0" di
+  // localStorage = hujan tidak digambar walau cuaca Hujan/Petir.
+  // XAG 117: konten bergerak harus bisa dimatikan sepenuhnya dari
+  // dalam game — bukan hanya lewat setelan OS (prefers-reduced-motion
+  // juga menyembunyikan overlay, lihat globals.css).
+  const [efekCuaca, setEfekCuaca] = useState(true);
+  const toggleEfekCuaca = () => {
+    setEfekCuaca((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("ne_efek_cuaca", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  };
   // Tip kontekstual satu baris di kartu menu (2026-11-05, Ide 14):
   // satu kalimat yang menjelaskan model pengamat (warga bekerja
   // sendiri, arah diputuskan Musyawarah) — bukan tur multi-langkah.
@@ -312,6 +327,7 @@ export default function Page() {
       const rl = localStorage.getItem("ne_road_level");
       if (rl) setRoadLevel(Number(rl));
       if (localStorage.getItem("ne_label_karakter") === "0") setLabelTampil(false);
+      if (localStorage.getItem("ne_efek_cuaca") === "0") setEfekCuaca(false);
       if (localStorage.getItem("ne_tip_kontekstual") === "0") setTipTampil(false);
       // "Selama kamu pergi" (2026-11-05, Ide 22): cuplikan kunjungan
       // terakhir — dibaca sekali saat mount; penulisan ada di efek
@@ -1049,6 +1065,7 @@ export default function Page() {
             onResourceHarvested={handleResourceHarvested}
             roadLevel={roadLevel}
             labelTampil={labelTampil}
+            efekCuaca={efekCuaca}
           />
         </div>
 
@@ -1101,6 +1118,17 @@ export default function Page() {
                   Mode ringan menyembunyikan semua label di atas karakter — nama, bubble dialog, teks aksi, dan bar HP — sehingga
                   browser tidak lagi menggambar dan menggeser puluhan label tiap detik. Karakter 3D-nya tetap jalan seperti biasa,
                   hanya labelnya yang hilang.
+                </p>
+                <div style={{ fontSize: 12, marginBottom: 4 }}>
+                  Efek cuaca (hujan di peta):{" "}
+                  <button className="md-btn" style={{ padding: "4px 10px" }} onClick={toggleEfekCuaca}>
+                    {efekCuaca ? "Tampil (ketuk untuk sembunyikan)" : "Sembunyi (ketuk untuk tampilkan)"}
+                  </button>
+                </div>
+                <p style={{ fontSize: 11, opacity: 0.75, marginTop: 0 }}>
+                  Saat cuaca Hujan atau Hujan Petir, garis hujan jatuh di atas peta (petir tampil sebagai hujan lebih deras, tanpa
+                  kilat). Di perangkat yang meminta gerakan minimal, hujan otomatis tidak tampil — cuaca tetap terbaca sebagai teks
+                  di menu.
                 </p>
                 <div style={{ fontSize: 12, marginBottom: 4 }}>
                   Tip kontekstual di menu:{" "}

@@ -1,3 +1,79 @@
+## 2026-11-07 ~08:29 WIB — r60: hujan terlihat di peta (Ide 69) + riset aksesibilitas
+
+Perubahan dalam 2 kalimat: saat cuaca Hujan atau Hujan Petir, garis
+hujan kini jatuh di atas peta (petir = hujan lebih deras, tanpa
+kilat/flash) — sebelumnya cuaca itu hanya teks di menu dan peta
+tetap kering; hujan bisa dimatikan dari Pengaturan dan otomatis
+tidak tampil di perangkat yang meminta gerakan minimal.
+
+### Observasi live pra-deploy (browser, hanya melihat, 08:31–08:38 WIB — masih r59)
+- Muat pertama: desa tampil utuh <20 detik dari layar "Memuat peta
+  3D…" — tanpa error/blank.
+- Geser/zoom: tombol kamera ▲/▼ merespons dan zoom terlihat; menu
+  ☰ buka/tutup cepat; kelancaran drag kontinu TIDAK bisa dinilai —
+  tool browser gagal menaruh drag (timeout ~6,5 dtk), jadi ini
+  keterbatasan alat ukur, bukan bukti ngelag.
+- Karakter: 12 warga, sebagian besar diam di posnya; 3 pembela
+  (Figo, Ys, ribran gakabuming) berkerumun di pusat dengan bar
+  "🛡️ Menghalau Hewan!" yang maju 18% → 53% → 99% lalu reset ke 4%
+  saat gelombang baru dimulai — PENYELESAIAN catatan r59: putaran
+  persen itu ternyata selesai dan mulai lagi, bukan macet.
+- Hewan: ~28 label terlihat (8 Beruang, 8 Babi Hutan, 5 Rusa,
+  4 Kelinci, 2 Ayam Hutan, 1 Serigala) — cocok dengan /api/map r59
+  (30 ekor); beberapa label Beruang/Babi Hutan menumpuk di selatan
+  desa, sebagian label terpotong tepi atas layar.
+- Tombol/panel: tidak ada yang tertutup/tidak merespons. Titik merah
+  ＋ Tambah karakter TERVERIFIKASI VISUAL (Ide 58): titik di
+  tepi atas-kanan pil kuning, tooltip "Tambah karakter — kampung
+  masih kurang warga!".
+- Cuaca Hujan (H-533, 09:02–09:43 Pagi), 12 warga. TEMUAN KUNCI:
+  TIDAK ADA hujan yang terlihat di peta meski cuaca "Hujan" —
+  close-up memastikan tanpa garis hujan/partikel/genangan, rumput
+  tetap hijau terang, bangunan kering. Inilah yang diperbaiki r60.
+- Menu ☰ (~08:35 WIB): stok Kayu 160/160, Batu 130/130, Emas 2/40,
+  Besi 47/55, Pangan 200/200, Kulit 95/95 (penuh); "Kampung
+  menginginkan" Zaman Besi + monumen (butuh populasi 20, baru 12);
+  "Selama kamu pergi: Hari 524 → 533"; Tonggak 7/7; "Pasar Minggu
+  6 hari lagi di Balai". Baris "Kronik kampung" TIDAK terlihat dalam
+  pengamatan ini — menu panjang dan pengamat menggulir sampai bawah
+  (berakhir "Orientasi: portrait"), jadi mungkin terlewat, bukan
+  bukti hilang; dicek lagi run berikutnya.
+- Area blank/error: tidak ada.
+
+### Riset + backlog (brief research/2026-11-07-0829.md)
+- Sudut: aksesibilitas (rotasi dari musim & cuaca 06:29; terakhir
+  disentuh 2026-11-04 20:29). Sumber: "Accessibility in Game
+  Design" (XAG 117/118: reduced-motion table stakes, kedipan jauh
+  di bawah 3/detik, warna bukan satu-satunya saluran) dan Xbox
+  Accessibility Guideline 117 di Microsoft Learn (DIBACA PENUH:
+  pemain harus bisa MENJEDA/MENGHENTIKAN SEPENUHNYA konten yang
+  bergerak; mekanisme penonaktifan di dalam game; contoh HyperDot
+  "Animate Background" + Halo Infinite skala 0–100%) + cuplikan
+  Subnautica (toggle kilat terpisah), Crimson Desert
+  (Photosensitive Mode), Playdate (Reduce Flashing).
+- Aturan yang dipakai untuk overlay hujan: (1) toggle di Pengaturan
+  untuk mematikan sepenuhnya (XAG 117); (2) di bawah
+  prefers-reduced-motion overlay DISEMBUNYIKAN, bukan dibekukan
+  (garis statis = goresan; sinyal cuaca tetap lewat teks "Hujan"
+  di menu = saluran kedua); (3) overlay DI BAWAH label (z 4 < 5)
+  + opasitas rendah supaya teks tetap terbaca; (4) tanpa kilat —
+  "petir" hanya hujan deras.
+- Ide baru masuk IDE-FITUR.md: Ide 71 ("Mode tenang": satu saklar
+  gerakan di Pengaturan), Ide 72 (kilat tanpa flash — penjaga),
+  Ide 73 (teks di atas efek cuaca tetap terbaca — audit). Tidak
+  direkomendasikan: mengandalkan prefers-reduced-motion saja,
+  kilat flash putih, mematikan gerak kanvas 3D, satu toggle global
+  tanpa penjelasan.
+
+### Verifikasi pra-deploy
+- `npx tsx tests/batu.test.ts` = 8420 lolos / 637 gagal (baseline
+  murni r59 8380/637 — +40 asersi baru RONDE 60, NOL regresi baru;
+  31 audit versi lama diperbarui r59 -> r60 mengikuti konvensi
+  tiap run, dan 2 asersi keyframes diperbaiki: split `}` berhenti
+  di rule `from`). `npm run build` hijau (exit 0).
+- Sinkronisasi: local HEAD = remote head = `0f8d73a` (r59) saat run
+  dimulai; 7 file berubah + 1 brief riset baru + IDE-FITUR.md.
+
 ## 2026-11-07 ~06:29 WIB — r59: gelembung naik mengikuti tinggi label (Ide 65) + riset musim & cuaca
 
 Perubahan dalam 2 kalimat: gelembung bicara kini duduk di atas label
@@ -87,7 +163,27 @@ gelembung yang naik sampai 62–98px sesuai isi labelnya.
 - Sinkronisasi: local HEAD = remote head = `ce30741` (r58) saat run
   dimulai; 6 file berubah + 1 brief riset baru + IDE-FITUR.md.
 
-### Verifikasi live r59 (diisi setelah deploy — catatan ini ditulis di working tree dan ikut commit run berikutnya, supaya tidak memicu redeploy sia-sia hanya untuk CHANGELOG)
+### Verifikasi live r59 (08:06–08:08 WIB, setelah deploy)
+- Deployment production Vercel `dpl_CGEMne5rTgkeNLZMRU7iRNQT1nS2`
+  READY dari commit `0f8d73a` (githubCommitSha cocok). `/api/version`
+  = r59. Homepage + satu ikon (`/batu/gubuk.png`, 128x128) termuat.
+- `/api/world`: ok:true, tanpa error — Suka Maju, zaman_batu, pop 12,
+  hari_total 531, jam 11.26 Siang, cuaca Hujan; stok kayu 160/160,
+  batu 130/130, emas 2/40, besi 47/55, pangan 198/200, kulit 95/95.
+- `/api/map`: ok:true, tanpa error — 12 warga, 30 hewan (8
+  babi_hutan, 8 beruang, 6 rusa, 4 kelinci, 3 ayam, 1 serigala),
+  grid 600x600, ikan 30, konstruksi [], 37 placements. (Fetch teks
+  `/api/world` sempat timeout sekali sebelum deploy — lewat browser
+  langsung termuat normal, jadi itu gangguan fetch, bukan regresi.)
+- `/api/bangunan`: ok:true — katalog lengkap (26 bangunan) + antrean
+  semuanya status selesai progres 100. TIDAK ADA REGRESI: semua API
+  yang tadinya ok tetap ok dengan isi yang masuk akal.
+- Verifikasi VISUAL efek r59 (gelembung benar-benar naik di atas
+  label ber-aksi) menyusul — butuh momen bubble + aksi bersamaan di
+  layar; yang terverifikasi run ini adalah tes offline + tidak ada
+  regresi build/API.
+- Catatan ini ditulis di working tree dan ikut commit run berikutnya,
+  supaya tidak memicu redeploy sia-sia hanya untuk CHANGELOG.
 
 ## 2026-11-07 ~04:29 WIB — r58: deploy SESUNGGUHNYA (Ide 58) + riset UX label/gelembung
 

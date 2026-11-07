@@ -22,7 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { MapControls } from "three/examples/jsm/controls/MapControls.js";
 import { GUBUK_DINDING, GUBUK_ATAP, POHON_BATANG } from "@/lib/batu/skala";
-import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, opacityLabelHewanJarak, offsetGelembungWarga, rumpunPadi, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
+import { paceTampil, lajuServerPerDetik, langkahDisplay, jalurTampil, paletCahaya, pusatDariTitik, type ModeCahaya, bubbleInteraksiAktif, teksBubbleEvent, isNight, langkahAyunan, sudutAyunan, langkahHewan, sudutKakiHewan, AMBANG_SNAP_DESYNC, kunciTujuan, kunciTujuanBaru, type TujuanTerkunci, poseTidur, specRambut, ayunanPerkakas, cariHewanBuas, hitungPipKumpul, lebarBarHp, opacityLabelHewan, opacityLabelHewanJarak, offsetGelembungWarga, intensitasHujan, rumpunPadi, tidurDiDalam, rapikanLabelBertumpuk } from "@/lib/batu/tampil";
 import { durasiJamMs } from "@/lib/clock";
 import { buatTombakIblis } from "@/lib/batu/senjataIblis";
 import { updateAudioScene, SFX_PERKAKAS } from "@/lib/audio";
@@ -53,6 +53,11 @@ interface Props {
   // Setting label karakter (2026-11-04): false = sembunyikan semua label
   // DOM karakter (nama, dialog, aksi, HP) supaya HP lebih ringan.
   labelTampil?: boolean;
+  // RONDE 60 — efek cuaca (Ide 69): false = overlay hujan tidak tampil
+  // walau cuaca Hujan/Petir (toggle Pengaturan, localStorage
+  // ne_efek_cuaca; XAG 117: konten bergerak harus bisa dimatikan
+  // sepenuhnya dari dalam game). Default true.
+  efekCuaca?: boolean;
 }
 
 // Deterministik dari index (stabil antar render).
@@ -1080,7 +1085,7 @@ function buildAnimal(jenis: string): THREE.Group {
   return g;
 }
 
-export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWarga, onLepasKunci, onTapBangunan, gameFase, cuaca = "cerah", jamTotal, onResourceHarvested, roadLevel = 1, labelTampil = true }: Props) {
+export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWarga, onLepasKunci, onTapBangunan, gameFase, cuaca = "cerah", jamTotal, onResourceHarvested, roadLevel = 1, labelTampil = true, efekCuaca = true }: Props) {
   const onResourceHarvestedRef = useRef(onResourceHarvested);
   onResourceHarvestedRef.current = onResourceHarvested;
   const roadLevelRef = useRef(roadLevel);
@@ -3162,9 +3167,23 @@ export default function Map3D({ map, selectedId, onSelectTile, followId, onTapWa
     }
   };
 
+  // RONDE 60 — intensitas hujan hari ini (Ide 69), dihitung sekali di
+  // sini supaya JSX overlay di bawah tidak memanggil helper dua kali.
+  const hujan = intensitasHujan(cuaca);
+
   return (
     <div ref={wrapRef} className="map3d-wrap">
       <div ref={labelsRef} className="map3d-labels" />
+      {/* RONDE 60 — overlay hujan (Ide 69): garis jatuh miring di atas
+          kanvas, DI BAWAH label (z 4 < 5, lihat globals.css) supaya nama
+          + teks aksi tetap terbaca (readability-first, RMCAD).
+          Hanya saat cuaca Hujan/Petir DAN toggle efek cuaca menyala;
+          "petir" = deras, tanpa kilat/flash (penjaga Ide 72, XAG 118).
+          Display-only, tanpa ubah sim, tanpa draw call WebGL baru
+          (DOM + animasi CSS saja). */}
+      {efekCuaca && hujan !== "" && (
+        <div className={`hujan-overlay${hujan === "deras" ? " deras" : ""}`} aria-hidden="true" />
+      )}
       {/* Analog kamera kiri (permintaan user 2026-11-04, ganti D-pad):
           klaster pojok kiri-bawah peta, z 10 (di atas kanvas + label
           z 5, di bawah modal z 50+). Sembunyikan -> tombol 🕹️ di

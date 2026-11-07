@@ -268,6 +268,24 @@ export function opacityLabelHewanJarak(relevan: boolean, camDist: number): numbe
   return dasar * faktor;
 }
 
+// RONDE 60 — intensitas hujan yang tampil di peta (Ide 69, riset
+// musim & cuaca 2026-11-07 06:29 + riset aksesibilitas 08:29).
+// Cuaca "Hujan" selama ini hanya TEKS di menu — observasi live run
+// ini (H-533, cuaca Hujan) memastikan peta tetap kering: rumput
+// hijau terang, bangunan kering, tanpa garis hujan. Overlay hujan
+// (CSS, di Map3D) memakai hasil fungsi ini: "petir" = deras (tanpa
+// kilat/flash — penjaga Ide 72, XAG 118 + ISO 9241-391), "hujan" =
+// ringan, sisanya (cerah/berawan/tidak dikenal) = tidak ada overlay.
+// Nilai cuaca berasal dari cuacaGame (clock.ts): "cerah" | "berawan" |
+// "hujan" | "petir" — perbandingan eksak, huruf besar/kecil tidak
+// dianggap sama supaya cuaca tak dikenal tidak pernah menyalakan
+// overlay secara diam-diam. Murni + dites.
+export function intensitasHujan(cuaca: string): "ringan" | "deras" | "" {
+  if (cuaca === "petir") return "deras";
+  if (cuaca === "hujan") return "ringan";
+  return "";
+}
+
 // RONDE 59 — tinggi label warga + offset gelembung (Ide 65, riset UX
 // 2026-11-07 04:29: jMonkeyEngine "offset eksplisit mengalahkan urutan
 // gambar"). Gelembung dulu memakai offset TETAP 32 (54 bila terpilih),
