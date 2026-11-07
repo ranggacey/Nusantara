@@ -1359,7 +1359,15 @@ melarang hadiah ekonomi di luar cap). Detail di
 research/2026-11-07-1229.md.
 
 ## Ide 78 — Tugu sebagai tonggak ke-8 "Kemenangan kampung" (dari riset 2026-11-07 12:29 WIB, sudut ekonomi/sim)
-
+~~DIBANGUN 2026-11-07 14:29 WIB (r63)~~ — satu entri ke-8 di
+`tonggakKampung` (`tugu_leluhur`, tercapai bila
+`tugu_leluhur_agung` berdiri) + komentar "7 tonggak" -> "8
+tonggak"; baris menu memakai `tg.total` (bukan angka keras) jadi
+"7 dari 7" otomatis jadi "7 dari 8" di Suka Maju. Kilas "✨ Baru:"
++ titik FAB + kronik ikut otomatis lewat `daftar` yang sama.
+Display-only, tanpa hadiah ekonomi. BUILD_ID r62 -> r63 + 19 tes
+penjaga (RONDE 63: total 8, 7/8 berikutnya tugu, 8/8 null,
+tonggakBaru menyebut tugu, penjaga r56/r57 tetap 5).
 Sumber: Forge of Empires (Great Buildings sebagai investasi yang
 dirayakan) + IMPERIUM (wonder = proyek akhir yang ditunggu).
 Masalah: 7 tonggak berhenti di paviliun makan — tugu yang berdiri
@@ -1397,6 +1405,19 @@ Cara kerja (display-only): tambahkan label kecil "Kronik kampung"
 di depan kalimat (pola label `.menu-tip-label` di baris tip Ide 14),
 tanpa mengubah isi kalimat atau aturan prioritasnya. Dampak kecil,
 usaha kecil. Detail di CHANGELOG r62.
+
+## Ide 81 — Tonggak berlapis untuk tugu (varian Ide 78, dari riset 2026-11-07 14:29 WIB, sudut onboarding/prestasi)
+
+Sumber: Yu-kai Chou (hitung naik dari baseline, bukan turun dari
+kesempurnaan — tiap langkah dirayakan). Masalah: tonggak sekarang
+biner per bangunan (berdiri / belum) — tidak ada rasa "hampir"
+untuk proyek lintas musim seperti tugu (40 besi = ~73
+hari-penambang). Cara kerja: untuk tugu saja, tampilkan progres
+antrean sebagai "Tugu: 60%" di baris tonggak selama dibangun,
+bukan menunggu selesai. Perlu cek dulu apakah data antrean
+(progres) sudah sampai ke baris tonggak — bila belum, irisan
+pertama adalah pengecekan itu. Dampak kecil, usaha kecil-sedang.
+Detail di research/2026-11-07-1429.md.
 
 ## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
 

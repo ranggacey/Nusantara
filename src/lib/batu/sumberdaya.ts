@@ -252,7 +252,7 @@ export function dotTambahAktif(butuhTambah: boolean, adaTonggakBelumDilihat: boo
 // display-only, TANPA hadiah ekonomi (dunia bersama — hadiah klaim
 // bisa digandakan lintas perangkat, dan DESAIN-EKONOMI.md melarang
 // pengali di luar cap). Fungsi MURNI dari data poll yang sudah ada
-// (populasi + jenis bangunan berdiri): 7 tonggak dari tangga
+// (populasi + jenis bangunan berdiri): 8 tonggak dari tangga
 // DESAIN-EKONOMI §2, diurutkan dari yang paling awal. `berikutnya`
 // = tonggak pertama yang belum tercapai (pola "paling dekat" dari
 // riset run ini: Saltwick + panduan Android — progres terlihat +
@@ -284,6 +284,14 @@ export function tonggakKampung(populasi: number, jenisBerdiri: string[]): Tongga
     { id: "bengkel_pertama", nama: "Bengkel pertama", tercapai: ada("bengkel_kayu") || ada("bengkel_batu") },
     { id: "balai", nama: "Balai berdiri", tercapai: ada("balai") },
     { id: "paviliun", nama: "Paviliun makan berdiri", tercapai: ada("paviliun_makan") },
+    // Tonggak ke-8 (2026-11-07, Ide 78): ujung tangga — tugu hanya
+    // bisa berdiri bila gerbang tingkat 5 terbuka (penambang +
+    // paviliun + pop 20, r62), jadi tonggak ini adalah "bintang
+    // keempat" riset run ini: gunung yang lebih tinggi yang baru
+    // relevan setelah 7 tonggak pertama tercapai. Display-only,
+    // tanpa hadiah ekonomi; kilas "✨ Baru:" + titik FAB (Ide 54/56)
+    // ikut otomatis karena keduanya membaca `daftar` yang sama.
+    { id: "tugu_leluhur", nama: "Tugu Leluhur Agung berdiri", tercapai: ada("tugu_leluhur_agung") },
   ];
   const tercapai = daftar.filter((t) => t.tercapai).length;
   const berikutnya = daftar.find((t) => !t.tercapai)?.nama ?? null;
@@ -298,7 +306,7 @@ export function tonggakKampung(populasi: number, jenisBerdiri: string[]): Tongga
 // kunjungan terakhir dengan keadaan poll terbaru lewat
 // tonggakKampung yang sudah ada, lalu mengembalikan NAMA tonggak
 // yang baru tercapai sejak cuplikan itu, dalam urutan kanonik.
-// Format cuplikan TIDAK perlu diubah: ketujuh tonggak diturunkan
+// Format cuplikan TIDAK perlu diubah: kedelapan tonggak diturunkan
 // dari populasi + jenis bangunan berdiri, dan keduanya sudah ada di
 // CuplikanKampung. [] bila tidak ada cuplikan / tidak ada yang baru.
 // Kilas hilang sendiri begitu cuplikan dimajukan (✕ blok pergi atau

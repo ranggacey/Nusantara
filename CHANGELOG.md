@@ -1,3 +1,81 @@
+## 2026-11-07 ~14:29 WIB — r63: tonggak ke-8 "Tugu Leluhur Agung berdiri" (Ide 78) + riset onboarding/prestasi
+
+Perubahan dalam 2 kalimat: tonggak kampung kini ada 8 — entri
+ke-8 "Tugu Leluhur Agung berdiri" di `tonggakKampung` (tercapai
+bila `tugu_leluhur_agung` berdiri), sehingga baris menu Suka Maju
+berubah dari "7 dari 7" menjadi "7 dari 8" karena tugu belum
+berdiri (gerbang tingkat 5 masih tertutup: pop 12 < 20); kilas
+"✨ Baru:", titik penanda di tombol menu, dan kronik ikut
+merayakannya otomatis lewat daftar yang sama, tanpa hadiah ekonomi
+dan tanpa panel baru.
+
+### Observasi live pra-deploy (browser, hanya melihat, 14:29–14:33 WIB — masih r62)
+- Muat pertama: layar gelap "Memuat peta 3D…" lalu desa tampil
+  penuh paling lambat 30 detik setelah dibuka (cek pertama sudah
+  tampil; durasi persis tidak diukur) — tidak terasa macet.
+- Tidak ada jank/blank/error selama ~2 menit: progres tugas
+  bersama "🛡️ Menghalau Hewan!" bergerak 4% -> 21% -> 82% lalu
+  mulai lagi dari 1% (gelombang baru); hujan (r60) terlihat
+  jelas di seluruh peta; suasana malam/gelap. FPS tidak diukur
+  (hanya tangkapan layar), jadi ini observasi visual saja.
+- Warga terlihat bekerja, tidak diam: Figo, Nera, Praboti, Budi,
+  Renata, Evos dyroth, Siti, reja auditore, Go Younjung, ribran
+  gakabuming, Miners, Ys — berkerumun di sekitar bangunan pusat
+  dengan pergeseran kecil antar cek; beberapa menampilkan
+  "Tolong! Ada hewan buas!".
+- Hewan terlihat dan berpindah: Rusa, Babi Hutan, Beruang,
+  Kelinci, Ayam Hutan, Serigala — di sekitar kampung dan di
+  padang sekitarnya.
+- Tidak ada tombol/panel yang tertutup atau terpotong: tombol menu
+  kuning kanan-atas, kontrol kamera kiri-bawah (✕, ▲, ▼, joystick
+  analog), "🎮 Panduan Kontrol", "＋ Tambah karakter" kanan-bawah
+  dengan titik merah. Responsivitas tidak dites (dilarang klik).
+  Satu-satunya tumpang tindih: label nama warga/hewan + gelembung
+  "Tolong! Ada hewan buas!" menumpuk di klaster pusat sehingga
+  sulit dibaca — temuan lapangan, bukan fokus run ini (rapikan
+  label sudah ada sejak r42; kepadatan klaster pusat tetap).
+- Tidak ada HUD jam/hari/fase/cuaca/stok yang terlihat di layar
+  (semua info itu ada di dalam kartu menu yang tidak dibuka,
+  sesuai larangan klik) — jadi hari/jam/stok live tidak tercatat
+  run ini; verifikasi API setelah deploy yang memastikannya.
+
+### Riset + backlog (brief research/2026-11-07-1429.md)
+- Sudut: onboarding/prestasi (rotasi dari ekonomi/sim 12:29).
+  Sumber: (1) Cities: Skylines — Korppoo, GDC Europe
+  (SiliconANGLE): hadiahi pemain yang benar, jangan hukum yang
+  salah; kota tanpa tujuan akhir selain terus memperbaiki; hadiah
+  pencapaian kecil membuat pemain terus bermain.
+  (2) Yu-kai Chou, "Achievement System Design Beyond Binary":
+  lencana biner gagal (terlalu mudah = hampa, terlalu sulit =
+  hanya elit); bangun lapisan — pemula cepat meraih yang
+  bermakna, veteran melihat gunung lebih tinggi; hitung NAIK
+  dari baseline, bukan turun dari kesempurnaan; "bintang
+  keempat" yang tak terlihat pemula, muncul setelah 3 bintang;
+  lencana (kesulitan) vs set koleksi (ketidaklengkapan) adalah
+  dua dorongan berbeda.
+- Ide 78 DIBANGUN run ini (tonggak ke-8 = "bintang keempat":
+  baru relevan setelah 7 tonggak pertama; "7 dari 8" adalah slot
+  kosong set koleksi yang menarik diisi). Ide 81 BARU masuk
+  backlog: tonggak berlapis untuk tugu ("Tugu: 60%" selama
+  dibangun) — varian Ide 78. TIDAK direkomendasikan: puluhan
+  achievement sekaligus (wallpaper), bonus ekonomi untuk
+  tonggak (melanggar DESAIN-EKONOMI.md), menampilkan tugu
+  sebagai hukuman terkunci, menyembunyikan tugu total sampai 7/7.
+
+### Verifikasi pra-deploy
+- Tes offline: `npx tsx tests/batu.test.ts` = 8516 lolos, 633
+  gagal — daftar gagal IDENTIK dengan baseline r62 (8497/633)
+  yang diukur sebelum perubahan; 19 asersi baru RONDE 63 semua
+  lolos. Dua jebakan saat menulis tes: populasi 20 ikut
+  menghitung tonggak "Populasi 10" (isolasi tugu memakai
+  populasi 0/9) + satu asersi BUILD_ID pola `'"r62"'` luput dari
+  sed global (diperbaiki manual).
+- Build: `npm run build` hijau (Next.js 16, semua route
+  terdaftar termasuk /api/version, /api/world, /api/map,
+  /api/bangunan).
+
+### Verifikasi live r63 (diisi setelah deploy)
+
 ## 2026-11-07 ~12:29 WIB — r62: bangunan tingkat 5 masuk katalog, terkunci (Ide 77) + riset ekonomi/sim
 
 Perubahan dalam 2 kalimat: Bengkel Besi (40 kayu + 30 batu + 15 besi)
@@ -83,7 +161,33 @@ baru (tugu murni monumen).
   DESAIN-EKONOMI.md + catatan verifikasi r61 di CHANGELOG yang
   belum ter-commit.
 
-### Verifikasi live r62 (diisi setelah deploy)
+### Verifikasi live r62 (12:45–12:47 WIB, setelah deploy)
+- Deployment production Vercel `dpl_8TD6pcYj2vrgBgvtmJY1FLf7EVQz`
+  READY dari commit `77082c3a` (githubCommitSha cocok).
+  `/api/version` = r62. Homepage termuat (judul "Negara Emas —
+  Zaman Batu") + satu ikon (`/batu/gubuk.png`, 128x128) termuat.
+- `/api/world`: ok:true, tanpa error — Suka Maju, zaman_batu, pop
+  12, hari_total 549, jam 19.54 Sore, cuaca Hujan; stok kayu
+  160/160, batu 130/130, emas 2/40, besi 47/55, pangan 200/200,
+  kulit 95/95 (cocok dengan observasi pra-deploy).
+- `/api/map`: ok:true — grid 600x600, sungai mengalir (riverXs),
+  ikan 30.
+- `/api/bangunan`: ok:true — katalog 28 bangunan, DUA BARU
+  TERKONFIRMASI LIVE: `bengkel_besi` (40 kayu + 30 batu + 15 besi,
+  sprite bengkel-batu.png) dan `tugu_leluhur_agung` (120 kayu +
+  100 batu + 40 besi + 30 emas, sprite totem.png); antrean
+  semuanya status selesai progres 100 — TIDAK ADA bengkel/tugu
+  yang diantrekan (benar: gerbang tertutup, pop 12 < 20; penambang
+  Miners ada + paviliun berdiri, tinggal populasi). TIDAK ADA
+  REGRESI: semua API yang tadinya ok tetap ok dengan isi yang
+  masuk akal.
+- Verifikasi VISUAL model 3D + panel "tanpa (rencana)" menyusul —
+  butuh dunia yang memenuhi syarat (pop 20) untuk bangunan
+  berdiri, dan menu untuk teks panel; yang terverifikasi run ini
+  adalah tes offline + katalog live + tidak ada regresi build/API.
+- Catatan ini ditulis di working tree dan ikut commit run
+  berikutnya, supaya tidak memicu redeploy sia-sia hanya untuk
+  CHANGELOG.
 
 ## 2026-11-07 ~10:29 WIB — r61: "Mode tenang", satu saklar gerakan di Pengaturan (Ide 71) + riset performa
 
