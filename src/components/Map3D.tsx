@@ -799,6 +799,30 @@ function buildBuilding(kind: string, w: number, h: number, level = 1): THREE.Gro
     }
     g.add(box(w, 0.25, 0.3, wood, 0, 2.9, 0));
     g.add(pyramid(w * 0.4, 0.8, thatch, 3.4));
+  } else if (kind === "bengkel_besi") {
+    // RONDE 62 — tingkat 5: bengkel besi (dinding batu kelabu + atap
+    // datar gelap + landasan di depan + bara tungku menyala).
+    g.add(box(w, 2.2, h, 0x6b7280, 0, 1.1, 0));
+    g.add(box(w + 0.2, 0.15, h + 0.2, 0x374151, 0, 2.3, 0));
+    // Landasan besi di depan bengkel.
+    g.add(box(0.3, 0.4, 0.3, 0x1f2937, 0, 0.2, h / 2 + 0.4));
+    g.add(box(0.5, 0.3, 0.3, 0x1f2937, 0, 0.55, h / 2 + 0.4));
+    // Bara tungku menyala di sisi bengkel.
+    const bara = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 6), new THREE.MeshBasicMaterial({ color: 0xff7a1a }));
+    bara.position.set(w / 2 - 0.4, 0.4, h / 2 - 0.4);
+    bara.name = "api";
+    g.add(bara);
+    // Cerobong batu.
+    g.add(box(0.4, 1.2, 0.4, 0x4b5563, w / 2 - 0.4, 2.8, -h / 2 + 0.4));
+  } else if (kind === "tugu_leluhur_agung") {
+    // RONDE 62 — tingkat 5: monumen akhir (alas batu + monolit
+    // menjulang + sabuk emas + puncak piramida emas kecil).
+    g.add(box(w, 0.3, h, 0x8d8d8d, 0, 0.15, 0));
+    g.add(box(w * 0.7, 0.3, h * 0.7, 0x6d6d6d, 0, 0.45, 0));
+    g.add(box(w * 0.5, 6.5, h * 0.5, 0x9ca3af, 0, 0.6 + 3.25, 0));
+    // Sabuk emas di tengah monolit.
+    g.add(box(w * 0.5 + 0.1, 0.25, h * 0.5 + 0.1, 0xfacc15, 0, 3.4, 0));
+    g.add(pyramid(Math.max(w, h) * 0.4, 1.0, 0xfacc15, 7.6));
   } else {
     // pondok_tabib (default): rumah + rumpun herbal (skala sama gubuk).
     g.add(box(w, GUBUK_DINDING, h, wood, 0, GUBUK_DINDING / 2, 0));

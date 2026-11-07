@@ -1,6 +1,6 @@
 // Musyawarah Bulanan Pemimpin Kampung — Diskusi Aksi Tokoh Terhebat via Gemini API
 import { getCollection } from "../db";
-import { BANGUNAN, bangunanById, type Bangunan } from "./sumberdaya";
+import { BANGUNAN, bangunanById, tingkat5Terbuka, type Bangunan } from "./sumberdaya";
 import { getDuniaDoc } from "./sim";
 
 const MODEL = "gemini-3.5-flash-lite";
@@ -160,6 +160,14 @@ export async function jalankanMusyawarahBulanan(bulanKe?: number): Promise<Hasil
   const wargaCol = await getCollection("warga");
   const totalWarga = await wargaCol.countDocuments({});
 
+  // RONDE 62 — gerbang tingkat 5 (DESAIN-EKONOMI §2, Ide 77): Bengkel
+  // Besi + Tugu Leluhur Agung hanya boleh ditawarkan ke Gemini bila
+  // tingkat5Terbuka terpenuhi (penambang aktif + paviliun makan
+  // berdiri + populasi 20). Tanpa kunci ini musyawarah bisa
+  // memutuskan monumen akhir jauh sebelum kampung siap.
+  const adaPenambang = (await wargaCol.countDocuments({ peran: "penambang" })) > 0;
+  const tingkat5Buka = tingkat5Terbuka(totalWarga, Array.from(bangunanAda), adaPenambang);
+
   let kapasitasTotal = 0;
   for (const p of placements) {
     const b = bangunanById(p.kind);
@@ -171,6 +179,9 @@ export async function jalankanMusyawarahBulanan(bulanKe?: number): Promise<Hasil
 
   // Daftar opsi bangunan yang belum ada atau bisa ditambah
   const kandidat = BANGUNAN.filter((b) => {
+    // RONDE 62 — kunci tingkat 5: Bengkel Besi + Tugu Leluhur Agung
+    // tidak masuk kandidat sebelum gerbang tingkat 5 terbuka.
+    if ((b.id === "bengkel_besi" || b.id === "tugu_leluhur_agung") && !tingkat5Buka) return false;
     if (b.kapasitas !== null && tunawisma > 0) return true; // butuh rumah
     return !bangunanAda.has(b.id) || b.id === "gubuk" || b.id === "lumbung" || b.id === "menara_jaga";
   }).map((b) => ({ id: b.id, label: b.label, deskripsi: b.deskripsi }));

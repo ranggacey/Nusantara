@@ -3,7 +3,9 @@
 // Bangunan: 14 lama + 7 baru ronde 4 (gubuk_besar, tenda_besar, balai,
 // dapur_umum, menara_jaga, sumur_batu, gapura) + 1 ronde 10 (paviliun_makan,
 // paviliun kayu adaptasi dari aset user) + 1 ronde 17 (kebun_rempah,
-// rantai masak setelah paviliun) = 23.
+// rantai masak setelah paviliun) + 3 luas (sawah_luas, peternakan_luas,
+// perkebunan_luas) + 2 tingkat 5 ronde 62 (bengkel_besi, tugu_leluhur_agung,
+// ujung tangga DESAIN-EKONOMI §2) = 28.
 // Keputusan membangun = NPC (sim), BUKAN pemain — POST /api/bangunan pemain
 // ditolak 403 (lihat route). UI bangunan = lihat saja.
 import type { ResourceId } from "./peran";
@@ -84,6 +86,19 @@ export const BANGUNAN: Bangunan[] = [
   { id: "sawah_luas", label: "Sawah Padi Luas", biaya: { kayu: 30, batu: 10 }, kapasitas: null, footprint: 4, sprite: "/batu/ladang.png", deskripsi: "Sawah padi terasering sangat luas dengan saluran irigasi bambu, pematang tanah liat, dan rumpun padi keemasan." },
   { id: "peternakan_luas", label: "Peternakan Luas", biaya: { kayu: 35, kulit: 15 }, kapasitas: null, footprint: 4, sprite: "/batu/pagar.png", deskripsi: "Peternakan berpagar kayu luas untuk hewan jinak kampung: kambing purba, babi ternak, dan unggas bernaung aman." },
   { id: "perkebunan_luas", label: "Perkebunan Luas", biaya: { kayu: 25, batu: 5 }, kapasitas: null, footprint: 4, sprite: "/batu/kebun-rempah.png", deskripsi: "Perkebunan buah dan rempah sangat luas dengan pepohonan buah lebat dan bedengan terawat." },
+  // RONDE 62 — tingkat 5 (DESAIN-EKONOMI §2, ujung tangga): biaya
+  // diambil dari spesifikasi (tugu dari tabel upgrade tingkat 1 yang
+  // sudah ada, jadi nyambung dengan ekonomi yang ada). Keduanya
+  // TERKUNCI sampai tingkat5Terbuka() terpenuhi — masuk katalog
+  // bukan berarti langsung bisa diantrekan (lihat sim.ts +
+  // musyawarah.ts). Bukan hunian, footprint 2 seperti balai.
+  // Sprite MEMAKAI ULANG aset yang ada (pola bangunan _luas yang
+  // juga memakai ulang sprite): push_files tidak bisa mengunggah
+  // berkas biner, jadi ikon baru tidak bisa ikut commit ini —
+  // bengkel besi memakai ikon bengkel batu, tugu memakai ikon
+  // totem; model 3D-nya di Map3D tetap baru dan khas.
+  { id: "bengkel_besi", label: "Bengkel Besi", biaya: { kayu: 40, batu: 30, besi: 15 }, kapasitas: null, footprint: 2, sprite: "/batu/bengkel-batu.png", deskripsi: "Tempat kerja penambang dan perajin besi — perkakas besi ditempa di sini." },
+  { id: "tugu_leluhur_agung", label: "Tugu Leluhur Agung", biaya: { kayu: 120, batu: 100, besi: 40, emas: 30 }, kapasitas: null, footprint: 2, sprite: "/batu/totem.png", deskripsi: "Monumen akhir kampung — bukti Suka Maju sampai ujung zaman besi. Tanpa fungsi ekonomi, murni kemenangan." },
 ];
 
 export function bangunanById(id: string): Bangunan | undefined {
@@ -112,6 +127,25 @@ export interface KebutuhanKampung {
 
 function labelBangunan(id: string): string {
   return bangunanById(id)?.label ?? id;
+}
+
+// ── Gerbang tingkat 5 (2026-11-07, Ide 77 / DESAIN-EKONOMI §2,
+// riset ekonomi/sim 12:29: Valheim — besi butuh gerbang yang
+// dilewati dulu, bukan sekadar stok cukup). Fungsi MURNI, satu
+// sumber kebenaran untuk syarat tingkat 5 — dipakai panel
+// kebutuhan (di bawah), auto-queue sim, dan filter kandidat
+// musyawarah, supaya ketiganya tidak pernah berpisah: penambang
+// aktif + paviliun makan SUDAH BERDIRI (bukan sekadar diantrekan)
+// + populasi minimal 20. Populasi non-finite/negatif -> 0;
+// jenisBerdiri bukan array -> [] (terkunci).
+export function tingkat5Terbuka(
+  populasi: number,
+  jenisBerdiri: string[] | null | undefined,
+  adaPenambang: boolean
+): boolean {
+  const pop = Number.isFinite(populasi) ? Math.max(0, Math.floor(populasi)) : 0;
+  const ada = (id: string) => (Array.isArray(jenisBerdiri) ? jenisBerdiri.includes(id) : false);
+  return adaPenambang === true && ada("paviliun_makan") && pop >= 20;
 }
 
 export function kebutuhanKampungBerikutnya(
@@ -150,15 +184,16 @@ export function kebutuhanKampungBerikutnya(
     ];
     return { selesai: false, tingkat: "Pangan skala besar", target: `${labelBangunan("paviliun_makan")}, ${labelBangunan("sawah_luas")}`, kurang };
   }
-  // Tingkat 5 — Zaman besi & monumen (bangunan tingkat 5 masih proposal,
-  // belum ada di katalog — panel menampilkannya sebagai rencana).
-  if (!adaPenambang || !ada("paviliun_makan") || pop < 20) {
+  // Tingkat 5 — Zaman besi & monumen (RONDE 62: kedua bangunan kini
+  // ADA di katalog, jadi panel tidak lagi menyebutnya rencana —
+  // tapi tetap terkunci lewat tingkat5Terbuka sampai syarat terpenuhi).
+  if (!tingkat5Terbuka(pop, jenisBerdiri, adaPenambang)) {
     const kurang = [
       ...(!adaPenambang ? ["penambang aktif"] : []),
       ...(!ada("paviliun_makan") ? [`1 ${labelBangunan("paviliun_makan")}`] : []),
       ...kurangPop(20),
     ];
-    return { selesai: false, tingkat: "Zaman besi & monumen", target: "Bengkel Besi, Tugu Leluhur Agung (rencana)", kurang };
+    return { selesai: false, tingkat: "Zaman besi & monumen", target: "Bengkel Besi, Tugu Leluhur Agung", kurang };
   }
   return { selesai: true, tingkat: "Zaman besi & monumen", target: "Tugu Leluhur Agung", kurang: [] };
 }

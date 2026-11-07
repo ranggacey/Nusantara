@@ -78,7 +78,7 @@ import { getCollection, pastikanIndexPlacement } from "../db";
 import { gameTime, cuacaGame, migrasiJam, migrasiJamV4 } from "../clock";
 import { faseDariJam, seededRandom } from "../world";
 import { peranById, labelNode, nodeHasil, pengaliFit, perkakasPeran, LABEL_ALAT, RESEP_PERKAKAS, type NodeKind, type PeranId } from "./peran";
-import { stokKosong, bangunanById, cukupBiaya, kurangDariBiaya, hitungKapasitasStok, type Stok } from "./sumberdaya";
+import { stokKosong, bangunanById, cukupBiaya, kurangDariBiaya, hitungKapasitasStok, tingkat5Terbuka, type Stok } from "./sumberdaya";
 import { generateNodes, isWater, riverX, findPlot, findHousePlotBesideRoad, findBridgePlot, findBoatSpot, rotasiKeJalan, PLACEMENT_AWAL, PUSAT, GRID_MIN, GRID_MAX, isGunung, gunungTileKeys, dedupePlacement, ukuranPetak, petakBangunan, occupiedDariPlacements, plotBebas, type Node } from "./dunia";
 import { rencanaJalan } from "./jalan";
 import { hewanById, HEWAN_AWAL, type HewanDef } from "./hewan";
@@ -3007,6 +3007,8 @@ const ALASAN_BANGUNAN: Record<string, string> = {
   gapura: "Gapura menandai gerbang kampung kita.",
   paviliun_makan: "Warga butuh tempat makan bersama — juru masak memasak di paviliun.",
   kebun_rempah: "Juru masak dan peramu butuh kebun rempah sendiri untuk bahan masakan.",
+  bengkel_besi: "Penambang butuh bengkel besi untuk menempa perkakas dari besi yang langka.",
+  tugu_leluhur_agung: "Kampung sudah sampai ujung zaman besi — tugu ini bukti untuk leluhur dan anak cucu.",
 };
 
 // Cari hunian (gubuk/tenda) yang masih muat dari placements + daftar warga.
@@ -3433,6 +3435,19 @@ export async function advanceWorld(): Promise<{ advanced: number; day: number; j
       // masak/peramu). Satu antrean aktif tetap dijaga di atas.
       const adaKebun = placements.some((p) => p.kind === "kebun_rempah") || antrean.some((b) => b.tipe === "kebun_rempah");
       if (!adaKebun && adaPaviliun && (pop >= 12 || wargaDocs.some((w) => w.peran === "juru_masak" || w.peran === "peramu"))) kandidat.push("kebun_rempah");
+      // RONDE 62 — tingkat 5 (DESAIN-EKONOMI §2, Ide 77): Bengkel Besi
+      // + Tugu Leluhur Agung. Gate lewat tingkat5Terbuka (penambang
+      // aktif + paviliun_makan SELESAI + pop >= 20) — sebelum itu
+      // keduanya TIDAK masuk kandidat, jadi tidak akan diantrekan.
+      // Bengkel dulu, tugu sesudah bengkel berdiri (satu per giliran,
+      // pola balai/dapur_umum di bawah).
+      const adaPenambang = wargaDocs.some((w) => w.peran === "penambang");
+      if (tingkat5Terbuka(pop, placements.map((p) => p.kind), adaPenambang)) {
+        const adaBengkelBesi = placements.some((p) => p.kind === "bengkel_besi") || antrean.some((b) => b.tipe === "bengkel_besi");
+        const adaTugu = placements.some((p) => p.kind === "tugu_leluhur_agung") || antrean.some((b) => b.tipe === "tugu_leluhur_agung");
+        if (!adaBengkelBesi) kandidat.push("bengkel_besi");
+        else if (!adaTugu) kandidat.push("tugu_leluhur_agung");
+      }
       if (!adaBengkelBatu && wargaDocs.some((w) => w.peran === "perajin")) kandidat.push("bengkel_batu");
       if (!adaPondok && (wargaDocs.some((w) => w.sehat < 80) || wargaDocs.some((w) => w.peran === "tabib" || w.peran === "peramu"))) kandidat.unshift("pondok_tabib");
       if (!adaBengkelKayu && wargaDocs.some((w) => w.peran === "penebang")) kandidat.push("bengkel_kayu");

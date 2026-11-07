@@ -147,6 +147,13 @@ akhirnya berharga:
   upgrade tingkat 1 yang sudah ada di sumberdaya.ts, jadi nyambung
   dengan ekonomi yang ada): bangunan kemenangan kampung, tanpa
   fungsi ekonomi, murni bukti kampung sudah sampai ujung tangga.
+- STATUS r62 (2026-11-07 12:29 WIB): keduanya SUDAH masuk katalog
+  (`bengkel_besi`, `tugu_leluhur_agung`) dengan biaya di atas +
+  kunci `tingkat5Terbuka` (penambang + paviliun berdiri + pop 20)
+  di panel, auto-queue sim, dan filter musyawarah; cabang 3D ada,
+  sprite memakai ulang aset yang ada (pola bangunan _luas).
+  SISA tingkat 5: tonggak ke-8 (IDE-FITUR Ide 78) +
+  perkakas besi (Ide 79).
 - Proyek besi itu lintas musim: 40 besi dengan rata-rata 0,55
   per hari per penambang = sekitar 73 hari-penambang. Satu
   penambang butuh berbulan-bulan game; tiga penambang berbakat

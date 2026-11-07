@@ -1329,6 +1329,75 @@ diturunkan — dan label tetap dicek (teks 10px di DPR 1,5).
 Dampak kecil-sedang, usaha kecil (bila prasyarat terpenuhi).
 Detail di research/2026-11-07-1029.md.
 
+## Ide 77 — Bengkel Besi + Tugu Leluhur Agung masuk katalog, terkunci tingkat 5 (dari riset 2026-11-07 12:29 WIB, sudut ekonomi/sim)
+~~DIBANGUN 2026-11-07 12:29 WIB (r62)~~ — dua entri katalog
+(`bengkel_besi`: 40 kayu + 30 batu + 15 besi; `tugu_leluhur_agung`:
+120 kayu + 100 batu + 40 besi + 30 emas, keduanya footprint 2,
+bukan hunian) + fungsi murni `tingkat5Terbuka(populasi,
+jenisBerdiri, adaPenambang)` di `sumberdaya.ts` (penambang aktif +
+paviliun makan BERDIRI + populasi 20) dipakai di TIGA tempat —
+panel kebutuhan (target tanpa "(rencana)"), auto-queue sim
+(bengkel dulu, tugu sesudah bengkel berdiri), filter kandidat
+musyawarah (query `countDocuments({ peran: "penambang" })`) —
++ cabang 3D di Map3D (bengkel: dinding batu + landasan + bara
+`api` + cerobong; tugu: alas + monolit + sabuk emas + puncak
+emas) + sprite MEMAKAI ULANG aset yang ada (bengkel-batu.png /
+totem.png, pola bangunan _luas — push_files tidak bisa mengunggah
+berkas biner, jadi ikon baru tidak ikut commit ini; model 3D-nya
+tetap baru dan khas) + ALASAN_BANGUNAN untuk keduanya.
+Tanpa efek ekonomi baru (tugu murni monumen). +45 tes (RONDE 62)
++ 4 asersi katalog basi diperbaiki (hitungan 23 -> 28, footprint
+paviliun 3 -> 8). CATATAN JUJUR: live pop 12 < 20, jadi keduanya
+TIDAK akan diantrekan di Suka Maju sampai populasi 20 — itu
+perilaku benar; verifikasi visual (tugu berdiri di peta) menunggu
+dunia yang memenuhi syarat. SISA: tonggak ke-8 (Ide 78) +
+perkakas besi (Ide 79).
+Sumber: Valheim (satu gerbang -> banyak bukaan; besi tetap relevan
+sampai akhir) + Forge of Empires (era baru mengubah tampilan kota;
+bonus permanen Great Buildings TIDAK dicopy — DESAIN-EKONOMI
+melarang hadiah ekonomi di luar cap). Detail di
+research/2026-11-07-1229.md.
+
+## Ide 78 — Tugu sebagai tonggak ke-8 "Kemenangan kampung" (dari riset 2026-11-07 12:29 WIB, sudut ekonomi/sim)
+
+Sumber: Forge of Empires (Great Buildings sebagai investasi yang
+dirayakan) + IMPERIUM (wonder = proyek akhir yang ditunggu).
+Masalah: 7 tonggak berhenti di paviliun makan — tugu yang berdiri
+tidak dirayakan di mana pun. Cara kerja: tonggak ke-8 di
+`tonggakKampung` (tercapai bila tugu berdiri) + kilas "✨ Baru:"
++ kronik yang sudah ada (pola Ide 54/56) ikut merayakannya.
+Display-only, tanpa hadiah ekonomi. Perhatian: ubah "7 dari 7"
+jadi "7 dari 8" di Suka Maju adalah perubahan yang terlihat —
+kerjakan dalam satu run sendiri supaya efeknya terukur. Dampak
+kecil-sedang, usaha kecil. Detail di research/2026-11-07-1229.md.
+
+## Ide 79 — Perkakas besi menggeser peluang roll (dari riset 2026-11-07 12:29 WIB, sudut ekonomi/sim)
+
+Sumber: Valheim (besi membuka deretan perkakas baru) +
+DESAIN-EKONOMI.md §2 ("bengkel besi membuka perkakas besi").
+Masalah: setelah bengkel besi berdiri, besi tidak mengubah apa
+pun — bengkel jadi bangunan pajangan. Cara kerja: bila bengkel
+besi berdiri, perkakas besi memberi geseran peluang roll TERBESAR
+yang diizinkan TETAP DI DALAM cap (pola bengkel kayu/batu yang
+sudah ada). Perlu cek dulu apakah perkakas bengkel sudah
+menggeser peluang lewat jalur yang sama; bila belum ada jalurnya,
+irisan pertama adalah pengecekan itu. Besi/emas tetap tidak dapat
+bump. Dampak sedang, usaha sedang. Detail di
+research/2026-11-07-1229.md.
+
+## Ide 80 — Label "Kronik kampung" di baris kronik (dari observasi 2026-11-07 12:29 WIB, sudut UX)
+
+Sumber: observasi live run r62 (bukan riset web — temuan lapangan).
+Masalah: baris kronik (Ide 23) tidak punya label yang terlihat —
+isinya hanya "📜 {kalimat}", jadi pengamat tiga run berturut-turut
+mengira baris itu tidak ada / mengiranya baris tip acak ("📜 Kayu
+penuh (160/160) — …"), dan pencarian teks "Kronik" di menu tidak
+menemukan apa-apa karena kata itu hanya ada di komentar kode.
+Cara kerja (display-only): tambahkan label kecil "Kronik kampung"
+di depan kalimat (pola label `.menu-tip-label` di baris tip Ide 14),
+tanpa mengubah isi kalimat atau aturan prioritasnya. Dampak kecil,
+usaha kecil. Detail di CHANGELOG r62.
+
 ## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
 
 - Warga tidur di dalam rumah pada malam hari (sebelumnya berkerumun di luar): render menyembunyikan warga istirahat+malam (`tidurDiDalam`), sim tidak berubah.

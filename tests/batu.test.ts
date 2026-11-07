@@ -1,6 +1,6 @@
 // Test logika zaman batu (tsx). Jalankan: npx tsx tests/batu.test.ts
 import { PERAN, nodeHasil, labelNode, bobotFit, pengaliFit, perkakasPeran, RESEP_PERKAKAS, type NodeKind } from "../src/lib/batu/peran";
-import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, hitungKapasitasStok, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, dotTambahAktif, tonggakKampung, tonggakBaru, tonggakBaruBelumDilihat, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan } from "../src/lib/batu/sumberdaya";
+import { BANGUNAN, bangunanById, kurangDariBiaya, cukupBiaya, stokKosong, hitungKapasitasStok, kebutuhanKampungBerikutnya, aksiPertamaBerikutnya, dotTambahAktif, tonggakKampung, tonggakBaru, tonggakBaruBelumDilihat, selamaKamuPergi, barisYangMenunggu, kronikKampung, pasarMingguan, tingkat5Terbuka } from "../src/lib/batu/sumberdaya";
 import { LINES, berisiModern, FORBIDDEN_MODERN, debatBaris, geludBaris, ngobrolBaris, NGOBROL_TANYA, NGOBROL_JAWAB, dialogUntukPeran } from "../src/lib/batu/dialog";
 import { rollStat, bakatDariStat, pilihPeranFit, statDenganSTA, rollUmurGacha } from "../src/lib/batu/gacha";
 import { generateNodes, nodeAktif, isWater, riverX, findPlot, findBridgePlot, findBoatSpot, rotasiKeJalan, GRID_W, GRID_H, GRID_MIN, GRID_MAX, PUSAT, generateGunung, isGunung, gunungTileKeys, dedupePlacement, pasanganTumpuk, petakBangunan, plotBebas } from "../src/lib/batu/dunia";
@@ -73,8 +73,11 @@ ok(perkakasPeran("pemburu") === "tombak", "perkakas pemburu = tombak");
 ok(RESEP_PERKAKAS["kapak"].kayu === 6 && RESEP_PERKAKAS["kapak"].batu === 6, "resep kapak");
 ok(RESEP_PERKAKAS["busur"].kayu === 12, "resep busur");
 
-// Bangunan: 22 lama + 1 baru ronde 17.
-ok(BANGUNAN.length === 23, "23 bangunan (22 + kebun_rempah r17)");
+// Bangunan: 26 lama + 2 baru ronde 62 (tingkat 5: bengkel_besi,
+// tugu_leluhur_agung). KOREKSI r62: hitungan lama 23 sudah basi
+// sejak tiga bangunan "_luas" masuk katalog tanpa memperbarui
+// angka ini (3 asersi ini gagal di baseline r61); 26 = 23 + 3 luas.
+ok(BANGUNAN.length === 28, "28 bangunan (26 + 2 tingkat 5 r62)");
 for (const b of BANGUNAN) {
   ok(Object.values(b.biaya).every((v) => (v ?? 0) > 0), `biaya ${b.id} positif`);
 }
@@ -880,7 +883,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const verSrc = readFileSync("src/app/api/version/route.ts", "utf8");
   ok(verSrc.includes("BUILD_ID") && !verSrc.includes("advanceWorld") && !verSrc.includes("getCollection"), "api/version: murni (tanpa DB/sim)");
   const verLib = readFileSync("src/lib/version.ts", "utf8");
-  ok(verLib.includes('BUILD_ID = "r61"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
+  ok(verLib.includes('BUILD_ID = "r62"'), "version: BUILD_ID r41 (naikkan tiap rilis)");
   // Langit: palet HANYA dari fase server (jam game) — transisi jingga→
   // gelap dalam video = SATU batas jam sore→malam, bukan animasi detik
   // nyata; tidak ada perubahan kode langit ronde 8 (bukan bug).
@@ -1175,8 +1178,8 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
 {
   const pav = bangunanById("paviliun_makan");
   ok(pav !== undefined, "r10: katalog memuat paviliun_makan");
-  ok(BANGUNAN.length === 23, "r17: katalog 23 bangunan (22 + kebun_rempah)");
-  eq(pav?.footprint, 3, "r10: paviliun footprint 3x3");
+  ok(BANGUNAN.length === 28, "r62: katalog 28 bangunan (26 + 2 tingkat 5)");
+  eq(pav?.footprint, 8, "r62: paviliun footprint 8x8 (r38: diskalakan pas footprint; angka lama 3 basi)");
   eq(pav?.biaya, { kayu: 60, batu: 20 }, "r10: paviliun biaya kayu 60 + batu 20");
   ok(pav?.kapasitas === null, "r10: paviliun bukan hunian");
   eq(pav?.sprite, "/batu/paviliun-makan.png", "r10: paviliun sprite panel");
@@ -1323,7 +1326,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   const sprite = readFileSync("public/batu/paviliun-makan.png");
   ok(sprite.length > 0 && sprite[0] === 0x89 && sprite[1] === 0x50, "sprite: paviliun-makan.png ada + header PNG");
   const ver = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver.includes('"r61"'), "versi: BUILD_ID r47");
+  ok(ver.includes('"r62"'), "versi: BUILD_ID r47");
 }
 
 {
@@ -1335,7 +1338,7 @@ ok(validGender("laki") && validGender("perempuan") && !validGender("x"), "validG
   eq(lum?.biaya, { kayu: 40, batu: 10 }, "r12: biaya lumbung tidak berubah");
   eq(lum?.footprint, 2, "r12: lumbung footprint 2x2");
   ok((lum?.deskripsi ?? "").includes("Ketuk"), "r12: deskripsi lumbung mengarahkan ketuk panel");
-  ok(BANGUNAN.length === 23, "r17: katalog 23 (lumbung reskin, bukan bangunan baru; +kebun_rempah r17)");
+  ok(BANGUNAN.length === 28, "r62: katalog 28 (angka lama 23 basi sejak bangunan _luas; +2 tingkat 5)");
   // Panel isi = stok global 6 resource (tanpa API baru: /api/world sudah
   // mengembalikan sumber_daya; panel hanya menampilkan + total).
   const stok = stokKosong();
@@ -2169,7 +2172,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const bKayu = terapkanPembusukan(ctxKayu);
   ok(bKayu.kayu === 1 && (ctxKayu.stok as unknown as Record<string, number>).kayu === 204, "busuk-kecil: kayu 205/200 susut 1 (5 x 10% = 0,5 -> 0 dulu)");
   const verKecil = readFileSync("src/lib/version.ts", "utf8");
-  ok(verKecil.includes('BUILD_ID = "r61"'), "busuk-kecil: BUILD_ID naik ke r41");
+  ok(verKecil.includes('BUILD_ID = "r62"'), "busuk-kecil: BUILD_ID naik ke r41");
 }
 
 // GEMINI JALAN (2026-11-03): jalurSegmen per segmen tertentu.
@@ -2386,7 +2389,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcTg = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTg.includes(".menu-tonggak") && cssSrcTg.includes(".menu-tonggak-title") && cssSrcTg.includes(".menu-tonggak-isi"), "tonggak: CSS baris ada");
   const verSrcTg = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcTg.includes('BUILD_ID = "r61"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcTg.includes('BUILD_ID = "r62"'), "tonggak: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // "Selama kamu pergi" (2026-11-05, Ide 22): fungsi murni display-only —
@@ -2416,7 +2419,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcPergi = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcPergi.includes(".menu-pergi") && cssSrcPergi.includes(".menu-pergi-title") && cssSrcPergi.includes(".menu-pergi-tutup"), "pergi: CSS blok ada");
   const verSrcPergi = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrcPergi.includes('BUILD_ID = "r61"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrcPergi.includes('BUILD_ID = "r62"'), "pergi: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda loop render saat tab disembunyikan (2026-11-04, Ide 9):
@@ -2430,7 +2433,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   ok(mapSrcVis.includes("} else if (!raf) {") && mapSrcVis.includes("last = performance.now()"), "vis: visible -> mulai lagi hanya bila raf 0 + reset timestamp");
   ok(mapSrcVis.includes('document.removeEventListener("visibilitychange"'), "vis: listener dilepas saat cleanup");
   const verSrc = readFileSync("src/lib/version.ts", "utf8");
-  ok(verSrc.includes('BUILD_ID = "r61"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
+  ok(verSrc.includes('BUILD_ID = "r62"'), "vis: BUILD_ID naik ke r41 (pil Versi baru bisa membedakan rilis ini)");
 }
 
 // Jeda poll data saat tab disembunyikan (2026-11-04, Ide 17):
@@ -2537,7 +2540,7 @@ function wargaFigo(over: Partial<Warga>): Warga {
   const cssSrcMuat = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcMuat.includes(".map3d-loading"), "muat3d: CSS .map3d-loading ada");
   const verMuat = readFileSync("src/lib/version.ts", "utf8");
-  ok(verMuat.includes('BUILD_ID = "r61"'), "muat3d: BUILD_ID naik ke r41");
+  ok(verMuat.includes('BUILD_ID = "r62"'), "muat3d: BUILD_ID naik ke r41");
 }
 
 // Tanda "tanpa tugas" di Papan Warga (Ide 5, irisan kecil, 2026-11-04):
@@ -2581,7 +2584,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const tenangBlock = cssSrcGerak.slice(cssSrcGerak.indexOf("@keyframes floatFadeTenang"));
   ok(!tenangBlock.includes("translate") && !tenangBlock.includes("scale"), "geraktenang: fade tenang tidak menggeser/membesar (hanya opacity)");
   const verGerak = readFileSync("src/lib/version.ts", "utf8");
-  ok(verGerak.includes('BUILD_ID = "r61"'), "geraktenang: BUILD_ID naik ke r41");
+  ok(verGerak.includes('BUILD_ID = "r62"'), "geraktenang: BUILD_ID naik ke r41");
 }
 
 
@@ -2600,7 +2603,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrcTip = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrcTip.includes(".menu-tip") && cssSrcTip.includes(".menu-tip-teks") && cssSrcTip.includes(".menu-tip-tutup"), "tip: CSS baris + teks + tombol tutup ada");
   const verTip = readFileSync("src/lib/version.ts", "utf8");
-  ok(verTip.includes('BUILD_ID = "r61"'), "tip: BUILD_ID naik ke r41");
+  ok(verTip.includes('BUILD_ID = "r62"'), "tip: BUILD_ID naik ke r41");
 }
 
 // Cincin fokus keyboard di menu/modal (2026-11-05, Ide 26):
@@ -2618,7 +2621,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(cssSrcFokus.includes("@media (forced-colors: active)") && cssSrcFokus.includes("outline: 3px solid Highlight"), "fokus: fallback forced-colors pakai Highlight");
   ok(!cssSrcFokus.includes("*:focus-visible") && !cssSrcFokus.includes(":focus-visible {\n  outline: none"), "fokus: tidak ada penghapus outline global di aturan focus-visible");
   const verFokus = readFileSync("src/lib/version.ts", "utf8");
-  ok(verFokus.includes('BUILD_ID = "r61"'), "fokus: BUILD_ID naik ke r41");
+  ok(verFokus.includes('BUILD_ID = "r62"'), "fokus: BUILD_ID naik ke r41");
 }
 
 // Audit geometri/material bersama sebelum instancing (2026-11-05,
@@ -2645,7 +2648,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrcAudit.includes("instanceof THREE.InstancedMesh") && mapSrcAudit.includes("o.geometry.dispose()"), "audit30: disposeGroup traverse InstancedMesh + buang geometri");
   ok(mapSrcAudit.includes("jSig !== jalanSig"), "audit30: rebuild jalan bergerbang signature, bukan tiap poll");
   const verAudit = readFileSync("src/lib/version.ts", "utf8");
-  ok(verAudit.includes('BUILD_ID = "r61"'), "audit30: BUILD_ID naik ke r41");
+  ok(verAudit.includes('BUILD_ID = "r62"'), "audit30: BUILD_ID naik ke r41");
 }
 
 // Dispose lewati material bersama (2026-11-05, penutup celah audit
@@ -2671,7 +2674,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!isRoadMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: material baru bukan material jalan bersama");
   ok(!isVillageMaterial(new THREE.MeshStandardMaterial({ color: "#00ff00" })), "dispose36: predikat desa/jalan tidak saling tertukar (jalan bukan desa)");
   const ver36 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver36.includes('BUILD_ID = "r61"'), "dispose36: BUILD_ID naik ke r41");
+  ok(ver36.includes('BUILD_ID = "r62"'), "dispose36: BUILD_ID naik ke r41");
 }
 
 // RONDE 20 (2026-11-05, laporan user): "kenapa gada yg bikin jalan?" +
@@ -2793,7 +2796,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const map3d20 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(map3d20.includes("fishes") && map3d20.includes("mF?.ikan"), "r20: Map3D menggambar ikan dari stok ikan");
   const ver20 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver20.includes('BUILD_ID = "r61"'), "r20: BUILD_ID naik ke r41");
+  ok(ver20.includes('BUILD_ID = "r62"'), "r20: BUILD_ID naik ke r41");
 }
 
 {
@@ -2880,7 +2883,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(simSrc21.includes("bangunanDibangun"), "r21: sim memuat bangunanDibangun di ctx");
   ok(!simSrc21.includes("pintarUntukJalan(w)"), "r21: gate pinter tidak lagi dipakai di sim");
   const ver21 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver21.includes('BUILD_ID = "r61"'), "r21: BUILD_ID naik ke r42");
+  ok(ver21.includes('BUILD_ID = "r62"'), "r21: BUILD_ID naik ke r42");
 }
 
 {
@@ -2922,7 +2925,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrc22 = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrc22.includes("background: #facc15") && cssSrc22.includes("border: 2px solid #0b182e"), "r22: tombol menu latar kuning solid + border gelap (kontras tinggi)");
   const ver22 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver22.includes('BUILD_ID = "r61"'), "r22: BUILD_ID naik ke r42");
+  ok(ver22.includes('BUILD_ID = "r62"'), "r22: BUILD_ID naik ke r42");
 }
 
 {
@@ -2958,7 +2961,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const pageSrc23 = readFileSync("src/app/page.tsx", "utf8");
   ok(pageSrc23.includes("cuaca={cuaca}"), "r23: page meneruskan cuaca ke Map3D");
   const ver23 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver23.includes('BUILD_ID = "r61"'), "r23: BUILD_ID naik ke r43");
+  ok(ver23.includes('BUILD_ID = "r62"'), "r23: BUILD_ID naik ke r43");
 }
 
 {
@@ -2987,7 +2990,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const mapSrc24 = readFileSync("src/components/Map3D.tsx", "utf8");
   ok(mapSrc24.includes("rapikanLabelBertumpuk"), "r24: Map3D masih memakai rapikanLabelBertumpuk");
   const ver24 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver24.includes('BUILD_ID = "r61"'), "r24: BUILD_ID naik ke r44");
+  ok(ver24.includes('BUILD_ID = "r62"'), "r24: BUILD_ID naik ke r44");
 }
 
 // RONDE 45 — BEKU TABIB + RESOURCE 5x (laporan user 2026-11-05 via video:
@@ -3250,7 +3253,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrc46 = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrc46.includes(".menu-kronik"), "r46: gaya .menu-kronik ada di globals.css");
   const ver46 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver46.includes('BUILD_ID = "r61"'), "r46: BUILD_ID naik ke r46");
+  ok(ver46.includes('BUILD_ID = "r62"'), "r46: BUILD_ID naik ke r46");
 }
 
 // RONDE 47 — Pasar Minggu tiap 7 hari game (Ide 35, riset fitur baru
@@ -3287,7 +3290,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   const cssSrc47 = readFileSync("src/app/globals.css", "utf8");
   ok(cssSrc47.includes(".menu-pasar"), "r47: gaya .menu-pasar ada di globals.css");
   const ver47 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver47.includes('BUILD_ID = "r61"'), "r47: BUILD_ID naik ke r47");
+  ok(ver47.includes('BUILD_ID = "r62"'), "r47: BUILD_ID naik ke r47");
 }
 
 // RONDE 48 — Label hewan ikut antrean rapikan (Ide 33, riset UX
@@ -3320,7 +3323,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(idxRapikan48 > 0 && idxHewanJatuh48 > idxRapikan48, "r48: blok rapikan setelah loop hewan (sebelum hewan jatuh)");
   // (e) Audit versi.
   const ver48 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver48.includes('BUILD_ID = "r61"'), "r48: BUILD_ID naik ke r48");
+  ok(ver48.includes('BUILD_ID = "r62"'), "r48: BUILD_ID naik ke r48");
 }
 
 // RONDE 49 — Ide 27: baseline draw call sekali saat scene mapan.
@@ -3352,7 +3355,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!mapSrc49.includes("frameloop"), "r49: tidak ada frameloop demand (loop tetap hidup)");
   // (f) Audit versi.
   const ver49 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver49.includes('BUILD_ID = "r61"'), "r49: BUILD_ID naik ke r49");
+  ok(ver49.includes('BUILD_ID = "r62"'), "r49: BUILD_ID naik ke r49");
 }
 
 // RONDE 50 — wilayah jelajah hewan pulang ke sabuk kampung (r50).
@@ -3429,7 +3432,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(simSrc50.includes("WILAYAH JELAJAH"), "r50: cabang pulang berkomentar wilayah jelajah");
   ok(simSrc50.includes("dPusat > sabuk"), "r51: cabang pulang memakai sabuk per spesies");
   const ver50 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver50.includes('BUILD_ID = "r61"'), "r50: BUILD_ID naik ke r50");
+  ok(ver50.includes('BUILD_ID = "r62"'), "r50: BUILD_ID naik ke r50");
 }
 
 // RONDE 51 — sabuk per spesies: mangsa dekat, predator jauh (Ide 44,
@@ -3512,7 +3515,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(simSrc51.includes("lokasiRespawnHewan(undefined, undefined, sp.id)"), "r51: respawn memakai sabuk per spesies");
   ok(simSrc51.includes("const sabuk = sabukHewan(h.jenis);"), "r51: jangkar pulang memakai sabuk per spesies");
   const ver51 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver51.includes('BUILD_ID = "r61"'), "r51: BUILD_ID naik ke r51");
+  ok(ver51.includes('BUILD_ID = "r62"'), "r51: BUILD_ID naik ke r51");
 }
 
 // RONDE 52 — label hewan meredup saat tidak diburu (Ide 38, riset UX
@@ -3549,7 +3552,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(tampilSrc52.includes("export function opacityLabelHewan"), "r52: helper opacityLabelHewan ada di tampil.ts");
   ok(tampilSrc52.includes("OPACITY_LABEL_HEWAN_TENANG = 0.45"), "r52: konstanta redup 0.45 dideklarasi");
   const ver52 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver52.includes('BUILD_ID = "r61"'), "r52: BUILD_ID naik ke r52");
+  ok(ver52.includes('BUILD_ID = "r62"'), "r52: BUILD_ID naik ke r52");
 }
 
 // RONDE 53 — label hewan memudar dengan jarak kamera (Ide 48, riset UX
@@ -3595,7 +3598,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!mapSrc53.includes("opacityLabelHewanJarak") || mapSrc53.includes("labelAntre.push({ label: cur.label"), "r53: antrean rapikan label hewan tidak disentuh");
   // (d) Audit sumber + versi.
   const ver53 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver53.includes('BUILD_ID = "r61"'), "r53: BUILD_ID naik ke r53");
+  ok(ver53.includes('BUILD_ID = "r62"'), "r53: BUILD_ID naik ke r53");
 }
 
 // RONDE 54 — padi sawah jadi satu InstancedMesh (Ide 28, riset performa
@@ -3643,7 +3646,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(mapSrc54.includes("} else if (kind === \"sawah_luas\") {"), "r54: cabang sawah_luas di buildBuilding tidak berubah");
   // (d) Audit sumber + versi.
   const ver54 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver54.includes('BUILD_ID = "r61"'), "r54: BUILD_ID naik ke r54");
+  ok(ver54.includes('BUILD_ID = "r62"'), "r54: BUILD_ID naik ke r54");
 }
 
 // RONDE 55 — baris "Yang menunggu" di blok "Selama kamu pergi"
@@ -3691,7 +3694,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   eq(kronikKampung({ hari: 100, populasi: 10, kampung: "Suka Maju", fase: "Pagi", cuaca: "Cerah", stok: { pangan: 200 }, kapasitas: { pangan: 200 }, dibangun: [{ label: "Gubuk", progres: 60 }], tanpaTugas: 3, tonggakBerikutnya: null }), "Gubuk sedang dibangun (60%) — palu berdentang di Suka Maju.", "r55: kronik tidak berubah (bangunan tetap menang atas tanpa-tugas)");
   // (d) Audit sumber + versi.
   const ver55 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver55.includes('BUILD_ID = "r61"'), "r55: BUILD_ID naik ke r55");
+  ok(ver55.includes('BUILD_ID = "r62"'), "r55: BUILD_ID naik ke r55");
 }
 
 // RONDE 56 — kilas "Tonggak baru!" sejak kunjungan terakhir
@@ -3744,7 +3747,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   eq(pergi56?.length ?? 0, 3, "r56: selamaKamuPergi tetap maksimal 3 baris (kilas bukan baris ke-4)");
   // (d) Audit sumber + versi.
   const ver56 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver56.includes('BUILD_ID = "r61"'), "r56: BUILD_ID naik ke r56");
+  ok(ver56.includes('BUILD_ID = "r62"'), "r56: BUILD_ID naik ke r56");
 }
 
 // RONDE 57 — penanda tonggak baru di tombol menu (Ide 56)
@@ -3796,7 +3799,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   eq(pergi57?.length ?? 0, 3, "r57: selamaKamuPergi tetap maksimal 3 baris");
   // (e) Audit versi.
   const ver57 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver57.includes('BUILD_ID = "r61"'), "r57: BUILD_ID naik ke r57");
+  ok(ver57.includes('BUILD_ID = "r62"'), "r57: BUILD_ID naik ke r57");
 }
 
 // RONDE 58 — penanda populasi di tombol ＋ Tambah karakter (Ide 58)
@@ -3848,7 +3851,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   eq(tonggakBaruBelumDilihat(["Api pertama menyala"], []), ["Api pertama menyala"], "r58: tonggakBaruBelumDilihat tidak berubah");
   // (f) Audit versi.
   const ver58 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver58.includes('BUILD_ID = "r61"'), "r58: BUILD_ID naik ke r58");
+  ok(ver58.includes('BUILD_ID = "r62"'), "r58: BUILD_ID naik ke r58");
 }
 
 // RONDE 59 — gelembung naik mengikuti tinggi label (Ide 65, riset UX
@@ -3917,7 +3920,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(aksiBlock59.includes("margin-top: 4px;"), "r59: margin aksi tetap 4px (angka 30 tetap benar)");
   // (f) Audit versi.
   const ver59 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver59.includes('BUILD_ID = "r61"'), "r59: BUILD_ID naik ke r59");
+  ok(ver59.includes('BUILD_ID = "r62"'), "r59: BUILD_ID naik ke r59");
 }
 
 // RONDE 60 — hujan terlihat di peta (Ide 69, riset musim & cuaca
@@ -3982,7 +3985,7 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(pageSrc60.includes("const cuaca = world ? cuacaGame(world.hari_total ?? 0) : \"cerah\";"), "r60: cuaca tetap dari cuacaGame (tidak ada sumber cuaca baru)");
   // (f) Audit versi.
   const ver60 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver60.includes('BUILD_ID = "r61"'), "r60: BUILD_ID naik ke r60");
+  ok(ver60.includes('BUILD_ID = "r62"'), "r60: BUILD_ID naik ke r60");
 }
 
 // RONDE 61 — "Mode tenang": satu saklar gerakan di Pengaturan
@@ -4037,7 +4040,81 @@ ok(wargaTanpaTugas(undefined) === false, "tanpatugas: undefined aman");
   ok(!/canvas|WebGL|renderer/i.test(tenangCss61.split("*/")[1] ?? ""), "r61: blok mode-tenang tidak menyentuh kanvas 3D");
   // (g) Audit versi.
   const ver61 = readFileSync("src/lib/version.ts", "utf8");
-  ok(ver61.includes('BUILD_ID = "r61"'), "r61: BUILD_ID naik ke r61");
+  ok(ver61.includes('BUILD_ID = "r62"'), "r61: BUILD_ID naik ke r61");
+}
+
+// RONDE 62 — Bangunan tingkat 5 masuk katalog, terkunci (Ide 77,
+// DESAIN-EKONOMI §2 langkah 3; riset ekonomi/sim 2026-11-07 12:29:
+// Valheim — besi butuh gerbang yang dilewati dulu; FoE — era baru
+// mengubah tampilan kota, tapi bonus permanen TIDAK dicopy karena
+// DESAIN-EKONOMI melarang hadiah ekonomi di luar cap).
+{
+  // (a) Fungsi murni tingkat5Terbuka — satu sumber kebenaran gerbang.
+  ok(tingkat5Terbuka(20, ["paviliun_makan"], true), "r62: gerbang terbuka (pop 20 + paviliun + penambang)");
+  ok(tingkat5Terbuka(25, ["gubuk", "paviliun_makan", "balai"], true), "r62: gerbang terbuka di pop 25 + bangunan lain");
+  ok(tingkat5Terbuka(20.9, ["paviliun_makan"], true), "r62: pop 20.9 dibulatkan ke bawah -> terbuka");
+  ok(!tingkat5Terbuka(19, ["paviliun_makan"], true), "r62: gerbang tertutup bila pop 19");
+  ok(!tingkat5Terbuka(20, ["gubuk", "balai"], true), "r62: gerbang tertutup bila paviliun belum berdiri");
+  ok(!tingkat5Terbuka(20, ["paviliun_makan"], false), "r62: gerbang tertutup bila tidak ada penambang");
+  ok(!tingkat5Terbuka(20, [], true), "r62: gerbang tertutup bila tidak ada bangunan");
+  ok(!tingkat5Terbuka(NaN, ["paviliun_makan"], true), "r62: pop NaN -> terkunci (bukan terbuka)");
+  ok(!tingkat5Terbuka(20, null, true), "r62: jenisBerdiri null -> terkunci");
+  // (b) Katalog: 2 entri baru dengan biaya spesifikasi DESAIN-EKONOMI §2.
+  const besi62 = bangunanById("bengkel_besi");
+  ok(besi62 !== undefined, "r62: katalog memuat bengkel_besi");
+  eq(besi62?.biaya, { kayu: 40, batu: 30, besi: 15 }, "r62: bengkel besi biaya 40 kayu + 30 batu + 15 besi");
+  eq(besi62?.footprint, 2, "r62: bengkel besi footprint 2");
+  eq(besi62?.kapasitas, null, "r62: bengkel besi bukan hunian");
+  eq(besi62?.sprite, "/batu/bengkel-batu.png", "r62: bengkel besi memakai ulang sprite bengkel batu (push_files tidak bisa unggah biner — pola bangunan _luas)");
+  const tugu62 = bangunanById("tugu_leluhur_agung");
+  ok(tugu62 !== undefined, "r62: katalog memuat tugu_leluhur_agung");
+  eq(tugu62?.biaya, { kayu: 120, batu: 100, besi: 40, emas: 30 }, "r62: tugu biaya 120 kayu + 100 batu + 40 besi + 30 emas");
+  eq(tugu62?.footprint, 2, "r62: tugu footprint 2");
+  eq(tugu62?.kapasitas, null, "r62: tugu bukan hunian");
+  eq(tugu62?.sprite, "/batu/totem.png", "r62: tugu memakai ulang sprite totem (push_files tidak bisa unggah biner — pola bangunan _luas)");
+  eq(BANGUNAN.length, 28, "r62: katalog 28 bangunan");
+  eq(new Set(BANGUNAN.map((b) => b.id)).size, BANGUNAN.length, "r62: tidak ada id bangunan ganda");
+  // Sprite yang dipakai ulang HARUS milik bangunan lain yang sudah
+  // ada di katalog (bukan path yang tidak ada di repo — panel Bangun
+  // me-render <img src={sprite}>, path mati = gambar rusak).
+  eq(besi62?.sprite, bangunanById("bengkel_batu")?.sprite, "r62: sprite bengkel besi = sprite bengkel batu yang sudah ada");
+  eq(tugu62?.sprite, bangunanById("totem")?.sprite, "r62: sprite tugu = sprite totem yang sudah ada");
+  ok(readFileSync(`public${besi62?.sprite ?? ""}`).length > 100, "r62: sprite bengkel besi ada di disk");
+  ok(readFileSync(`public${tugu62?.sprite ?? ""}`).length > 100, "r62: sprite tugu ada di disk");
+  // (c) Panel kebutuhan: target tingkat 5 bukan lagi "(rencana)".
+  const kbT5 = kebutuhanKampungBerikutnya(15, ["gubuk", "api_unggun", "lumbung", "bengkel_kayu", "balai", "dapur_umum"], false);
+  eq(kbT5.tingkat, "Zaman besi & monumen", "r62: tingkat 5 tetap tingkat terakhir");
+  eq(kbT5.target, "Bengkel Besi, Tugu Leluhur Agung", "r62: target tingkat 5 tanpa (rencana)");
+  ok(!kbT5.target.includes("(rencana)"), "r62: tidak ada lagi kata (rencana) di target tingkat 5");
+  const kbT5buka = kebutuhanKampungBerikutnya(20, ["gubuk", "api_unggun", "lumbung", "bengkel_kayu", "balai", "dapur_umum", "paviliun_makan"], true);
+  ok(kbT5buka.selesai && kbT5buka.target === "Tugu Leluhur Agung", "r62: syarat penuh -> selesai, target tugu");
+  // (d) Call site sim.ts: gerbang dipakai di auto-queue + alasan ada.
+  const simSrc62 = readFileSync("src/lib/batu/sim.ts", "utf8");
+  ok(simSrc62.includes("tingkat5Terbuka,"), "r62: sim mengimpor tingkat5Terbuka");
+  ok(simSrc62.includes("tingkat5Terbuka(pop, placements.map((p) => p.kind), adaPenambang)"), "r62: auto-queue memakai gerbang (paviliun harus BERDIRI, bukan diantrekan)");
+  ok(simSrc62.includes('kandidat.push("bengkel_besi")'), "r62: auto-queue mendorong bengkel besi");
+  ok(simSrc62.includes('kandidat.push("tugu_leluhur_agung")'), "r62: auto-queue mendorong tugu sesudah bengkel");
+  ok(simSrc62.includes('bengkel_besi: "Penambang butuh bengkel besi'), "r62: ALASAN bengkel besi ada");
+  ok(simSrc62.includes('tugu_leluhur_agung: "Kampung sudah sampai ujung zaman besi'), "r62: ALASAN tugu ada");
+  // (e) Call site musyawarah.ts: filter kandidat + query penambang.
+  const musSrc62 = readFileSync("src/lib/batu/musyawarah.ts", "utf8");
+  ok(musSrc62.includes("tingkat5Terbuka,"), "r62: musyawarah mengimpor tingkat5Terbuka");
+  ok(musSrc62.includes('countDocuments({ peran: "penambang" })'), "r62: musyawarah menghitung penambang dari koleksi warga");
+  ok(musSrc62.includes("tingkat5Terbuka(totalWarga, Array.from(bangunanAda), adaPenambang)"), "r62: musyawarah menghitung gerbang dari data dunia");
+  ok(musSrc62.includes('(b.id === "bengkel_besi" || b.id === "tugu_leluhur_agung") && !tingkat5Buka'), "r62: filter kandidat menolak tingkat 5 sebelum gerbang terbuka");
+  // (f) Call site sumberdaya.ts: panel memakai fungsi yang sama.
+  const sumSrc62 = readFileSync("src/lib/batu/sumberdaya.ts", "utf8");
+  ok(sumSrc62.includes("if (!tingkat5Terbuka(pop, jenisBerdiri, adaPenambang)) {"), "r62: panel kebutuhan memakai tingkat5Terbuka (satu sumber kebenaran)");
+  // (g) Call site Map3D.tsx: cabang 3D eksplisit untuk keduanya
+  // (tanpa ini keduanya jatuh ke rumah generik fallback).
+  const mapSrc62 = readFileSync("src/components/Map3D.tsx", "utf8");
+  ok(mapSrc62.includes('kind === "bengkel_besi"'), "r62: Map3D punya cabang bengkel_besi");
+  ok(mapSrc62.includes('kind === "tugu_leluhur_agung"'), "r62: Map3D punya cabang tugu_leluhur_agung");
+  ok(mapSrc62.includes('bara.name = "api"'), "r62: bara bengkel bernama api (pola api_unggun/dapur_umum)");
+  ok(mapSrc62.includes("0xfacc15, 0, 3.4, 0"), "r62: sabuk emas tugu di tengah monolit");
+  // (h) Audit versi.
+  const ver62 = readFileSync("src/lib/version.ts", "utf8");
+  ok(ver62.includes('BUILD_ID = "r62"'), "r62: BUILD_ID naik ke r62");
 }
 
 console.log(`\nBATU TEST: ${pass} lolos, ${fail} gagal`);

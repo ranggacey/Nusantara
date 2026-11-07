@@ -1,3 +1,90 @@
+## 2026-11-07 ~12:29 WIB — r62: bangunan tingkat 5 masuk katalog, terkunci (Ide 77) + riset ekonomi/sim
+
+Perubahan dalam 2 kalimat: Bengkel Besi (40 kayu + 30 batu + 15 besi)
+dan Tugu Leluhur Agung (120 kayu + 100 batu + 40 besi + 30 emas)
+kini ada di katalog dengan kunci tingkat 5 — penambang aktif +
+paviliun makan berdiri + populasi 20 — yang dipakai serentak oleh
+panel "Kampung menginginkan" (tanpa "(rencana)" lagi), auto-queue
+sim, dan filter kandidat musyawarah; keduanya punya model 3D
+sendiri, sementara ikon katalog memakai ulang sprite yang ada
+(bengkel-batu.png / totem.png, pola bangunan _luas) karena
+push_files tidak bisa mengunggah berkas biner; tanpa efek ekonomi
+baru (tugu murni monumen).
+
+### Observasi live pra-deploy (browser, hanya melihat, 12:31–12:38 WIB — masih r61)
+- Muat pertama: layar "Memuat peta 3D…" lalu LANGIT HUJAN GELAP —
+  desa TIDAK terlihat sampai tombol ▼ ditekan sekali, baru langsung
+  tampil. TEMUAN TERBUKA (baru pertama kali): belum diputuskan
+  apakah kamera awal terlalu jauh / desa di luar bingkai atau render
+  tertunda; bukan error (kontrol sudah ada, hujan terlihat).
+  Dipantau run berikutnya.
+- Geser/zoom: tombol ▲/▼ merespons mulus tanpa jank.
+- Karakter: 12 warga, semua "🛡️ Menghalau Hewan!" dengan persen
+  bersama naik 46% → 78% lalu reset dan naik lagi ke ~92% — pola
+  siklus yang sama seperti r55–r61, tidak pernah terlihat mencapai
+  100%; belum diputuskan defect atau perilaku sim.
+- Hewan: ~26 label terlihat (8 Beruang, 8 Babi Hutan, 5 Rusa,
+  2 Kelinci, 2 Ayam Hutan, 1 Serigala) — cocok dengan data.
+- Menu ☰: "Kampung menginginkan: Zaman besi & monumen: Bengkel Besi,
+  Tugu Leluhur Agung (rencana). Masih kurang: populasi 20 (sekarang
+  12)." — persis yang diubah r62. "Tonggak kampung: 7 dari 7".
+  "Selama kamu pergi: Hari 535 → 549". Stok Kayu 160/160, Batu
+  130/130, Emas 2/40, Besi 47/55, Pangan 195→200/200, Kulit 95/95.
+  H-549, Hujan, jam game 08.59 → 11.26.
+- PENYELESAIAN "Kronik kampung tidak terlihat" (dicatat 3 run):
+  barisnya ADA dan TERLIHAT — yaitu baris "📜 Kayu penuh (160/160)
+  — lumbung tidak muat lagi, waktunya membangun." yang pengamat kira
+  baris tip. Kata "Kronik" tidak pernah tampil di UI (hanya di
+  komentar kode), jadi pencarian teks "Kronik" tidak menemukan
+  apa-apa. Isinya cocok dengan aturan kronik (4) stok-penuh
+  (Kayu 160/160). DICEK KODE run ini: baris dirender tanpa syarat
+  di page.tsx:874-880, di fragmen yang sama dengan Tonggak dan
+  Pasar Minggu yang keduanya terlihat. TEMUAN LANJUTAN: baris
+  kronik tanpa label terlihat seperti tip acak — kandidat run
+  berikutnya: beri label kecil "Kronik kampung" (Ide 80).
+- Saklar "Mode tenang" TERVERIFIKASI ADA di Pengaturan ("Mati
+  (ketuk untuk nyalakan)") — penutup catatan r61. Efeknya (titik
+  jadi statis) tetap belum terverifikasi karena saklar tidak boleh
+  diubah saat observasi.
+- Cuaca Hujan: garis hujan TERLIHAT di seluruh layar — konfirmasi
+  ulang overlay r60.
+
+### Riset + backlog (brief research/2026-11-07-1229.md)
+- Sudut: ekonomi/sim — progresi zaman besi & monumen akhir (rotasi
+  dari performa 10:29). Sumber: "How to Advance and Progress in
+  Valheim" (Set Ready Game, DIBACA PENUH: gerbang berlapis bos ->
+  kunci -> besi; besi tetap relevan sampai akhir) dan "Forge of
+  Empires Guide" (cityparkgames, DIBACA PENUH: tiap era membuka
+  bangunan baru + mengubah tampilan kota; bonus permanen Great
+  Buildings TIDAK dicopy — DESAIN-EKONOMI melarang hadiah ekonomi)
+  + cuplikan IMPERIUM (wonder 3 fase, sumber langka).
+- Ide baru masuk IDE-FITUR.md: Ide 77 (dibangun run ini), Ide 78
+  (tugu sebagai tonggak ke-8), Ide 79 (perkakas besi menggeser
+  peluang roll), Ide 80 (label "Kronik kampung" di baris kronik,
+  dari observasi run ini). Tidak direkomendasikan: bonus ekonomi
+  permanen untuk monumen, buka zaman besi tanpa gerbang, monumen
+  3 fase (butuh ubah antrean), bos/pertarungan gerbang (mengubah
+  genre).
+
+### Verifikasi pra-deploy
+- `npx tsx tests/batu.test.ts` = 8497 lolos / 633 gagal (r61:
+  8446/637 — +45 asersi baru RONDE 62 hijau semua + 2 asersi loop
+  per-bangunan ikut bertambah karena katalog 26->28 + 4 asersi
+  katalog basi diperbaiki: hitungan 23->28, footprint paviliun
+  3->8; NOL regresi baru — daftar gagal = baseline minus 4 itu).
+  33 pin versi r61->r62 mengikuti konvensi. `npm run build` hijau
+  (exit 0, Next.js 16.4.3 Turbopack).
+- Chunk (Ide 74): total `.next/static/chunks` 1,7 MB (r61: ~1,66
+  MB); terbesar 744 KB (r61: 740 KB), berikut 228/164/112 KB —
+  naik tipis (+4 KB chunk terbesar), sejalan dengan 2 cabang 3D +
+  katalog, tanpa dependensi baru.
+- Sinkronisasi: local HEAD = remote head = `f358ad3` (r61) saat
+  run dimulai; file berubah + brief riset baru + IDE-FITUR.md +
+  DESAIN-EKONOMI.md + catatan verifikasi r61 di CHANGELOG yang
+  belum ter-commit.
+
+### Verifikasi live r62 (diisi setelah deploy)
+
 ## 2026-11-07 ~10:29 WIB — r61: "Mode tenang", satu saklar gerakan di Pengaturan (Ide 71) + riset performa
 
 Perubahan dalam 2 kalimat: Pengaturan kini punya saklar "Kurangi
@@ -89,6 +176,27 @@ gerakan minimal, mode ini menyala sendiri saat pertama dibuka.
 - Sinkronisasi: local HEAD = remote head = `7d91095` (r60) saat
   run dimulai; 6 file berubah + 1 brief riset baru + IDE-FITUR.md
   + catatan verifikasi r60 di CHANGELOG yang belum ter-commit.
+
+### Verifikasi live r61 (10:47–10:50 WIB, setelah deploy)
+- Deployment production Vercel READY dari commit `f358ad32`
+  (githubCommitSha cocok). `/api/version` = r61. Homepage 200
+  (0,8 dtk) + satu ikon (`/batu/gubuk.png`) 200 (0,8 dtk).
+- `/api/world`: ok:true, tanpa error — Suka Maju, zaman_batu, pop
+  12, hari_total 541, jam 19.38 Sore, cuaca Hujan; stok kayu
+  160/160, batu 130/130, emas 2/40, besi 47/55, pangan 200/200,
+  kulit 95/95 (cocok dengan menu observasi pra-deploy).
+- `/api/map`: ok:true — grid 600x600, sungai mengalir (riverXs).
+  `/api/bangunan`: ok:true — katalog (gubuk 30 kayu + 10 kulit,
+  footprint 2, dst.). TIDAK ADA REGRESI: semua API yang tadinya
+  ok tetap ok dengan isi yang masuk akal.
+- Verifikasi VISUAL saklar "Mode tenang" BELUM bisa dari run ini:
+  browser task hanya mengamati sebelum deploy, dan saklarnya ada
+  di panel Pengaturan (perlu ketuk + cek titik jadi statis) —
+  menyusul run berikutnya atau cek langsung di HP user. Yang
+  terverifikasi adalah tes offline + tidak ada regresi build/API.
+- Catatan ini ditulis di working tree dan ikut commit run
+  berikutnya, supaya tidak memicu redeploy sia-sia hanya untuk
+  CHANGELOG.
 
 ## 2026-11-07 ~08:29 WIB — r60: hujan terlihat di peta (Ide 69) + riset aksesibilitas
 
