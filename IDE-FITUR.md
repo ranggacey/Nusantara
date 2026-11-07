@@ -1227,7 +1227,22 @@ snapshot localStorage yang sudah ada (Ide 54/56). Dampak kecil,
 usaha kecil. Detail di research/2026-11-07-0629.md.
 
 ## Ide 71 — "Mode tenang": satu saklar gerakan di Pengaturan (dari riset 2026-11-07 08:29 WIB, sudut aksesibilitas)
-
+~~DIBANGUN 2026-11-07 10:29 WIB (r61)~~ — state `kurangiGerakan`
+di `page.tsx` (localStorage `ne_kurangi_gerakan`; default
+mengikuti `prefers-reduced-motion` bila belum pernah disentuh) +
+toggle "Kurangi gerakan (mode tenang)" di Pengaturan + kelas
+`mode-tenang` di `.game-root` + CSS yang mencerminkan blok
+reduced-motion (transisi panel mati, titik tonggak/populasi/stok
+penuh jadi statis, badge melayang hanya memudar di tempat) +
+hujan dimatikan lewat prop (`efekCuaca && !kurangiGerakan`,
+tidak dirender sama sekali — bukan disembunyikan CSS). Kanvas 3D
+tidak disentuh. BUILD_ID r60 -> r61 + 26 tes penjaga (RONDE 61;
+asersi r60 `efekCuaca={efekCuaca}` diperbarui; 32 asersi audit
+versi lama yang mengunci string "r60" ikut dinaikkan ke "r61"
+sesuai pola house — daftar gagal tes tetap identik baseline,
+637). Verifikasi visual (saklar di Pengaturan + titik jadi
+statis saat mode nyala) menyusul — browser task run ini hanya
+mengamati sebelum deploy.
 Sumber: XAG 117 (mekanisme penonaktifan konten bergerak DI DALAM
 game, bukan hanya setelan OS) + HyperDot ("Animate Background" off
 = latar jadi statis). Masalah: `prefers-reduced-motion` hanya
@@ -1269,6 +1284,50 @@ tambahkan scrim di belakang teks. Dijaga tes statis (z-index
 overlay < z-index `.map3d-labels`) — sudah dijaga tes RONDE 60
 untuk hujan. Dampak kecil, usaha kecil. Detail di
 research/2026-11-07-0829.md.
+
+## Ide 74 — Catat ukuran chunk tiap run sebagai angka performa (dari riset 2026-11-07 10:29 WIB, sudut performa)
+
+Sumber: StackNotice (ukur dampak lewat bundle analyzer +
+Lighthouse, bukan perasaan) + nazrulkabir (diagnosis dulu, baru
+potong). Masalah: klaim "lebih ringan" selama ini tanpa angka —
+"muat pertama ~30–60 detik" (r60) vs "≤20 detik" (r61) tidak bisa
+dibandingkan karena cold start, koneksi, dan cache ikut bermain.
+Cara kerja: tiap run yang menyentuh build, catat di CHANGELOG
+ukuran 3 chunk terbesar + total `.next/static/chunks` dari build
+itu. Baseline r61: total ~1,66 MB (belum gzip); chunk terbesar
+740 KB (three.js, chunk Map3D yang sudah dynamic import);
+berikutnya 224 KB, 161 KB. Catatan: Next.js 16 (Turbopack) TIDAK
+lagi mencetak First Load JS di output build — angka chunk file
+adalah penggantinya. Bila suatu hari angka naik >20% tanpa
+alasan, itu sinyal untuk Ide 75. Dampak kecil (disiplin ukur) /
+usaha kecil. Detail di research/2026-11-07-1029.md.
+
+## Ide 75 — Dynamic-import modal berat yang jarang dibuka (dari riset 2026-11-07 10:29 WIB, sudut performa)
+
+Sumber: StackNotice (uji lakmus: aksi utama bisa selesai tanpa
+komponen itu dirender = kandidat lazy-load) + nazrulkabir (40%
+pada kasus nyata). Masalah: bila MusyawarahModal / TambahKarakter
+/ RestoranInterior3D diimpor statis di page.tsx, kodenya ikut
+diunduh di muat pertama walau pemain tidak pernah membuka modal
+itu. Cara kerja: cek impor di page.tsx; pindahkan SATU modal dulu
+ke `next/dynamic` (fallback loading jujur, pola Map3D), ukur chunk
+sebelum/sesudah (Ide 74), pastikan modal tetap terbuka normal.
+Mulai dari satu modal, bukan semua sekaligus. Perhatian: jangan
+dynamic-import komponen yang tampil di muat pertama. Dampak
+sedang, usaha kecil-sedang. Detail di research/2026-11-07-1029.md.
+
+## Ide 76 — Turunkan cap DPR ke 1,5 hanya bila angka live mendukung (dari riset 2026-11-07 10:29 WIB, sudut performa)
+
+Sumber: Glitchless (cap 1,5) + Simplified (ponsel 3x = 9x piksel).
+Masalah: HP menengah ngelag saat desa ramai; cap DPR 2 sudah ada
+(Ide 8) tapi 1,5 disebut lebih aman untuk HP lemah. Cara kerja:
+BUKAN dibangun sekarang — prasyaratnya angka baseline draw
+call/segitiga live (Ide 27) terbaca dulu + observasi jank di HP
+yang sama sebelum/sesudah. Bila angka live menunjukkan fill-rate
+(piksel) sebagai penyebab, bukan draw call, barulah cap
+diturunkan — dan label tetap dicek (teks 10px di DPR 1,5).
+Dampak kecil-sedang, usaha kecil (bila prasyarat terpenuhi).
+Detail di research/2026-11-07-1029.md.
 
 ## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
 

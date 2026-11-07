@@ -1,3 +1,95 @@
+## 2026-11-07 ~10:29 WIB — r61: "Mode tenang", satu saklar gerakan di Pengaturan (Ide 71) + riset performa
+
+Perubahan dalam 2 kalimat: Pengaturan kini punya saklar "Kurangi
+gerakan (mode tenang)" yang mematikan semua gerakan dekorasi
+sekaligus — hujan di peta, denyut titik penanda di tombol menu
+dan ＋ Tambah karakter, denyut titik stok penuh, dan badge
+melayang (hanya memudar di tempat) — sementara warga dan kamera
+di peta 3D tetap bergerak seperti biasa; bila perangkat meminta
+gerakan minimal, mode ini menyala sendiri saat pertama dibuka.
+
+### Observasi live pra-deploy (browser, hanya melihat, 10:30–10:36 WIB — masih r60)
+- Muat pertama: peta tampil utuh dalam ≤ ~20 detik dari layar
+  "Memuat peta 3D…" — tanpa error/blank. PENYELESAIAN catatan
+  r60: muat 30–60 detik di verifikasi r60 kemungkinan besar
+  memang cold start pasca-deploy, bukan regresi (angka ini
+  kembali ke <20 detik seperti sebelum r60).
+- Geser/zoom: tombol ▼ zoom merespons langsung, tampilan berubah
+  mulus; tidak ada freeze/stutter di animasi peta, hujan, maupun
+  label. Kelancaran drag kontinu TETAP belum terverifikasi —
+  dua percobaan drag gagal di tooling browser (timeout), jadi
+  ini keterbatasan alat ukur, bukan bukti ngelag.
+- Karakter: 12 warga bergerak dengan tujuan, bukan diam/muter.
+  "Ys" berulang kali "🛡️ Menghalau Hewan!" dengan bar yang maju
+  19% → 55% → 74% lalu reset dan naik lagi (13% → 34% → 87%) —
+  pola putaran gelombang yang sama seperti r60, selesai dan mulai
+  lagi, bukan macet. Gelembung "Tolong! Ada hewan buas!" terlihat.
+- Hewan: ~28 label terlihat (Rusa, Babi Hutan, Beruang, Kelinci,
+  Ayam Hutan, Serigala), hewan 3D kecil di bawah labelnya,
+  kebanyakan di perimeter desa; semua label terbaca.
+- Tombol/panel: menu ☰ buka/gulir/tutup, panel Lumbung buka/tutup,
+  semua merespons; tidak ada area blank/error. Titik merah ＋
+  Tambah karakter TERVERIFIKASI VISUAL lagi (tooltip "Tambah
+  karakter — kampung masih kurang warga!").
+- Cuaca Hujan (H-541, 07.03 Pagi): garis hujan diagonal TERLIHAT
+  di seluruh layar peta — VERIFIKASI VISUAL PERTAMA overlay hujan
+  r60 (di r60 cuacanya Cerah sehingga tidak terlihat).
+- Menu ☰: "Tonggak kampung: 7 dari 7", "Pasar Minggu 5 hari lagi
+  di Balai", "Selama kamu pergi: Hari 535 → 541" (Warga baru: 2,
+  Bayi lahir: 0, Warga meninggal: 0, Hewan dijinakkan: 0, Hewan
+  dilepas: 1, Bangunan selesai: 0).
+- Baris "Kronik kampung" TIDAK terlihat untuk KETIGA kalinya
+  berturut-turut — DICEK KODE run ini: barisnya dirender TANPA
+  syarat di page.tsx:878-880 (`.menu-kronik`, di antara Tonggak
+  dan Pasar Minggu yang KEDUANYA terlihat) dan `kronikKampung`
+  selalu mengembalikan teks tak-kosong (aturan 6 = fallback
+  keadaan hari ini). Jadi baris itu ADA di DOM; yang lebih
+  mungkin adalah pengamat melewatkannya saat membaca menu yang
+  bergulir. Tetap dicatat sebagai temuan terbuka: butuh
+  verifikasi visual khusus (tangkapan layar menu penuh), bukan
+  perubahan kode tanpa bukti.
+- Anomali baris status atas: baris resource (nama kampung, 👥,
+  🪵, 🥩, 🪙, jam, cuaca) terlihat di tangkapan pertama lalu
+  tidak ada di tangkapan berikutnya — DIJELASKAN run ini: baris
+  itu (`.menu-res-row`, page.tsx:692) hidup DI DALAM kartu menu,
+  jadi hanya tampil saat menu terbuka; bukan bug, bukan hilang.
+  Tidak ada tindakan.
+
+### Riset + backlog (brief research/2026-11-07-1029.md)
+- Sudut: performa (rotasi dari aksesibilitas 08:29; terakhir
+  disentuh 2026-11-06 16:29). Sumber: "Next.js Dynamic Imports"
+  (StackNotice — `next/dynamic` memisahkan komponen berat, uji
+  lakmus "aksi utama bisa selesai tanpa komponen itu", ukur lewat
+  analyzer + Lighthouse) dan "WebGL and Three.js" (Simplified,
+  DIBACA PENUH: draw call bottleneck #1, target <100 desktop /
+  <50 HP, cap DPR 2x, tanpa shadow map di HP, lazy-load tekstur,
+  dirty flag, Draco, TTI <3 dtk) + cuplikan nazrulkabir (First
+  Load JS ~501KB -> 120–306KB, patokan hijau <200KB gzip).
+- Temuan ukur: Next.js 16 (Turbopack) TIDAK lagi mencetak First
+  Load JS di output build — penggantinya ukuran file chunk.
+  Build r61: total `.next/static/chunks` ~1,66 MB (belum gzip);
+  chunk terbesar 740 KB (three.js — chunk Map3D yang SUDAH
+  dynamic import, jadi first paint tidak menunggunya);
+  berikutnya 224 KB, 161 KB, 109 KB.
+- Ide baru masuk IDE-FITUR.md: Ide 74 (catat ukuran chunk tiap
+  run sebagai angka performa), Ide 75 (dynamic-import SATU modal
+  berat dulu, ukur sebelum/sesudah), Ide 76 (cap DPR 1,5 HANYA
+  bila angka live mendukung — bukan sekarang). Tidak
+  direkomendasikan: migrasi WebGPU, `compileAsync` sebelum hitch
+  terbukti, turunkan DPR membabi buta, analyzer permanen di repo.
+
+### Verifikasi pra-deploy
+- `npx tsx tests/batu.test.ts` = 8446 lolos / 637 gagal (r60:
+  8420/637 — +26 asersi baru RONDE 61, NOL regresi baru; daftar
+  gagal IDENTIK dengan baseline tree bersih r60, dicek lewat
+  `git stash`: 605 "sungai x 36-44" + 32 audit versi lama yang
+  memang mengunci string BUILD_ID berjalan — 32 asersi itu ikut
+  dinaikkan "r60" -> "r61" mengikuti konvensi tiap run).
+  `npm run build` hijau (exit 0, Next.js 16.4.3 Turbopack).
+- Sinkronisasi: local HEAD = remote head = `7d91095` (r60) saat
+  run dimulai; 6 file berubah + 1 brief riset baru + IDE-FITUR.md
+  + catatan verifikasi r60 di CHANGELOG yang belum ter-commit.
+
 ## 2026-11-07 ~08:29 WIB — r60: hujan terlihat di peta (Ide 69) + riset aksesibilitas
 
 Perubahan dalam 2 kalimat: saat cuaca Hujan atau Hujan Petir, garis
@@ -73,6 +165,48 @@ tidak tampil di perangkat yang meminta gerakan minimal.
   di rule `from`). `npm run build` hijau (exit 0).
 - Sinkronisasi: local HEAD = remote head = `0f8d73a` (r59) saat run
   dimulai; 7 file berubah + 1 brief riset baru + IDE-FITUR.md.
+
+### Verifikasi live r60 (09:10–09:18 WIB, setelah deploy)
+- Deployment production Vercel READY dari commit `7d91095`
+  (githubCommitSha cocok; push pertama sempat tidak pasti karena
+  service restart — dicek remote masih r59, lalu push ulang
+  berhasil). `/api/version` = r60. Homepage + satu ikon
+  (`/batu/gubuk.png`, 128x128) termuat.
+- `/api/world`: ok:true, tanpa error — Suka Maju, zaman_batu, pop 12,
+  hari_total 535, jam 19.49 Sore, cuaca Cerah; stok kayu 160/160,
+  batu 130/130, emas 2/40, besi 47/55, pangan 200/200, kulit 95/95
+  (cocok dengan menu).
+- `/api/map`: ok:true, tanpa error — 12 warga, 30 hewan (8 beruang,
+  8 babi_hutan, 6 rusa, 4 kelinci, 3 ayam, 1 serigala), grid 600x600,
+  ikan 30. `/api/bangunan`: ok:true — katalog 26 bangunan + antrean
+  14 entri, semua selesai progres 100. TIDAK ADA REGRESI: semua API
+  yang tadinya ok tetap ok dengan isi yang masuk akal.
+- CATATAN: fetch teks `/api/world` + `/api/map` sempat timeout dua
+  kali via browser.open (seperti satu kali di r59) — lewat browser
+  langsung ketiganya termuat normal, jadi itu gangguan fetch, bukan
+  regresi.
+- Verifikasi VISUAL hujan BELUM bisa: cuaca saat verifikasi adalah
+  Cerah (H-535), jadi tidak ada garis hujan yang terlihat — dan
+  memang tidak boleh ada. Yang terverifikasi adalah tes offline +
+  tidak ada regresi build/API; hujan di layar menunggu hari game
+  bercuaca Hujan/Petir berikutnya.
+- Muat pertama kali ini ~30–60 detik (layar "Memuat peta 3D…"
+  masih tampil di ~30 detik) — lebih lambat dari <20 detik di
+  observasi pra-deploy; kemungkinan cold start pasca-deploy, bukan
+  klaim regresi — dipantau run berikutnya.
+- "Kronik kampung" TIDAK terlihat di menu pada DUA observasi
+  berturut-turut — DICEK KODE run ini: barisnya ADA dan dirender
+  tanpa syarat di page.tsx:848-853 (`.menu-kronik`, CSS kotak
+  berbatas normal, bukan tersembunyi), di fragmen yang sama dengan
+  baris yang terlihat ("Kampung menginginkan", "Tonggak"). Pengamat
+  kedua juga melewatkan baris "Pasar Minggu" yang pengamat pertama
+  LIHAT — jadi yang lebih mungkin adalah keterbatasan pembacaan
+  menu yang bergulir, bukan hilangnya baris. Tetap dicatat sebagai
+  temuan terbuka untuk verifikasi visual khusus run berikutnya.
+- Titik merah ＋ Tambah karakter TERVERIFIKASI ULANG secara visual.
+  "Selama kamu pergi: Hari 524 → 535" (11 hari).
+- Catatan ini ditulis di working tree dan ikut commit run berikutnya,
+  supaya tidak memicu redeploy sia-sia hanya untuk CHANGELOG.
 
 ## 2026-11-07 ~06:29 WIB — r59: gelembung naik mengikuti tinggi label (Ide 65) + riset musim & cuaca
 

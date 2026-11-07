@@ -226,6 +226,26 @@ export default function Page() {
       return next;
     });
   };
+  // Mode tenang (RONDE 61, Ide 71): satu saklar di Pengaturan yang
+  // mematikan SEMUA gerakan non-inti sekaligus — overlay hujan,
+  // denyut titik penanda (Ide 56/58), titik stok penuh, badge
+  // melayang — untuk pemain yang sensitif gerak tapi OS-nya tidak
+  // menyetel prefers-reduced-motion (XAG 117: mekanisme penonaktifan
+  // harus ada DI DALAM game, bukan hanya di setelan OS). Default
+  // mengikuti prefers-reduced-motion bila belum pernah disentuh;
+  // pilihan tersimpan di localStorage (ne_kurangi_gerakan). Kanvas
+  // 3D TIDAK disentuh — gerak warga/kamera adalah inti permainan
+  // (keputusan r31 yang tetap berlaku).
+  const [kurangiGerakan, setKurangiGerakan] = useState(false);
+  const toggleKurangiGerakan = () => {
+    setKurangiGerakan((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem("ne_kurangi_gerakan", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  };
   // Tip kontekstual satu baris di kartu menu (2026-11-05, Ide 14):
   // satu kalimat yang menjelaskan model pengamat (warga bekerja
   // sendiri, arah diputuskan Musyawarah) — bukan tur multi-langkah.
@@ -328,6 +348,12 @@ export default function Page() {
       if (rl) setRoadLevel(Number(rl));
       if (localStorage.getItem("ne_label_karakter") === "0") setLabelTampil(false);
       if (localStorage.getItem("ne_efek_cuaca") === "0") setEfekCuaca(false);
+      // Mode tenang (RONDE 61, Ide 71): "1" = pernah dinyalakan,
+      // "0" = pernah dimatikan; bila belum pernah disentuh, default
+      // mengikuti prefers-reduced-motion perangkat.
+      const kg = localStorage.getItem("ne_kurangi_gerakan");
+      if (kg === "1") setKurangiGerakan(true);
+      else if (kg === null && window.matchMedia("(prefers-reduced-motion: reduce)").matches) setKurangiGerakan(true);
       if (localStorage.getItem("ne_tip_kontekstual") === "0") setTipTampil(false);
       // "Selama kamu pergi" (2026-11-05, Ide 22): cuplikan kunjungan
       // terakhir — dibaca sekali saat mount; penulisan ada di efek
@@ -661,7 +687,7 @@ export default function Page() {
   };
 
   return (
-    <div className={`game-root${orientasi === "landscape" ? " landscape-mode" : ""}`}>
+    <div className={`game-root${orientasi === "landscape" ? " landscape-mode" : ""}${kurangiGerakan ? " mode-tenang" : ""}`}>
       {/* Menu kampung (2026-11-04, permintaan user): topbar DIHAPUS,
           diganti 1 tombol kanan-atas yang membuka kartu modal menu.
           Semua tombol lama pindah ke sini, masing-masing dengan ikon,
@@ -1065,7 +1091,7 @@ export default function Page() {
             onResourceHarvested={handleResourceHarvested}
             roadLevel={roadLevel}
             labelTampil={labelTampil}
-            efekCuaca={efekCuaca}
+            efekCuaca={efekCuaca && !kurangiGerakan}
           />
         </div>
 
@@ -1129,6 +1155,18 @@ export default function Page() {
                   Saat cuaca Hujan atau Hujan Petir, garis hujan jatuh di atas peta (petir tampil sebagai hujan lebih deras, tanpa
                   kilat). Di perangkat yang meminta gerakan minimal, hujan otomatis tidak tampil — cuaca tetap terbaca sebagai teks
                   di menu.
+                </p>
+                <div style={{ fontSize: 12, marginBottom: 4 }}>
+                  Kurangi gerakan (mode tenang):{" "}
+                  <button className="md-btn" style={{ padding: "4px 10px" }} onClick={toggleKurangiGerakan}>
+                    {kurangiGerakan ? "Nyala (ketuk untuk matikan)" : "Mati (ketuk untuk nyalakan)"}
+                  </button>
+                </div>
+                <p style={{ fontSize: 11, opacity: 0.75, marginTop: 0 }}>
+                  Mematikan gerakan dekorasi sekaligus: hujan di peta, denyut titik penanda di tombol menu dan ＋ Tambah karakter,
+                  denyut titik stok penuh, dan badge melayang di atas warga (badge tetap muncul, hanya tidak naik). Warga dan kamera
+                  di peta 3D tetap bergerak seperti biasa. Bila perangkatmu meminta gerakan minimal, mode ini menyala sendiri saat
+                  pertama dibuka.
                 </p>
                 <div style={{ fontSize: 12, marginBottom: 4 }}>
                   Tip kontekstual di menu:{" "}

@@ -1283,3 +1283,36 @@ canvas.game-canvas {
   75% { opacity: 0.95; }
   100% { opacity: 0; }
 }
+
+/* Mode tenang (RONDE 61, Ide 71, riset aksesibilitas 08:29):
+   cerminan blok prefers-reduced-motion di atas, tapi dikendalikan
+   saklar "Kurangi gerakan" di Pengaturan (ne_kurangi_gerakan) lewat
+   kelas .mode-tenang di .game-root — bukan setelan OS. XAG 117:
+   pemain harus bisa mematikan konten bergerak DARI DALAM game.
+   Aturannya sama persis dengan setelan OS supaya satu saklar ini
+   = "reduced-motion" versi game: panel/modal muncul langsung,
+   titik penanda + titik stok penuh jadi statis (sinyalnya tetap
+   ada, geraknya tidak), badge melayang hanya memudar di tempat.
+   Overlay hujan TIDAK diatur di sini — ia tidak dirender sama
+   sekali saat mode tenang (page.tsx: efekCuaca && !kurangiGerakan).
+   Kanvas 3D sengaja TIDAK disentuh (inti permainan, keputusan
+   r31); yang dimatikan hanya dekorasi di atasnya. */
+.mode-tenang .overlay-full, .mode-tenang .modal-box, .mode-tenang .menu-card, .mode-tenang .menu-fab, .mode-tenang .menu-item,
+.mode-tenang .side-panel, .mode-tenang .papan-warga-row, .mode-tenang .hud-res-chip, .mode-tenang .map3d-label {
+  transition: none !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+.mode-tenang .hud-full-dot {
+  animation: none !important;
+  opacity: 1;
+}
+.mode-tenang .menu-fab-dot {
+  animation: none !important;
+}
+.mode-tenang .tk-fab-dot {
+  animation: none !important;
+}
+.mode-tenang .map3d-float-badge {
+  animation-name: floatFadeTenang;
+}
