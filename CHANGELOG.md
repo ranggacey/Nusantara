@@ -1,3 +1,89 @@
+## 2026-11-07 ~16:29 WIB — r64: perkakas besi menggeser peluang roll (Ide 79) + riset audio
+
+Perubahan dalam 2 kalimat: perkakas peran kini bisa ditempa jadi
+perkakas besi (level 2) saat istirahat bila bengkel besi berdiri
+dan stok besi cukup (1 besi), dan pemegangnya mendapat geseran
+peluang roll TERBESAR yang diizinkan tetap di dalam cap — roll
+biasa 35/40/25 + bump 75% (rata-rata ~2,46, maks tetap 3, cap
+harian 15 tetap); besi/emas tidak dapat bump, busur pemburu tidak
+ikut ditempa, dan laju kumpul +25% tidak berubah. Dengan ini
+tangga DESAIN-EKONOMI.md selesai sampai ujung: monumen (r62–r63)
++ perkakas besi (r64), tanpa sisa tingkat 5.
+
+### Observasi live pra-deploy (browser, hanya melihat, 16:30–16:33 WIB — masih r63)
+- Muat pertama terasa berat: layar gelap "Memuat peta 3D…" masih
+  tampil di capture pertama; peta tampil setelah tunggu 60 detik
+  (durasi persis tidak diukur, <60–90 dtk) — tanpa progress bar
+  atau persentase selama memuat. Setelah tampil, tidak ada
+  jank/freeze/blank/error; state terus update ("🛡️ Menghalau
+  Hewan!" 29% -> 61% -> 39%/58% = progres lalu gelombang baru;
+  gelembung "Tolong! Ada hewan buas!").
+- Warga terlihat aktif (Figo, Budi, Siti, Nera, Praboti, Go
+  Younjung, ribran gakabuming, Miners, dll.), berkerumun di pusat
+  kampung; langkah individu sulit dipastikan dari still.
+- Hewan terlihat banyak di sekitar/selatan kampung (Rusa, Babi
+  Hutan, Beruang, Kelinci, Ayam Hutan, Serigala), beberapa dengan
+  bar HP kecil.
+- Kontrol utuh, tidak terpotong: tombol menu kuning kanan-atas,
+  kontrol kamera + analog kiri-bawah, "🎮 Panduan Kontrol",
+  "＋ Tambah karakter" kanan-bawah. Titik MERAH TERKONFIRMASI di
+  tombol ＋ Tambah karakter (Ide 58 — verifikasi visual, titik
+  merah kecil bergaris putih di sudut tombol); TIDAK ada titik di
+  tombol menu (benar: tidak ada tonggak baru, 7/8 sudah dilihat).
+- Cuaca cerah siang — TIDAK ada hujan terlihat (berbeda dari r63
+  yang hujan deras); tidak ada HUD hari/jam/fase/cuaca di layar
+  utama (info itu ada di kartu menu).
+- Temuan berulang: label nama warga di pusat menumpuk dan sebagian
+  tidak terbaca ("Ys", "iti", "reja auditore", "dyroth"); label
+  hewan selatan menumpuk vertikal — prasyarat Ide 66/67, bukan
+  fokus run ini. Satu yang aneh: framing kamera berubah antar
+  capture tanpa klik (desa tampak lebih dekat lalu lebih jauh) —
+  dipantau run berikutnya, bukan error (kontrol sudah ada).
+
+### Riset + backlog (brief research/2026-11-07-1629.md)
+- Sudut: audio (rotasi dari onboarding/prestasi 14:29). Sumber:
+  (1) CRYENGINE Dynamic Ambience: satu ambien global, tiga lapis
+  bersamaan (Base + Day + Night), dicampur SATU parameter kontinu
+  (RTPC waktu-hari 0–1) + lerp, bukan saklar; Random Container +
+  transisi Xfade; lapis area memudar menurut jarak (parameter
+  0–1). (2) Knucklebones AudioEngine (DeepWiki): Web Audio API
+  tanpa file eksternal; hierarki gain master/musik/SFX;
+  `setTargetAtTime` untuk semua transisi; audio hanya setelah
+  gestur; tiga lapis generatif (drone sawtooth 55/55,3/82,5 Hz
+  lowpass 200 Hz + reverb 2,5 dtk; lonceng pentatonik G-minor
+  tiap 3–7 dtk; denyut 60 BPM noise bandpass 80 Hz Q 2); reverb
+  dari noise x decay eksponensial; reaktivitas via skor.
+- Ide 82 BARU masuk backlog: ambien hujan mengikuti intensitas
+  cuaca visual (`intensitasHujan` r60, ringan vs deras) — mata
+  bilang hujan, telinga bilang cerah. Penguat Ide 32/49 (bukan ide
+  baru): pola tiga lapis + satu parameter kontinu + hierarki gain.
+  TIDAK direkomendasikan: FMOD/Wwise, generate AI on-device,
+  autoplay saat load, satu loop statis, loop berlisensi di paket
+  awal.
+- Build run ini dari prioritas DESAIN-EKONOMI.md (Ide 79), bukan
+  dari riset ini.
+
+### Verifikasi pra-deploy
+- Tes offline: `npx tsx tests/batu.test.ts` = 8547 lolos, 633
+  gagal — daftar gagal IDENTIK dengan baseline r63 (8516/633)
+  yang diukur sebelum perubahan; 31 asersi baru RONDE 64 semua
+  lolos (baris peluang, statistik roll 20.000x, besi/emas tanpa
+  bump, 6 gerbang tempa, call site, versi). Dua jebakan saat
+  menulis tes: 35 asersi audit versi lama mengunci string "r63"
+  (pola house: sed global "r63" -> "r64" di asersi versi, nama
+  tes "r63:" TIDAK diubah) + type check menolak indeks string ke
+  `Partial<Record<ResourceId, number>>` di `cobaTempaBesi`
+  (diperbaiki dengan cast `k as ResourceId`).
+- Build: `npm run build` hijau (Next.js 16, semua route
+  terdaftar termasuk /api/version, /api/world, /api/map,
+  /api/bangunan). Ukuran chunk (Ide 74): total
+  `.next/static/chunks` 1.663.806 byte (~1,66 MB, SAMA dengan
+  baseline r61); 3 terbesar 757.956 (~740 KB, three.js/Map3D),
+  229.820 (~224 KB), 165.801 (~162 KB) — naik tipis dari
+  740/224/161 KB, konsisten dengan tambahan kode kecil.
+
+### Verifikasi live r64 (diisi setelah deploy)
+
 ## 2026-11-07 ~14:29 WIB — r63: tonggak ke-8 "Tugu Leluhur Agung berdiri" (Ide 78) + riset onboarding/prestasi
 
 Perubahan dalam 2 kalimat: tonggak kampung kini ada 8 — entri
@@ -74,7 +160,25 @@ dan tanpa panel baru.
   terdaftar termasuk /api/version, /api/world, /api/map,
   /api/bangunan).
 
-### Verifikasi live r63 (diisi setelah deploy)
+### Verifikasi live r63 (14:40–14:41 WIB, setelah deploy)
+- Deployment production Vercel `dpl_5ZrW8mjmGmcV4vHpFqRj6DTWvkF2`
+  READY dari commit `ea75a014` (githubCommitSha cocok).
+  `/api/version` = r63. Homepage 200 + satu ikon
+  (`/batu/gubuk.png`) 200.
+- `/api/world`: ok:true, tanpa error — Suka Maju, zaman_batu, pop
+  12, hari_total 557, jam 14.57 Siang, cuaca Hujan; stok kayu
+  160/160, batu 130/130, emas 3/40, besi 47/55, pangan 200/200,
+  kulit 95/95 (cocok dengan observasi r62; emas 2 -> 3 adalah
+  drift sim biasa, bukan regresi).
+- `/api/map`: ok:true — grid 600x600, sungai mengalir (riverXs).
+- `/api/bangunan`: ok:true — katalog 28 bangunan, tugu dan
+  bengkel besi tetap ada dengan biaya r62. TIDAK ADA REGRESI:
+  semua API yang tadinya ok tetap ok dengan isi yang masuk akal.
+- Verifikasi VISUAL baris "7 dari 8" di kartu menu menyusul —
+  butuh membuka menu (browser task run ini hanya mengamati
+  sebelum deploy, tanpa klik); yang terverifikasi run ini adalah
+  tes offline + baris memakai `tg.total` (bukan angka keras) +
+  tidak ada regresi build/API.
 
 ## 2026-11-07 ~12:29 WIB — r62: bangunan tingkat 5 masuk katalog, terkunci (Ide 77) + riset ekonomi/sim
 

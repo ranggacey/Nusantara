@@ -77,7 +77,7 @@
 import { getCollection, pastikanIndexPlacement } from "../db";
 import { gameTime, cuacaGame, migrasiJam, migrasiJamV4 } from "../clock";
 import { faseDariJam, seededRandom } from "../world";
-import { peranById, labelNode, nodeHasil, pengaliFit, perkakasPeran, LABEL_ALAT, RESEP_PERKAKAS, type NodeKind, type PeranId } from "./peran";
+import { peranById, labelNode, nodeHasil, pengaliFit, perkakasPeran, LABEL_ALAT, RESEP_PERKAKAS, BIAYA_TEMPA_BESI, type NodeKind, type PeranId, type ResourceId } from "./peran";
 import { stokKosong, bangunanById, cukupBiaya, kurangDariBiaya, hitungKapasitasStok, tingkat5Terbuka, type Stok } from "./sumberdaya";
 import { generateNodes, isWater, riverX, findPlot, findHousePlotBesideRoad, findBridgePlot, findBoatSpot, rotasiKeJalan, PLACEMENT_AWAL, PUSAT, GRID_MIN, GRID_MAX, isGunung, gunungTileKeys, dedupePlacement, ukuranPetak, petakBangunan, occupiedDariPlacements, plotBebas, type Node } from "./dunia";
 import { rencanaJalan } from "./jalan";
@@ -348,16 +348,24 @@ export const PENGALI_KUMPUL = 5;
 // Roll biasa 1/2/3 = 64/27/9% (rata-rata 1,45) -> 50/30/20%
 // (rata-rata 1,7) — PERSIS angka DESAIN-EKONOMI.md, cap 3/hari/orang
 // TIDAK berubah, besi/emas tidak berubah.
-export function peluangKumpul(resource: string, berbakat: boolean): number[] {
+export function peluangKumpul(resource: string, berbakat: boolean, perkakasBesi = false): number[] {
   if (resource === "besi") return berbakat ? [0.7, 0.25, 0.05] : [0.8, 0.17, 0.03];
   if (resource === "emas") return [0.75, 0.2, 0.05];
+  // RONDE 64 — perkakas besi (Ide 79): geseran TERBESAR yang diizinkan
+  // tetap di dalam cap — bobot bergeser ke 2/3 (rata-rata baris 1,9,
+  // dulu 1,7), maks tetap 3. Besi/emas TIDAK berubah (tetap boleh nol,
+  // tidak dapat bump — DESAIN-EKONOMI.md §7).
+  if (perkakasBesi) return [0, 0.35, 0.4, 0.25];
   return [0, 0.5, 0.3, 0.2];
 }
 
 export function rollHasilKumpul(resource: string, w: Warga): number {
+  const alat = perkakasPeran(w.peran);
+  const levelAlat = levelPerkakas(w, alat);
+  const perkakasBesi = levelAlat >= 2;
   const berbakat =
-    bonusJumlahBakat(w.bakat) > 0 || levelPerkakas(w, perkakasPeran(w.peran)) >= 1;
-  const p = peluangKumpul(resource, berbakat);
+    bonusJumlahBakat(w.bakat) > 0 || levelAlat >= 1;
+  const p = peluangKumpul(resource, berbakat, perkakasBesi);
   const r = Math.random();
   let hasil = p.length - 1;
   let akum = 0;
@@ -370,7 +378,10 @@ export function rollHasilKumpul(resource: string, w: Warga): number {
   }
   // Keunggulan hanya menggeser peluang di dalam cap (sumber biasa saja;
   // besi/emas sudah punya jalurnya sendiri lewat peluangKumpul).
-  if (resource !== "besi" && resource !== "emas" && berbakat && hasil < 3 && Math.random() < 0.5) hasil += 1;
+  // RONDE 64 — perkakas besi: bump +1 lebih sering (75%, dulu 50%),
+  // tetap maks 3 dan tetap TIDAK untuk besi/emas.
+  const peluangBump = perkakasBesi ? 0.75 : 0.5;
+  if (resource !== "besi" && resource !== "emas" && berbakat && hasil < 3 && Math.random() < peluangBump) hasil += 1;
   return hasil;
 }
 
@@ -1590,6 +1601,29 @@ function levelPerkakas(w: Warga, jenis: string): number {
   return (w.perkakas ?? []).find((p) => p.jenis === jenis)?.level ?? 0;
 }
 
+// RONDE 64 — Tempa besi (Ide 79, DESAIN-EKONOMI.md §2 tingkat 5):
+// menaikkan perkakas peran level 1 -> level 2 bila bengkel besi
+// BERDIRI (placements) dan stok cukup (1 besi, BIAYA_TEMPA_BESI).
+// Mengembalikan teks kabar bila berhasil, null bila tidak (alat masih
+// level 0 -> buat level 1 dulu; sudah level 2; tidak ada bengkel besi;
+// besi tidak cukup). Dipanggil dari crafting istirahat (1x/hari).
+// Busur pemburu TIDAK ditempa di sini — hanya perkakas peran.
+export function cobaTempaBesi(
+  w: Warga,
+  placements: { kind: string }[],
+  stok: Partial<Record<ResourceId, number>>
+): string | null {
+  const alat = perkakasPeran(w.peran);
+  if (levelPerkakas(w, alat) !== 1) return null;
+  if (!(placements ?? []).some((p) => p.kind === "bengkel_besi")) return null;
+  if (!cukupBiaya(stok, BIAYA_TEMPA_BESI)) return null;
+  for (const [k, v] of Object.entries(BIAYA_TEMPA_BESI)) stok[k as ResourceId] = (stok[k as ResourceId] ?? 0) - (v ?? 0);
+  const ada = (w.perkakas ?? []).find((p) => p.jenis === alat);
+  if (ada) ada.level = 2;
+  else (w.perkakas ??= []).push({ jenis: alat, level: 2 });
+  return `${w.nama} menempa ${LABEL_ALAT[alat] ?? alat} menjadi perkakas besi.`;
+}
+
 function bonusPerkakas(w: Warga): number {
   const alat = perkakasPeran(w.peran);
   return levelPerkakas(w, alat) >= 1 ? 1.25 : 1;
@@ -2631,7 +2665,11 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
       w.stamina = Math.min(100, w.stamina + 10);
       w.status_teks = "Makan di kampung…";
     }
-    // Crafting: 1x/hari saat istirahat. Perkakas peran dulu, lalu busur pemburu.
+    // Crafting: 1x/hari saat istirahat. Perkakas peran dulu (level 1),
+    // lalu tempa besi (level 2, RONDE 64) bila bengkel besi berdiri,
+    // lalu busur pemburu. Cabang tempa digerbang syaratnya supaya
+    // bila tempa TIDAK mungkin (tidak ada bengkel / besi kurang),
+    // giliran jatuh ke busur seperti biasa, bukan hangus.
     const alat = perkakasPeran(w.peran);
     if (levelPerkakas(w, alat) < 1) {
       const resep = RESEP_PERKAKAS[alat];
@@ -2642,6 +2680,13 @@ export function stepWarga(w: Warga, jam: number, ctx: SimCtx): void {
         else (w.perkakas ??= []).push({ jenis: alat, level: 1 });
         ctx.kabar.push({ jenis: "craft", teks: `${w.nama} membuat ${LABEL_ALAT[alat] ?? alat} baru.`, hari, dibuat_pada: new Date() });
       }
+    } else if (
+      levelPerkakas(w, alat) === 1 &&
+      (ctx.placements ?? []).some((p) => p.kind === "bengkel_besi") &&
+      cukupBiaya(ctx.stok, BIAYA_TEMPA_BESI)
+    ) {
+      const teksTempa = cobaTempaBesi(w, ctx.placements ?? [], ctx.stok);
+      if (teksTempa) ctx.kabar.push({ jenis: "craft", teks: teksTempa, hari, dibuat_pada: new Date() });
     } else if (w.peran === "pemburu" && levelPerkakas(w, "busur") < 1) {
       const resep = RESEP_PERKAKAS["busur"];
       if (resep && cukupBiaya(ctx.stok, resep)) {

@@ -212,3 +212,11 @@ export const RESEP_PERKAKAS: Record<string, Partial<Record<ResourceId, number>>>
   alat_tenun: { kayu: 10, kulit: 2 },
   jerat: { kayu: 6, kulit: 4 },
 };
+
+// RONDE 64 — Biaya tempa besi (Ide 79, DESAIN-EKONOMI.md §2 tingkat 5):
+// menaikkan perkakas peran level 1 -> level 2 (perkakas besi) saat
+// istirahat, HANYA bila bengkel besi berdiri. Satu angka saja (1 besi):
+// gagangnya sudah dibayar resep level 1, yang ditempa hanya mata
+// besinya — dan besi adalah gerbang kelangkaan tingkat 5 (rata-rata
+// 0,23/hari), jadi biayanya tidak perlu ditambah kayu/batu.
+export const BIAYA_TEMPA_BESI: Partial<Record<ResourceId, number>> = { besi: 1 };

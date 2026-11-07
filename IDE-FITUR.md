@@ -1380,6 +1380,27 @@ kerjakan dalam satu run sendiri supaya efeknya terukur. Dampak
 kecil-sedang, usaha kecil. Detail di research/2026-11-07-1229.md.
 
 ## Ide 79 — Perkakas besi menggeser peluang roll (dari riset 2026-11-07 12:29 WIB, sudut ekonomi/sim)
+~~DIBANGUN 2026-11-07 16:29 WIB (r64)~~ — pengecekan prasyarat
+terpenuhi: jalur geser SUDAH ADA (`rollHasilKumpul`: perkakas
+level >= 1 -> berbakat), tapi BINER dan buta jenis — perkakas kayu/
+batu/besi semua memberi geseran yang sama. Yang dibangun: level 2
+"perkakas besi" untuk perkakas peran — `peluangKumpul(resource,
+berbakat, perkakasBesi)` (biasa + besi: 35/40/25, rata-rata baris
+1,9; besi/emas TIDAK berubah) + bump +1 naik 50% -> 75% (rata-rata
+roll kayu ~2,46, maks tetap 3, cap harian 15 tetap) + helper murni
+`cobaTempaBesi` (level 1 -> 2, biaya 1 besi `BIAYA_TEMPA_BESI`,
+gerbang: bengkel besi BERDIRI + besi cukup; busur pemburu TIDAK
+ditempa) + wiring crafting istirahat (1x/hari; cabang tempa
+digerbang syaratnya supaya bila tempa tidak mungkin, giliran jatuh
+ke busur seperti biasa). Laju kumpul +25% (bonusPerkakas) TIDAK
+berubah — manfaat besi hanya geseran roll. +31 tes (RONDE 64:
+baris peluang, statistik roll 20.000x, besi/emas tanpa bump,
+6 gerbang tempa, call site, versi). CATATAN JUJUR: live pop 12 <
+20, bengkel besi belum berdiri di Suka Maju — tempa pertama baru
+terjadi setelah gerbang tingkat 5 terbuka; verifikasi perilaku
+hanya lewat tes offline + tidak ada regresi build/API. SISA
+tingkat 5: TIDAK ADA — tangga DESAIN-EKONOMI.md selesai sampai
+ujung (monumen + perkakas besi).
 
 Sumber: Valheim (besi membuka deretan perkakas baru) +
 DESAIN-EKONOMI.md §2 ("bengkel besi membuka perkakas besi").
@@ -1418,6 +1439,27 @@ bukan menunggu selesai. Perlu cek dulu apakah data antrean
 (progres) sudah sampai ke baris tonggak — bila belum, irisan
 pertama adalah pengecekan itu. Dampak kecil, usaha kecil-sedang.
 Detail di research/2026-11-07-1429.md.
+
+## Ide 82 — Ambien hujan mengikuti intensitas cuaca visual (dari riset 2026-11-07 16:29 WIB, sudut audio)
+
+Sumber: CRYENGINE Dynamic Ambience (satu ambien global, lapis
+bersamaan, satu parameter kontinu + lerp) + Knucklebones
+AudioEngine (Web Audio API, hierarki gain, audio hanya setelah
+gestur). Masalah: hujan SUDAH terlihat (overlay r60, ringan vs
+deras) tapi TIDAK terdengar — mata bilang hujan, telinga bilang
+cerah. Cara kerja: satu lapis hujan prosedural (noise terfilter)
+yang gain-nya mengikuti helper `intensitasHujan` yang SUDAH ADA
+(r60: "ringan" vs "deras") — bukan parameter baru; ikut toggle
+Suara + gate gestur; tanpa aset, tanpa fetch baru, tanpa ubah sim.
+Irisan pertama: fungsi murni `gainHujan(intensitas)` -> angka +
+tes; bunyinya belakangan setelah Ide 32 (ambien) hidup, supaya
+satu infrastruktur audio. Dampak sedang, usaha kecil-sedang.
+Perhatian: gain hujan deras tetap di bawah ambien dasar (ambien
+lebih pelan dari bunyi aksi). Penguat riset ini untuk Ide 32/49
+(BUKAN ide baru): pola tiga lapis bersamaan + satu parameter
+kontinu + hierarki gain + `setTargetAtTime` — dicatat di
+research/2026-11-07-1629.md. Detail di
+research/2026-11-07-1629.md.
 
 ## Ide r42 — Tidur di dalam + label tidak menumpuk + hewan dekat kampung (wewenang penuh user 2026-11-05, SELESAI di r42)
 

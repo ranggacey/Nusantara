@@ -147,9 +147,12 @@ akhirnya berharga:
   upgrade tingkat 1 yang sudah ada di sumberdaya.ts, jadi nyambung
   dengan ekonomi yang ada): bangunan kemenangan kampung, tanpa
   fungsi ekonomi, murni bukti kampung sudah sampai ujung tangga.
-- STATUS r63 (2026-11-07 14:29 WIB): tonggak ke-8 SELESAI (Ide 78,
+- STATUS r64 (2026-11-07 16:29 WIB): tonggak ke-8 SELESAI (Ide 78,
   BUILD_ID r63) — baris menu Suka Maju kini "7 dari 8". SISA
-  tingkat 5: perkakas besi (Ide 79).
+  tingkat 5: TIDAK ADA LAGI — perkakas besi SELESAI (Ide 79,
+  BUILD_ID r64): perkakas peran level 1 -> level 2 bila bengkel
+  besi berdiri + 1 besi, roll biasa 35/40/25 + bump 75% (rata-rata
+  ~2,46, maks tetap 3); besi/emas tidak dapat bump.
 - Proyek besi itu lintas musim: 40 besi dengan rata-rata 0,55
   per hari per penambang = sekitar 73 hari-penambang. Satu
   penambang butuh berbulan-bulan game; tiga penambang berbakat
